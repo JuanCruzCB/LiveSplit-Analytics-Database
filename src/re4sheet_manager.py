@@ -6,6 +6,7 @@ import numpy as np
 from decorators import measure_time
 from typing import Any
 from datetime import datetime
+from pandas import DataFrame
 
 
 class RE4SheetManager:
@@ -121,39 +122,35 @@ class RE4SheetManager:
         print(f"Sheet '{sheet_tab_name}' updated successfully!")
 
     @measure_time
-    def copy_doorsplits_to_sheet(self, doorsplits: Path) -> None:
+    def copy_doorsplits_to_sheet(self, doorsplits: DataFrame) -> None:
         SHEET_TAB_NAME = "Doors"
-        excel = pd.read_excel(
-            doorsplits,
-            usecols=range(1, 8),
-        )
-        excel = excel.replace({np.nan: ""})
+        selected_columns = doorsplits.iloc[:, 1:8]
+        selected_columns = selected_columns.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            data=excel.values.tolist(),
+            data=selected_columns.values.tolist(),
             range_name="B3",
             make_copy=True,
         )
 
     @measure_time
-    def copy_chapters_to_sheet(self, chapters: Path, chapters_by_doors: Path) -> None:
+    def copy_chapters_to_sheet(
+        self, chapters: DataFrame, chapters_by_doors: DataFrame
+    ) -> None:
         SHEET_TAB_NAME = "Chapters"
-        excel1 = pd.read_excel(
-            chapters,
-            usecols=range(1, 10),
-        )
-        excel1 = excel1.replace({np.nan: ""})
-        excel2 = pd.read_excel(chapters_by_doors, usecols=range(1, 10))
-        excel2 = excel2.replace({np.nan: ""})
+        chapters = chapters.iloc[:, 1:10]
+        chapters = chapters.replace({np.nan: ""})
+        chapters_by_doors = chapters_by_doors.iloc[:, 1:10]
+        chapters_by_doors = chapters_by_doors.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            data=excel1.values.tolist(),
+            data=chapters.values.tolist(),
             range_name="B3",
             make_copy=True,
         )
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            data=excel2.values.tolist(),
+            data=chapters_by_doors.values.tolist(),
             range_name="B25",
             make_copy=True,
         )
@@ -161,32 +158,34 @@ class RE4SheetManager:
     @measure_time
     def copy_sections_to_sheet(
         self,
-        sections: Path,
-        sections_by_chapters: Path,
-        sections_by_doors: Path,
+        sections: DataFrame,
+        sections_by_chapters: DataFrame,
+        sections_by_doors: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "Sections"
-        excel1 = pd.read_excel(sections, usecols=range(1, 10))
-        excel1 = excel1.replace({np.nan: ""})
-        excel2 = pd.read_excel(sections_by_chapters, usecols=range(1, 10))
-        excel2 = excel2.replace({np.nan: ""})
-        excel3 = pd.read_excel(sections_by_doors, usecols=range(1, 10))
-        excel3 = excel3.replace({np.nan: ""})
+
+        sections = sections.iloc[:, 1:10]
+        sections = sections.replace({np.nan: ""})
+        sections_by_chapters = sections_by_chapters.iloc[:, 1:10]
+        sections_by_chapters = sections_by_chapters.replace({np.nan: ""})
+        sections_by_doors = sections_by_doors.iloc[:, 1:10]
+        sections_by_doors = sections_by_doors.replace({np.nan: ""})
+
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            data=excel1.values.tolist(),
+            data=sections.values.tolist(),
             range_name="B3",
             make_copy=True,
         )
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            data=excel2.values.tolist(),
+            data=sections_by_chapters.values.tolist(),
             range_name="B9",
             make_copy=True,
         )
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            data=excel3.values.tolist(),
+            data=sections_by_doors.values.tolist(),
             range_name="B15",
             make_copy=True,
         )
@@ -194,14 +193,14 @@ class RE4SheetManager:
     @measure_time
     def copy_paces_to_sheet(
         self,
-        paces: Path,
+        paces: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "Paces"
-        excel = pd.read_excel(paces, usecols=range(1, 9))
-        excel = excel.replace({np.nan: ""})
+        paces = paces.iloc[:, 1:9]
+        paces = paces.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            data=excel.values.tolist(),
+            data=paces.values.tolist(),
             range_name="B3",
             make_copy=True,
         )
@@ -209,14 +208,14 @@ class RE4SheetManager:
     @measure_time
     def copy_rng_patterns_to_sheet(
         self,
-        rng_patterns: Path,
+        rng_patterns: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "RNG Patterns"
-        excel = pd.read_excel(rng_patterns, usecols=range(1, 15))
-        excel = excel.replace({np.nan: ""})
+        rng_patterns = rng_patterns.iloc[:, 1:15]
+        rng_patterns = rng_patterns.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            data=excel.values.tolist(),
+            data=rng_patterns.values.tolist(),
             range_name="B4",
             make_copy=True,
         )
@@ -224,12 +223,13 @@ class RE4SheetManager:
     @measure_time
     def copy_general_stats_to_sheet(
         self,
-        general_stats: Path,
+        general_stats: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "General"
-        excel = pd.read_excel(general_stats, usecols=range(1, 8))
-        excel = excel.replace({np.nan: ""})
-        data = excel.values.tolist()
+        general_stats = general_stats.iloc[:, 1:8]
+        general_stats = general_stats.replace({np.nan: ""})
+
+        data = general_stats.values.tolist()
         input_format = "%Y-%m-%d"
         output_format = "%d/%m/%Y"
         dates_formatted = list(
@@ -254,15 +254,16 @@ class RE4SheetManager:
     @measure_time
     def copy_resets_to_sheet(
         self,
-        resets: Path,
+        resets: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "Resets"
-        excel = pd.read_excel(resets, usecols=range(1, 8))
-        excel = excel.replace({np.nan: ""})
+
+        resets = resets.iloc[:, 1:8]
+        resets = resets.replace({np.nan: ""})
 
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            data=excel.values.tolist(),
+            data=resets.values.tolist(),
             range_name="B3",
             make_copy=False,
         )
@@ -270,12 +271,12 @@ class RE4SheetManager:
     @measure_time
     def copy_weekday_data_to_sheet(
         self,
-        weekday_data: Path,
+        weekday_data: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "Weekday"
-        excel = pd.read_excel(weekday_data, usecols=range(2, 9))
-        excel = excel.replace({np.nan: ""})
-        data = excel.values.tolist()
+        weekday_data = weekday_data.iloc[:, 2:9]
+        weekday_data = weekday_data.replace({np.nan: ""})
+        data = weekday_data.values.tolist()
 
         ranges_to_process = [
             range(7, 14),

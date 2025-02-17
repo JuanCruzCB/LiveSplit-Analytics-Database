@@ -62,37 +62,21 @@ def main() -> None:
 
         db_manager.close_connection()
 
-        excel_files = make_excels(
-            gold_dfs=[
-                ("Doorsplit golds", df_doorsplit_golds),
-                ("Chapter golds", df_chapter_golds),
-                ("Chapter golds by doors", df_chapter_golds_by_doors),
-                ("Section golds", df_section_golds),
-                ("Section golds by chapters", df_section_golds_by_chapters),
-                ("Section golds by doors", df_section_golds_by_doors),
-                ("Best paces", df_best_paces),
-                ("RNG Patterns", df_rng_patterns),
-                ("General Stats", df_general_stats),
-                ("Resets", df_resets),
-                ("Weekday Data", df_weekday_data),
-            ]
-        )
-
-        sheet_manager.copy_doorsplits_to_sheet(doorsplits=excel_files[0])
+        sheet_manager.copy_doorsplits_to_sheet(doorsplits=df_doorsplit_golds)
         sheet_manager.copy_chapters_to_sheet(
-            chapters=excel_files[1],
-            chapters_by_doors=excel_files[2],
+            chapters=df_chapter_golds,
+            chapters_by_doors=df_chapter_golds_by_doors,
         )
         sheet_manager.copy_sections_to_sheet(
-            sections=excel_files[3],
-            sections_by_chapters=excel_files[4],
-            sections_by_doors=excel_files[5],
+            sections=df_section_golds,
+            sections_by_chapters=df_section_golds_by_chapters,
+            sections_by_doors=df_section_golds_by_doors,
         )
-        sheet_manager.copy_paces_to_sheet(paces=excel_files[6])
-        sheet_manager.copy_rng_patterns_to_sheet(rng_patterns=excel_files[7])
-        sheet_manager.copy_general_stats_to_sheet(general_stats=excel_files[8])
-        sheet_manager.copy_resets_to_sheet(resets=excel_files[9])
-        sheet_manager.copy_weekday_data_to_sheet(weekday_data=excel_files[10])
+        sheet_manager.copy_paces_to_sheet(paces=df_best_paces)
+        sheet_manager.copy_rng_patterns_to_sheet(rng_patterns=df_rng_patterns)
+        sheet_manager.copy_general_stats_to_sheet(general_stats=df_general_stats)
+        sheet_manager.copy_resets_to_sheet(resets=df_resets)
+        sheet_manager.copy_weekday_data_to_sheet(weekday_data=df_weekday_data)
 
         if False:
             url_village_graph = graph_village(excel=excel_files[9])
