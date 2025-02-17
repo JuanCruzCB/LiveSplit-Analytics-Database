@@ -3,8 +3,9 @@ import gspread
 import pandas as pd
 from pathlib import Path
 import numpy as np
-from pandas import DataFrame
 from decorators import measure_time
+from typing import Any
+from datetime import datetime
 
 
 class RE4SheetManager:
@@ -51,20 +52,19 @@ class RE4SheetManager:
             return "0 hours"
 
     def copy_excel_to_sheet(
-        self, sheet_tab_name: str, excel: DataFrame, range_name: str
+        self,
+        sheet_tab_name: str,
+        data: list[list[Any]],
+        range_name: str,
+        make_copy: bool,
     ) -> None:
-        old_sheet_tab_name = f"{sheet_tab_name} old"
-        excel = excel.replace({np.nan: ""})
-        excel.columns = excel.columns.str.capitalize()
-        excel.columns = excel.columns.str.replace("_", " ")
-
         try:
             original_sheet = self.spreadsheet.worksheet(title=sheet_tab_name)
-            if sheet_tab_name != "General" and sheet_tab_name != "Resets":
+
+            if make_copy:
+                old_sheet_tab_name = f"{sheet_tab_name} old"
                 old_sheet = self.spreadsheet.worksheet(title=old_sheet_tab_name)
-
                 original_data = original_sheet.get_all_values()
-
                 if original_data:
                     old_sheet.update(values=original_data, range_name="A1")
                     print(f"Backup '{old_sheet_tab_name}' overwritten successfully!")
@@ -76,7 +76,7 @@ class RE4SheetManager:
 
         original_sheet.update(
             range_name=range_name,
-            values=[excel.columns.values.tolist()] + excel.values.tolist(),
+            values=data,
         )
 
         print(f"Sheet '{sheet_tab_name}' updated successfully!")
@@ -84,27 +84,39 @@ class RE4SheetManager:
     @measure_time
     def copy_doorsplits_to_sheet(self, doorsplits: Path) -> None:
         SHEET_TAB_NAME = "Doors"
-        excel = pd.read_excel(doorsplits, sheet_name="Sheet1")
+        excel = pd.read_excel(
+            doorsplits,
+            usecols=range(1, 8),
+        )
+        excel = excel.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel,
-            range_name="A2",
+            data=excel.values.tolist(),
+            range_name="B3",
+            make_copy=True,
         )
 
     @measure_time
     def copy_chapters_to_sheet(self, chapters: Path, chapters_by_doors: Path) -> None:
         SHEET_TAB_NAME = "Chapters"
-        excel1 = pd.read_excel(chapters, sheet_name="Sheet1")
-        excel2 = pd.read_excel(chapters_by_doors, sheet_name="Sheet1")
+        excel1 = pd.read_excel(
+            chapters,
+            usecols=range(1, 10),
+        )
+        excel1 = excel1.replace({np.nan: ""})
+        excel2 = pd.read_excel(chapters_by_doors, usecols=range(1, 10))
+        excel2 = excel2.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel1,
-            range_name="A2",
+            data=excel1.values.tolist(),
+            range_name="B3",
+            make_copy=True,
         )
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel2,
-            range_name="A24",
+            data=excel2.values.tolist(),
+            range_name="B25",
+            make_copy=True,
         )
 
     @measure_time
@@ -115,23 +127,29 @@ class RE4SheetManager:
         sections_by_doors: Path,
     ) -> None:
         SHEET_TAB_NAME = "Sections"
-        excel1 = pd.read_excel(sections, sheet_name="Sheet1")
-        excel2 = pd.read_excel(sections_by_chapters, sheet_name="Sheet1")
-        excel3 = pd.read_excel(sections_by_doors, sheet_name="Sheet1")
+        excel1 = pd.read_excel(sections, usecols=range(1, 10))
+        excel1 = excel1.replace({np.nan: ""})
+        excel2 = pd.read_excel(sections_by_chapters, usecols=range(1, 10))
+        excel2 = excel2.replace({np.nan: ""})
+        excel3 = pd.read_excel(sections_by_doors, usecols=range(1, 10))
+        excel3 = excel3.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel1,
-            range_name="A2",
+            data=excel1.values.tolist(),
+            range_name="B3",
+            make_copy=True,
         )
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel2,
-            range_name="A8",
+            data=excel2.values.tolist(),
+            range_name="B9",
+            make_copy=True,
         )
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel3,
-            range_name="A14",
+            data=excel3.values.tolist(),
+            range_name="B15",
+            make_copy=True,
         )
 
     @measure_time
@@ -140,11 +158,13 @@ class RE4SheetManager:
         paces: Path,
     ) -> None:
         SHEET_TAB_NAME = "Paces"
-        excel = pd.read_excel(paces, sheet_name="Sheet1")
+        excel = pd.read_excel(paces, usecols=range(1, 9))
+        excel = excel.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel,
-            range_name="A2",
+            data=excel.values.tolist(),
+            range_name="B3",
+            make_copy=True,
         )
 
     @measure_time
@@ -153,14 +173,13 @@ class RE4SheetManager:
         rng_patterns: Path,
     ) -> None:
         SHEET_TAB_NAME = "RNG Patterns"
-        excel = pd.read_excel(rng_patterns, sheet_name="Sheet1")
-        excel.columns = excel.columns.str.replace("max_in_a_row", "")
-        excel.columns = excel.columns.str.replace("percent", "")
-
+        excel = pd.read_excel(rng_patterns, usecols=range(1, 15))
+        excel = excel.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel,
-            range_name="A3",
+            data=excel.values.tolist(),
+            range_name="B4",
+            make_copy=True,
         )
 
     @measure_time
@@ -169,31 +188,28 @@ class RE4SheetManager:
         general_stats: Path,
     ) -> None:
         SHEET_TAB_NAME = "General"
-        excel = pd.read_excel(general_stats, sheet_name="Sheet1")
-        dates_row = excel.iloc[0]
+        excel = pd.read_excel(general_stats, usecols=range(1, 8))
+        excel = excel.replace({np.nan: ""})
+        data = excel.values.tolist()
+        input_format = "%Y-%m-%d"
+        output_format = "%d/%m/%Y"
+        dates_formatted = list(
+            map(
+                lambda date_str: datetime.strptime(date_str, input_format).strftime(
+                    output_format
+                ),
+                data[0],
+            )
+        )
+        data[0] = dates_formatted
 
-        for i, date_str in enumerate(dates_row[1:], start=1):
-            try:
-                date_obj = pd.to_datetime(date_str, errors="coerce", format="%Y-%m-%d")
-                if pd.isna(date_obj):  # Check if the conversion failed
-                    raise ValueError(f"Invalid date format: {date_str}")
-                excel.iloc[0, i] = date_obj.strftime("%d/%m/%Y")
-            except ValueError:
-                print(f"Invalid date format: {date_str}")
-
-        total_playtime_row = excel.iloc[3]
-
-        for i, seconds in enumerate(total_playtime_row[1:]):
-            try:
-                days_hours_str = self._get_days_hours_str(int(seconds))
-                excel.iloc[3, i + 1] = days_hours_str
-            except ValueError:
-                print(f"Invalid total playtime format: {seconds}")
+        playtime_formatted = list(
+            map(lambda playtime: self._get_days_hours_str(int(playtime)), data[3]),
+        )
+        data[3] = playtime_formatted
 
         self.copy_excel_to_sheet(
-            sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel,
-            range_name="A2",
+            sheet_tab_name=SHEET_TAB_NAME, data=data, range_name="B3", make_copy=False
         )
 
     @measure_time
@@ -202,13 +218,14 @@ class RE4SheetManager:
         resets: Path,
     ) -> None:
         SHEET_TAB_NAME = "Resets"
-        excel = pd.read_excel(resets, sheet_name="Sheet1")
-        excel.columns = excel.columns.str.replace("percent", "")
+        excel = pd.read_excel(resets, usecols=range(1, 8))
+        excel = excel.replace({np.nan: ""})
 
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
-            excel=excel,
-            range_name="A2",
+            data=excel.values.tolist(),
+            range_name="B3",
+            make_copy=False,
         )
 
     def copy_graphs_to_sheet(
