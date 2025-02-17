@@ -1,3 +1,6 @@
 @echo off
+echo Activating virtual environment...
+call ..\venv\Scripts\activate
+
 echo Running script with --update_tables flag only...
-python "H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\src\main.py" --update_tables
+python "..\src\main.py" --update_tables

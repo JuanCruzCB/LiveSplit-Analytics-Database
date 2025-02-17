@@ -1,3 +1,6 @@
 @echo off
+echo Activating virtual environment...
+call ..\venv\Scripts\activate
+
 echo Running script with --download flag only...
-python "H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\src\main.py" --download
+python "..\src\main.py" --download 

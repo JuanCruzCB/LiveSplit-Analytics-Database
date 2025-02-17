@@ -1,3 +1,6 @@
 @echo off
+echo Activating virtual environment...
+call ..\venv\Scripts\activate
+
 echo Running script without any flags...
-python "H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\src\main.py"
+python "..\src\main.py" 
