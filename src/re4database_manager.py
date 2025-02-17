@@ -64,6 +64,8 @@ case when percent_derek<0 then 0 else percent_derek end as percent_derek
 from global_resets;
 """
 
+WEEKDAY_DATA_QUERY = """select * from global_weekday_data"""
+
 
 class RE4DatabaseManager:
     def __init__(self) -> None:
@@ -190,6 +192,10 @@ class RE4DatabaseManager:
     @measure_time
     def query_resets(self) -> DataFrame:
         return self.query_db(query=RESETS_QUERY)
+
+    @measure_time
+    def query_weekday_data(self) -> DataFrame:
+        return self.query_db(query=WEEKDAY_DATA_QUERY)
 
     def __del__(self) -> None:
         self.close_connection()

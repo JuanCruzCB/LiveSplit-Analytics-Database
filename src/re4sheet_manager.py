@@ -23,10 +23,49 @@ class RE4SheetManager:
         client = gspread.authorize(credentials=self.credentials)
         self.spreadsheet = client.open_by_url(url=self.sheet_url)
 
-    def _get_days_hours_str(self, seconds: int) -> str:
-        days = seconds // 86400
-        remaining_seconds = seconds % 86400
-        hours = remaining_seconds // 3600
+    def _get_hours_minutes_str(self, seconds: str) -> str:
+        try:
+            seconds = int(seconds)
+            hours = seconds // 3600
+            remaining_seconds = seconds % 3600
+            minutes = remaining_seconds // 60
+        except Exception:
+            return ""
+
+        # Format hours string
+        if hours == 0:
+            hours_str = ""
+        elif hours == 1:
+            hours_str = "1 hr"
+        else:
+            hours_str = f"{hours} hs"
+
+        # Format minutes string
+        if minutes == 0:
+            minutes_str = ""
+        elif minutes == 1:
+            minutes_str = "1 min"
+        else:
+            minutes_str = f"{minutes} mins"
+
+        # Combine hours and minutes
+        if hours_str and minutes_str:
+            return f"{hours_str} and {minutes_str}"
+        elif hours_str:
+            return hours_str
+        elif minutes_str:
+            return minutes_str
+        else:
+            return "0 mins"
+
+    def _get_days_hours_str(self, seconds: str) -> str:
+        try:
+            seconds = int(seconds)
+            days = seconds // 86400
+            remaining_seconds = seconds % 86400
+            hours = remaining_seconds // 3600
+        except Exception:
+            return ""
 
         if days == 0:
             days_str = ""
@@ -204,7 +243,7 @@ class RE4SheetManager:
         data[0] = dates_formatted
 
         playtime_formatted = list(
-            map(lambda playtime: self._get_days_hours_str(int(playtime)), data[3]),
+            map(lambda playtime: self._get_days_hours_str((playtime)), data[3]),
         )
         data[3] = playtime_formatted
 
@@ -228,6 +267,38 @@ class RE4SheetManager:
             make_copy=False,
         )
 
+    @measure_time
+    def copy_weekday_data_to_sheet(
+        self,
+        weekday_data: Path,
+    ) -> None:
+        SHEET_TAB_NAME = "Weekday"
+        excel = pd.read_excel(weekday_data, usecols=range(2, 9))
+        excel = excel.replace({np.nan: ""})
+        data = excel.values.tolist()
+
+        ranges_to_process = [
+            range(7, 14),
+            range(21, 28),
+            range(35, 42),
+            range(49, 56),
+            range(63, 70),
+        ]
+
+        for r in ranges_to_process:
+            for i in r:
+                data[i] = list(
+                    map(lambda playtime: self._get_hours_minutes_str(playtime), data[i])
+                )
+
+        self.copy_excel_to_sheet(
+            sheet_tab_name=SHEET_TAB_NAME,
+            data=data,
+            range_name="C2",
+            make_copy=False,
+        )
+
+    @measure_time
     def copy_graphs_to_sheet(
         self,
         url_village_graph: str,

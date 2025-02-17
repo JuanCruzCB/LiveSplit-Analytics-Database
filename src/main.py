@@ -58,6 +58,7 @@ def main() -> None:
         df_rng_patterns = db_manager.query_rng_patterns()
         df_general_stats = db_manager.query_general_stats()
         df_resets = db_manager.query_resets()
+        df_weekday_data = db_manager.query_weekday_data()
 
         db_manager.close_connection()
 
@@ -73,6 +74,7 @@ def main() -> None:
                 ("RNG Patterns", df_rng_patterns),
                 ("General Stats", df_general_stats),
                 ("Resets", df_resets),
+                ("Weekday Data", df_weekday_data),
             ]
         )
 
@@ -90,6 +92,7 @@ def main() -> None:
         sheet_manager.copy_rng_patterns_to_sheet(rng_patterns=excel_files[7])
         sheet_manager.copy_general_stats_to_sheet(general_stats=excel_files[8])
         sheet_manager.copy_resets_to_sheet(resets=excel_files[9])
+        sheet_manager.copy_weekday_data_to_sheet(weekday_data=excel_files[10])
 
         if False:
             url_village_graph = graph_village(excel=excel_files[9])
