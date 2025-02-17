@@ -1,5 +1,6 @@
 import time
 from functools import wraps
+
 from timing import execution_times
 from constants import TIME_FORMAT
 

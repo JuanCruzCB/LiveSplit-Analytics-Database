@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import pandas as pd
 import plotly.express as px
-from pathlib import Path
 import requests
 
 IMGUR_CLIENT_ID = "4975f1d3020260e"

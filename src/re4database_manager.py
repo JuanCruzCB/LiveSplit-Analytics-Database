@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import psycopg2
 from pandas import DataFrame
 

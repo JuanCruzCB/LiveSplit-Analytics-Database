@@ -1,6 +1,7 @@
+from pathlib import Path
+
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-from pathlib import Path
 
 from decorators import measure_time
 
