@@ -6,7 +6,6 @@ from drive import download_splits
 from re4database_manager import RE4DatabaseManager
 from re4sheet_manager import RE4SheetManager
 from graphs import graph_village, graph_castle, graph_island
-from excel import make_excels
 from constants import TIME_FORMAT, SPLITS_RUNNERS
 from timing import execution_times
 
