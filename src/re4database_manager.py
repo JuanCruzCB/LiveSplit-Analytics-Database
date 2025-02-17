@@ -1,6 +1,68 @@
 from pathlib import Path
 import psycopg2
-import time
+from pandas import DataFrame
+
+from decorators import measure_time
+
+
+GLOBAL_DOORSPLIT_GOLDS_QUERY = """
+select *
+from global_door_golds;
+"""
+
+GLOBAL_CHAPTER_GOLDS_QUERY = """
+select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, best, best_cumulative_chapters
+from global_chapter_golds
+where chapter like '%-%' or chapter='Total';
+"""
+
+GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY = """
+select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, best, cumulative_best
+from global_chapter_golds_doors;
+"""
+
+GLOBAL_SECTION_GOLDS_QUERY = """
+select section, sawken, luis, joker, mateo, arcadan, richy, derek, best, best_cumulative_sections
+from global_section_golds;
+"""
+
+
+GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY = """
+select section, sawken, luis, joker, mateo, arcadan, richy, derek, best, cumulative_best
+from global_section_golds_chapters;
+"""
+
+GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY = """
+select section, sawken, luis, joker, mateo, arcadan, richy, derek, best, cumulative_best
+from global_section_golds_doors;
+"""
+
+GLOBAL_BEST_PACES_QUERY = """
+select *
+from global_best_paces_chapter;
+"""
+
+GLOBAL_RNG_PATTERNS_QUERY = """
+select *
+from global_rng_patterns;
+"""
+
+GENERAL_STATS_QUERY = """
+select chapter, sawken, luis, joker, mateo, arcadan, richy, derek
+from global_chapter_golds
+where chapter not like '%-%' and chapter<>'Total';
+"""
+
+RESETS_QUERY = """
+select split, case when percent_sawken<0 then 0 else percent_sawken end as percent_sawken,
+case when percent_luis<0 then 0 else percent_luis end as percent_luis,
+case when percent_joker<0 then 0 else percent_joker end as percent_joker,
+case when percent_mateo<0 then 0 else percent_mateo end as percent_mateo,
+case when percent_arcadan<0 then 0 else percent_arcadan end as percent_arcadan,
+case when percent_richy<0 then 0 else percent_richy end as percent_richy,
+case when percent_derek<0 then 0 else percent_derek end as percent_derek
+from global_resets;
+"""
 
 
 class RE4DatabaseManager:
@@ -14,6 +76,9 @@ class RE4DatabaseManager:
         }
         self.main_sql_script_path = Path(
             r"H:\Juan\4. Speedrunning\RE4 Steam\script ng pro steam.sql"
+        )
+        self.global_sql_script_path = Path(
+            r"H:\Juan\4. Speedrunning\RE4 Steam\global ng pro steam.sql"
         )
         self.connection = None
         self.cursor = None
@@ -39,7 +104,12 @@ class RE4DatabaseManager:
         with open(file=self.main_sql_script_path, mode="r") as file:
             return file.read()
 
-    def update_database(self) -> None:
+    def get_global_sql_script_content(self) -> str:
+        with open(file=self.global_sql_script_path, mode="r") as file:
+            return file.read()
+
+    @measure_time
+    def update_runners_tables(self, files: list[dict[str, str]]) -> None:
         """
         If there's currently a connection, run the main SQL script.
         """
@@ -47,100 +117,79 @@ class RE4DatabaseManager:
             print("No database connection available.")
 
         try:
-            start_time = time.time()
-            self.cursor.execute(self.get_main_sql_script_content())
-            execution_time = time.time() - start_time
-            print(f"RE4 Database updated successfully in {execution_time:.3f} seconds!")
+            for file in files:
+                sql_script = self.get_main_sql_script_content()
+
+                if "splits" in file["name"]:
+                    sql_script = sql_script.replace("sawken", file["runner"]).replace(
+                        r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{file['name']}"
+                    )
+
+                self.cursor.execute(sql_script)
+                print(f"Updated the database tables for {file['runner']} succesfully!")
         except psycopg2.Error as e:
             raise e
 
-    def get_golds_on_date(self, date: str) -> tuple[list[tuple], list[str]]:
-        """
-        If there's currently a connection, get the table of golds on a certain date
-        and return the data + the column names.
-        """
-        if not self.connection or not self.cursor:
-            return "No database connection available."
-
+    @measure_time
+    def update_global_tables(self) -> None:
         try:
-            self.cursor.execute(self.golds_on_date_query(date=date))
-            data = self.cursor.fetchall()
-            columns = [desc[0] for desc in self.cursor.description]
-            return data, columns
+            self.cursor.execute(self.get_global_sql_script_content())
+            print("Updated the database global tables succesfully!")
+
         except psycopg2.Error as e:
             raise e
 
-    def get_golds_on_dates(
-        self, dates: set[str], videos: list[RE4Video]
-    ) -> dict[str, list[Gold]]:
-        """
-        For each date in the dates passed as argument, get the data and columns for it, and parse
-        it using pandas.
-        """
-        for date in sorted(dates):
-            data, columns = self.get_golds_on_date(date=date)
-            self.gold_data_extractor.extract_golds(
-                data=data, columns=columns, videos=videos
+    @measure_time
+    def query_db(self, query: str) -> DataFrame:
+        try:
+            self.cursor.execute(query)
+            df = DataFrame(
+                data=self.cursor.fetchall(),
+                columns=[desc[0] for desc in self.cursor.description],
             )
+            return df
+        except psycopg2.Error as e:
+            raise e
 
-        return self.gold_data_extractor.get_golds()
+    @measure_time
+    def query_doorsplit_golds(self) -> DataFrame:
+        return self.query_db(query=GLOBAL_DOORSPLIT_GOLDS_QUERY)
 
-    def golds_on_date_query(self, date: str) -> str:
-        return f"""with select_date (date) as (values (cast('{date}' as date)))
-select aa.*, case when aa.chapter_time is null then null else bb.time_start end as chapter_time_start,
-case when aa.section_time is null then null else cc.time_start end as section_time_start
-from (select id, cle2, split, chapter, section, date_started, date_started2, time_start, time_end, final_lrt, pb,
-case when golded_split=1 and lrt_number=gold then lrt_split else null end as door_time,
-case when golded_chapter=1 and chapter_time=chapter_gold and (rang_chapter=1 or rang_chapter2=1) then chapter_time2 else null end as chapter_time,
-case when golded_section=1 and section_time=section_gold and (rang_section=1 or rang_section2=1) then section_time2 else null end as section_time,
-case when was_best_pace=1 and pace=best_pace then pace2 else null end as pace,
-case when golded_split=1 and lrt_number=gold  then gold_at_that_time else null end as previous_gold,
-case when golded_chapter=1 and chapter_time=chapter_gold and (rang_chapter=1 or rang_chapter2=1) then chapter_gold_at_that_time else null end as previous_chapter_gold,
-case when golded_section=1 and section_time=section_gold and (rang_section=1 or rang_section2=1) then section_gold_at_that_time else null end as previous_section_gold,
-case when was_best_pace=1 and pace=best_pace  then best_pace_at_that_time else null end as previous_best_pace
-from (
-select *, row_number() over (partition by id, section order by cle2 desc) as rang_section,
-row_number() over (partition by id, chapter order by cle2 desc) as rang_chapter,
-row_number() over (partition by id, section order by cle2) as rang_section2,
-row_number() over (partition by id, chapter order by cle2) as rang_chapter2
-from splits_overview_sawken
-where date_started=(select date from select_date)) a
-where (golded_chapter=1 and (rang_chapter=1 or rang_chapter2=1) and chapter_time=chapter_gold) or
-(golded_split=1 and lrt_number=gold) or (golded_section=1 and (rang_section=1 or rang_section2=1) and section_time=section_gold)
-or (was_best_pace=1 and pace=best_pace)
-order by id, cle2) aa
-left join (select id, cle2, split, chapter, section, date_started, date_started2, time_start, time_end, final_lrt, pb,
-case when golded_split=1 and lrt_number=gold then lrt_split else null end as door_time,
-case when golded_chapter=1 and chapter_time=chapter_gold and rang_chapter=1 then chapter_time2 else null end as chapter_time,
-case when golded_section=1 and section_time=section_gold and rang_section=1 then section_time2 else null end as section_time,
-case when was_best_pace=1 and pace=best_pace then pace2 else null end as pace,
-case when golded_split=1 and lrt_number=gold  then gold_at_that_time else null end as previous_gold,
-case when golded_chapter=1 and chapter_time=chapter_gold and rang_chapter=1 then chapter_gold_at_that_time else null end as previous_chapter_gold,
-case when golded_section=1 and section_time=section_gold and rang_section=1 then section_gold_at_that_time else null end as previous_section_gold,
-case when was_best_pace=1 and pace=best_pace  then best_pace_at_that_time else null end as previous_best_pace
-from (
-select *, row_number() over (partition by id, section order by cle2) as rang_section,
-row_number() over (partition by id, chapter order by cle2) as rang_chapter
-from splits_overview_sawken
-where date_started=(select date from select_date)) a
-where golded_chapter=1 and rang_chapter=1 and chapter_time=chapter_gold
-order by id, cle2) bb on aa.id=bb.id and aa.chapter=bb.chapter
-left join (select id, cle2, split, chapter, section, date_started, date_started2, time_start, time_end, final_lrt, pb,
-case when golded_split=1 and lrt_number=gold then lrt_split else null end as door_time,
-case when golded_chapter=1 and chapter_time=chapter_gold and rang_chapter=1 then chapter_time2 else null end as chapter_time,
-case when golded_section=1 and section_time=section_gold and rang_section=1 then section_time2 else null end as section_time,
-case when was_best_pace=1 and pace=best_pace then pace2 else null end as pace,
-case when golded_split=1 and lrt_number=gold  then gold_at_that_time else null end as previous_gold,
-case when golded_chapter=1 and chapter_time=chapter_gold and rang_chapter=1 then chapter_gold_at_that_time else null end as previous_chapter_gold,
-case when golded_section=1 and section_time=section_gold and rang_section=1 then section_gold_at_that_time else null end as previous_section_gold,
-case when was_best_pace=1 and pace=best_pace  then best_pace_at_that_time else null end as previous_best_pace
-from (
-select *, row_number() over (partition by id, section order by cle2) as rang_section,
-row_number() over (partition by id, chapter order by cle2) as rang_chapter
-from splits_overview_sawken
-where date_started=(select date from select_date)) a
-where golded_section=1 and rang_section=1 and section_time=section_gold
-order by id, cle2) cc on aa.id=cc.id and aa.section=cc.section;"""
+    @measure_time
+    def query_chapter_golds(self) -> DataFrame:
+        return self.query_db(query=GLOBAL_CHAPTER_GOLDS_QUERY)
+
+    @measure_time
+    def query_chapter_golds_by_doors(self) -> DataFrame:
+        return self.query_db(query=GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY)
+
+    @measure_time
+    def query_section_golds(self) -> DataFrame:
+        return self.query_db(query=GLOBAL_SECTION_GOLDS_QUERY)
+
+    @measure_time
+    def query_section_golds_by_chapters(self) -> DataFrame:
+        return self.query_db(query=GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY)
+
+    @measure_time
+    def query_section_golds_by_doors(self) -> DataFrame:
+        return self.query_db(query=GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY)
+
+    @measure_time
+    def query_best_paces(self) -> DataFrame:
+        return self.query_db(query=GLOBAL_BEST_PACES_QUERY)
+
+    @measure_time
+    def query_rng_patterns(self) -> DataFrame:
+        return self.query_db(query=GLOBAL_RNG_PATTERNS_QUERY)
+
+    @measure_time
+    def query_general_stats(self) -> DataFrame:
+        return self.query_db(query=GENERAL_STATS_QUERY)
+
+    @measure_time
+    def query_resets(self) -> DataFrame:
+        return self.query_db(query=RESETS_QUERY)
 
     def __del__(self) -> None:
         self.close_connection()

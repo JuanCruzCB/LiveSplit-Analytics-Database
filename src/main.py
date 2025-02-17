@@ -3,20 +3,7 @@ from contextlib import contextmanager
 import argparse
 
 from drive import download_splits
-from db import (
-    query_chapter_golds,
-    query_chapter_golds_by_doors,
-    query_doorsplit_golds,
-    query_section_golds,
-    query_section_golds_by_chapters,
-    query_section_golds_by_doors,
-    query_best_paces,
-    query_rng_patterns,
-    query_resets,
-    query_general_stats,
-    update_runners_tables,
-    update_global_tables,
-)
+from re4database_manager import RE4DatabaseManager
 from sheet import (
     open_sheet,
     copy_doorsplits_to_sheet,
@@ -55,25 +42,28 @@ def measure_total_time():
 
 
 def main(download_drive: bool, update_tables: bool) -> None:
+    db_manager = RE4DatabaseManager()
     if download_drive:
         files = download_splits()
     else:
         files = SPLITS_RUNNERS
 
     if update_tables:
-        update_runners_tables(files=files)
-        update_global_tables()
+        db_manager.update_runners_tables(files=files)
+        db_manager.update_global_tables()
 
-    df_doorsplit_golds = query_doorsplit_golds()
-    df_chapter_golds = query_chapter_golds()
-    df_chapter_golds_by_doors = query_chapter_golds_by_doors()
-    df_section_golds = query_section_golds()
-    df_section_golds_by_chapters = query_section_golds_by_chapters()
-    df_section_golds_by_doors = query_section_golds_by_doors()
-    df_best_paces = query_best_paces()
-    df_rng_patterns = query_rng_patterns()
-    df_general_stats = query_general_stats()
-    df_resets = query_resets()
+    df_doorsplit_golds = db_manager.query_doorsplit_golds()
+    df_chapter_golds = db_manager.query_chapter_golds()
+    df_chapter_golds_by_doors = db_manager.query_chapter_golds_by_doors()
+    df_section_golds = db_manager.query_section_golds()
+    df_section_golds_by_chapters = db_manager.query_section_golds_by_chapters()
+    df_section_golds_by_doors = db_manager.query_section_golds_by_doors()
+    df_best_paces = db_manager.query_best_paces()
+    df_rng_patterns = db_manager.query_rng_patterns()
+    df_general_stats = db_manager.query_general_stats()
+    df_resets = db_manager.query_resets()
+
+    db_manager.close_connection()
 
     excel_files = make_excels(
         gold_dfs=[
