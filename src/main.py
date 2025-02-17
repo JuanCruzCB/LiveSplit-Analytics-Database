@@ -33,78 +33,78 @@ def measure_total_time():
     execution_times["The whole script"] = execution_time_formatted
 
 
-def main(download_drive: bool, update_tables: bool) -> None:
-    db_manager = RE4DatabaseManager()
-    sheet_manager = RE4SheetManager()
+def main() -> None:
+    with measure_total_time():
+        db_manager = RE4DatabaseManager()
+        sheet_manager = RE4SheetManager()
 
-    if download_drive:
-        files = download_splits()
-    else:
-        files = SPLITS_RUNNERS
+        args = parse_args()
+        if args.download:
+            files = download_splits()
+        else:
+            files = SPLITS_RUNNERS
 
-    if update_tables:
-        db_manager.update_runners_tables(files=files)
-        db_manager.update_global_tables()
+        if args.update_tables:
+            db_manager.update_runners_tables(files=files)
+            db_manager.update_global_tables()
 
-    df_doorsplit_golds = db_manager.query_doorsplit_golds()
-    df_chapter_golds = db_manager.query_chapter_golds()
-    df_chapter_golds_by_doors = db_manager.query_chapter_golds_by_doors()
-    df_section_golds = db_manager.query_section_golds()
-    df_section_golds_by_chapters = db_manager.query_section_golds_by_chapters()
-    df_section_golds_by_doors = db_manager.query_section_golds_by_doors()
-    df_best_paces = db_manager.query_best_paces()
-    df_rng_patterns = db_manager.query_rng_patterns()
-    df_general_stats = db_manager.query_general_stats()
-    df_resets = db_manager.query_resets()
+        df_doorsplit_golds = db_manager.query_doorsplit_golds()
+        df_chapter_golds = db_manager.query_chapter_golds()
+        df_chapter_golds_by_doors = db_manager.query_chapter_golds_by_doors()
+        df_section_golds = db_manager.query_section_golds()
+        df_section_golds_by_chapters = db_manager.query_section_golds_by_chapters()
+        df_section_golds_by_doors = db_manager.query_section_golds_by_doors()
+        df_best_paces = db_manager.query_best_paces()
+        df_rng_patterns = db_manager.query_rng_patterns()
+        df_general_stats = db_manager.query_general_stats()
+        df_resets = db_manager.query_resets()
 
-    db_manager.close_connection()
+        db_manager.close_connection()
 
-    excel_files = make_excels(
-        gold_dfs=[
-            ("Doorsplit golds", df_doorsplit_golds),
-            ("Chapter golds", df_chapter_golds),
-            ("Chapter golds by doors", df_chapter_golds_by_doors),
-            ("Section golds", df_section_golds),
-            ("Section golds by chapters", df_section_golds_by_chapters),
-            ("Section golds by doors", df_section_golds_by_doors),
-            ("Best paces", df_best_paces),
-            ("RNG Patterns", df_rng_patterns),
-            ("General Stats", df_general_stats),
-            ("Resets", df_resets),
-        ]
-    )
-
-    sheet_manager.copy_doorsplits_to_sheet(doorsplits=excel_files[0])
-    sheet_manager.copy_chapters_to_sheet(
-        chapters=excel_files[1],
-        chapters_by_doors=excel_files[2],
-    )
-    sheet_manager.copy_sections_to_sheet(
-        sections=excel_files[3],
-        sections_by_chapters=excel_files[4],
-        sections_by_doors=excel_files[5],
-    )
-    sheet_manager.copy_paces_to_sheet(paces=excel_files[6])
-    sheet_manager.copy_rng_patterns_to_sheet(rng_patterns=excel_files[7])
-    sheet_manager.copy_general_stats_to_sheet(general_stats=excel_files[8])
-    sheet_manager.copy_resets_to_sheet(resets=excel_files[9])
-
-    if False:
-        url_village_graph = graph_village(excel=excel_files[9])
-        url_castle_graph = graph_castle(excel=excel_files[9])
-        url_island_graph = graph_island(excel=excel_files[9])
-
-        sheet_manager.copy_graphs_to_sheet(
-            url_village_graph=url_village_graph,
-            url_castle_graph=url_castle_graph,
-            url_island_graph=url_island_graph,
+        excel_files = make_excels(
+            gold_dfs=[
+                ("Doorsplit golds", df_doorsplit_golds),
+                ("Chapter golds", df_chapter_golds),
+                ("Chapter golds by doors", df_chapter_golds_by_doors),
+                ("Section golds", df_section_golds),
+                ("Section golds by chapters", df_section_golds_by_chapters),
+                ("Section golds by doors", df_section_golds_by_doors),
+                ("Best paces", df_best_paces),
+                ("RNG Patterns", df_rng_patterns),
+                ("General Stats", df_general_stats),
+                ("Resets", df_resets),
+            ]
         )
 
+        sheet_manager.copy_doorsplits_to_sheet(doorsplits=excel_files[0])
+        sheet_manager.copy_chapters_to_sheet(
+            chapters=excel_files[1],
+            chapters_by_doors=excel_files[2],
+        )
+        sheet_manager.copy_sections_to_sheet(
+            sections=excel_files[3],
+            sections_by_chapters=excel_files[4],
+            sections_by_doors=excel_files[5],
+        )
+        sheet_manager.copy_paces_to_sheet(paces=excel_files[6])
+        sheet_manager.copy_rng_patterns_to_sheet(rng_patterns=excel_files[7])
+        sheet_manager.copy_general_stats_to_sheet(general_stats=excel_files[8])
+        sheet_manager.copy_resets_to_sheet(resets=excel_files[9])
 
-if __name__ == "__main__":
-    args = parse_args()
-    with measure_total_time():
-        main(download_drive=args.download, update_tables=args.update_tables)
+        if False:
+            url_village_graph = graph_village(excel=excel_files[9])
+            url_castle_graph = graph_castle(excel=excel_files[9])
+            url_island_graph = graph_island(excel=excel_files[9])
+
+            sheet_manager.copy_graphs_to_sheet(
+                url_village_graph=url_village_graph,
+                url_castle_graph=url_castle_graph,
+                url_island_graph=url_island_graph,
+            )
 
     for func_name, exec_time in execution_times.items():
         print(f"{func_name} took {exec_time}")
+
+
+if __name__ == "__main__":
+    main()
