@@ -153,7 +153,7 @@ class RE4SheetManager:
             sheet_tab_name=SHEET_TAB_NAME,
             data=chapters_by_doors.values.tolist(),
             range_name="B25",
-            make_copy=True,
+            make_copy=False,
         )
 
     @measure_time
@@ -182,13 +182,13 @@ class RE4SheetManager:
             sheet_tab_name=SHEET_TAB_NAME,
             data=sections_by_chapters.values.tolist(),
             range_name="B9",
-            make_copy=True,
+            make_copy=False,
         )
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
             data=sections_by_doors.values.tolist(),
             range_name="B15",
-            make_copy=True,
+            make_copy=False,
         )
 
     @measure_time
