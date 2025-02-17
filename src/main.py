@@ -4,17 +4,7 @@ import argparse
 
 from drive import download_splits
 from re4database_manager import RE4DatabaseManager
-from sheet import (
-    open_sheet,
-    copy_doorsplits_to_sheet,
-    copy_chapters_to_sheet,
-    copy_sections_to_sheet,
-    copy_paces_to_sheet,
-    copy_rng_patterns_to_sheet,
-    copy_general_stats_to_sheet,
-    copy_resets_to_sheet,
-    copy_graphs_to_sheet,
-)
+from re4sheet_manager import RE4SheetManager
 from graphs import graph_village, graph_castle, graph_island
 from excel import make_excels
 from constants import TIME_FORMAT, SPLITS_RUNNERS
@@ -45,6 +35,8 @@ def measure_total_time():
 
 def main(download_drive: bool, update_tables: bool) -> None:
     db_manager = RE4DatabaseManager()
+    sheet_manager = RE4SheetManager()
+
     if download_drive:
         files = download_splits()
     else:
@@ -82,38 +74,31 @@ def main(download_drive: bool, update_tables: bool) -> None:
         ]
     )
 
-    """
-    spreadsheet = open_sheet()
-    copy_doorsplits_to_sheet(spreadsheet=spreadsheet, doorsplits=excel_files[0])
-    copy_chapters_to_sheet(
-        spreadsheet=spreadsheet,
+    sheet_manager.copy_doorsplits_to_sheet(doorsplits=excel_files[0])
+    sheet_manager.copy_chapters_to_sheet(
         chapters=excel_files[1],
         chapters_by_doors=excel_files[2],
     )
-    copy_sections_to_sheet(
-        spreadsheet=spreadsheet,
+    sheet_manager.copy_sections_to_sheet(
         sections=excel_files[3],
         sections_by_chapters=excel_files[4],
         sections_by_doors=excel_files[5],
     )
-    copy_paces_to_sheet(spreadsheet=spreadsheet, paces=excel_files[6])
-    copy_rng_patterns_to_sheet(spreadsheet=spreadsheet, rng_patterns=excel_files[7])
-    copy_general_stats_to_sheet(spreadsheet=spreadsheet, general_stats=excel_files[8])
-    copy_resets_to_sheet(spreadsheet=spreadsheet, resets=excel_files[9])
-    """
+    sheet_manager.copy_paces_to_sheet(paces=excel_files[6])
+    sheet_manager.copy_rng_patterns_to_sheet(rng_patterns=excel_files[7])
+    sheet_manager.copy_general_stats_to_sheet(general_stats=excel_files[8])
+    sheet_manager.copy_resets_to_sheet(resets=excel_files[9])
 
-    """
-    url_village_graph = graph_village(excel=excel_files[9])
-    url_castle_graph = graph_castle(excel=excel_files[9])
-    url_island_graph = graph_island(excel=excel_files[9])
+    if False:
+        url_village_graph = graph_village(excel=excel_files[9])
+        url_castle_graph = graph_castle(excel=excel_files[9])
+        url_island_graph = graph_island(excel=excel_files[9])
 
-    copy_graphs_to_sheet(
-        spreadsheet=spreadsheet,
-        url_village_graph=url_village_graph,
-        url_castle_graph=url_castle_graph,
-        url_island_graph=url_island_graph,
-    )
-    """
+        sheet_manager.copy_graphs_to_sheet(
+            url_village_graph=url_village_graph,
+            url_castle_graph=url_castle_graph,
+            url_island_graph=url_island_graph,
+        )
 
 
 if __name__ == "__main__":
