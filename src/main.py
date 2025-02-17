@@ -37,7 +37,9 @@ def measure_total_time():
     start_time = time.time()
     yield
     execution_time = time.time() - start_time
-    execution_time_formatted = time.strftime(TIME_FORMAT, time.gmtime(execution_time))
+    seconds = int(execution_time)
+    milliseconds = int((execution_time % 1) * 1000)
+    execution_time_formatted = TIME_FORMAT.format(seconds, milliseconds)
     execution_times["The whole script"] = execution_time_formatted
 
 
@@ -80,6 +82,7 @@ def main(download_drive: bool, update_tables: bool) -> None:
         ]
     )
 
+    """
     spreadsheet = open_sheet()
     copy_doorsplits_to_sheet(spreadsheet=spreadsheet, doorsplits=excel_files[0])
     copy_chapters_to_sheet(
@@ -97,6 +100,7 @@ def main(download_drive: bool, update_tables: bool) -> None:
     copy_rng_patterns_to_sheet(spreadsheet=spreadsheet, rng_patterns=excel_files[7])
     copy_general_stats_to_sheet(spreadsheet=spreadsheet, general_stats=excel_files[8])
     copy_resets_to_sheet(spreadsheet=spreadsheet, resets=excel_files[9])
+    """
 
     """
     url_village_graph = graph_village(excel=excel_files[9])

@@ -1,8 +1,8 @@
-from functools import wraps
 import time
-
-from constants import TIME_FORMAT
+from functools import wraps
 from timing import execution_times
+
+TIME_FORMAT = "{:02}.{:03}"
 
 
 def measure_time(func):
@@ -11,10 +11,11 @@ def measure_time(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         execution_time = time.time() - start_time
-        execution_time_formatted = time.strftime(
-            TIME_FORMAT, time.gmtime(execution_time)
-        )
+        seconds = int(execution_time)
+        milliseconds = int((execution_time % 1) * 1000)
+        execution_time_formatted = TIME_FORMAT.format(seconds, milliseconds)
         execution_times[func.__name__] = execution_time_formatted
+
         return result
 
     return wrapper
