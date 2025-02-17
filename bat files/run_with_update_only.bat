@@ -1,0 +1,3 @@
+@echo off
+echo Running script with --update_tables flag only...
+python "H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\src\main.py" --update_tables

@@ -1,0 +1,3 @@
+@echo off
+echo Running script with --download and --update_tables flags...
+python "H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\src\main.py" --download --update_tables

@@ -1,0 +1,3 @@
+@echo off
+echo Running script without any flags...
+python "H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\src\main.py"
