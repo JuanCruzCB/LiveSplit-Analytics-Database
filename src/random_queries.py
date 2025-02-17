@@ -1,10 +1,10 @@
-from db import query_db
+from re4database_manager import RE4DatabaseManager
 from pathlib import Path
 import pandas as pd
 
 
-def query_data(excel_name: str, query: str) -> None:
-    df = query_db(query=query)
+def query_data(db_manager: RE4DatabaseManager, excel_name: str, query: str) -> None:
+    df = db_manager.query_db(query=query)
     try:
         df["date_started"] = pd.to_datetime(df["date_started"], errors="coerce")
         df["date_started"] = df["date_started"].dt.strftime("%d/%m/%Y")
@@ -16,8 +16,8 @@ def query_data(excel_name: str, query: str) -> None:
     )
 
 
-def export_table_names() -> None:
-    df = query_db(
+def export_table_names(db_manager: RE4DatabaseManager) -> None:
+    df = db_manager.query_db(
         query="""
         SELECT table_name
         FROM information_schema.tables
@@ -39,6 +39,8 @@ def export_table_names() -> None:
             ):
                 file.write(f"{table}\n")
 
+
+db_manager = RE4DatabaseManager()
 
 export_table_names()
 query_data(
