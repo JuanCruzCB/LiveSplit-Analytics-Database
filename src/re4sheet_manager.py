@@ -1,3 +1,4 @@
+from decimal import Decimal
 from google.oauth2.service_account import Credentials
 import gspread
 import pandas as pd
@@ -213,6 +214,9 @@ class RE4SheetManager:
         SHEET_TAB_NAME = "RNG Patterns"
         rng_patterns = rng_patterns.iloc[:, 1:15]
         rng_patterns = rng_patterns.replace({np.nan: ""})
+        rng_patterns = rng_patterns.map(
+            lambda x: float(x) if isinstance(x, Decimal) else x
+        )
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
             data=rng_patterns.values.tolist(),
@@ -260,6 +264,7 @@ class RE4SheetManager:
 
         resets = resets.iloc[:, 1:8]
         resets = resets.replace({np.nan: ""})
+        resets = resets.map(lambda x: float(x) if isinstance(x, Decimal) else x)
 
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
