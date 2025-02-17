@@ -1,5 +1,5 @@
 DATE_FORMAT = "%d/%m/%y"
-TIME_FORMAT = "%M:%S.%m"
+TIME_FORMAT = "{:02}.{:03}"
 
 SPLITS_RUNNERS = [
     {"name": "1. NG Pro", "runner": "sawken"},

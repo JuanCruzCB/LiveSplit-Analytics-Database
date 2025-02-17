@@ -1,8 +1,7 @@
 import time
 from functools import wraps
 from timing import execution_times
-
-TIME_FORMAT = "{:02}.{:03}"
+from constants import TIME_FORMAT
 
 
 def measure_time(func):
