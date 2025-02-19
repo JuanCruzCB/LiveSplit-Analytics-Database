@@ -93,9 +93,7 @@ class RE4DatabaseManager:
             self.connection = psycopg2.connect(**self.config)
             self.cursor = self.connection.cursor()
         except psycopg2.Error as e:
-            print(f"Database connection error: {e}")
-            self.connection = None
-            self.cursor = None
+            raise e
 
     def close_connection(self) -> None:
         if self.cursor:
@@ -129,7 +127,9 @@ class RE4DatabaseManager:
                     )
 
                 self.cursor.execute(sql_script)
+                self.connection.commit()
                 print(f"Updated the database tables for {file['runner']} succesfully!")
+
         except psycopg2.Error as e:
             raise e
 
@@ -137,6 +137,7 @@ class RE4DatabaseManager:
     def update_global_tables(self) -> None:
         try:
             self.cursor.execute(self.get_global_sql_script_content())
+            self.connection.commit()
             print("Updated the database global tables succesfully!")
 
         except psycopg2.Error as e:
