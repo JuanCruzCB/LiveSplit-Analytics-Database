@@ -5,6 +5,7 @@ from pathlib import Path
 import psycopg2
 from pandas import DataFrame
 
+from constants import DATE_TIME_FORMAT
 from decorators import measure_time
 
 
@@ -169,7 +170,7 @@ class RE4DatabaseManager:
                     self.cursor.execute(sql_script)
                     self.connection.commit()
                     last_table_updates[split] = datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S"
+                        DATE_TIME_FORMAT
                     )
                     if "1. " in split:
                         print("Updated the database tables for sawken succesfully!")

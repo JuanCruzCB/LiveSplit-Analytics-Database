@@ -1,13 +1,16 @@
-from re4database_manager import RE4DatabaseManager
 from pathlib import Path
+
 import pandas as pd
+
+from src.classes.re4database_manager import RE4DatabaseManager
+from src.constants import DATE_FORMAT
 
 
 def query_data(db_manager: RE4DatabaseManager, excel_name: str, query: str) -> None:
     df = db_manager.query_db(query=query)
     try:
         df["date_started"] = pd.to_datetime(df["date_started"], errors="coerce")
-        df["date_started"] = df["date_started"].dt.strftime("%d/%m/%Y")
+        df["date_started"] = df["date_started"].dt.strftime(DATE_FORMAT)
     except:
         pass
     df.to_excel(

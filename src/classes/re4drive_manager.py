@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-from decorators import measure_time
+from src.decorators import measure_time
+from src.constants import DATE_TIME_FORMAT, GOOGLE_DRIVE_DATE_TIME_FORMAT
 
 
 class RE4DriveManager:
@@ -61,7 +62,7 @@ class RE4DriveManager:
             path_obj = Path(splits)
             split_name = path_obj.stem
             mtime = path_obj.stat().st_mtime
-            mtime_date = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+            mtime_date = datetime.fromtimestamp(mtime).strftime(DATE_TIME_FORMAT)
             local_splits[split_name] = mtime_date
 
         my_splits = Path(
@@ -70,7 +71,7 @@ class RE4DriveManager:
         my_splits_name = my_splits.stem
         my_splits_mtime = my_splits.stat().st_mtime
         my_splits_mtime_date = datetime.fromtimestamp(my_splits_mtime).strftime(
-            "%Y-%m-%d %H:%M:%S"
+            DATE_TIME_FORMAT
         )
 
         local_splits[my_splits_name] = my_splits_mtime_date
@@ -95,11 +96,11 @@ class RE4DriveManager:
 
             modified_date = file["modifiedDate"]
             modified_date_obj = datetime.strptime(
-                modified_date, "%Y-%m-%dT%H:%M:%S.%fZ"
+                modified_date, GOOGLE_DRIVE_DATE_TIME_FORMAT
             )
             modified_date_obj_minus_3hrs = modified_date_obj - timedelta(hours=3)
             modified_date_formatted = modified_date_obj_minus_3hrs.strftime(
-                "%Y-%m-%d %H:%M:%S"
+                DATE_TIME_FORMAT
             )
             file_name = title.replace(".lss", "")
             print(modified_date_formatted)

@@ -1,2 +1,5 @@
-DATE_FORMAT = "%d/%m/%y"
+DATE_FORMAT = "%d/%m/%Y"
+DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
+GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+BAD_DATE_FORMAT = "%Y-%m-%d"
 TIME_FORMAT = "{:02}.{:03}"

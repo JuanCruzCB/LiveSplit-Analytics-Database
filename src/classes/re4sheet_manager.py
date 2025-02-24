@@ -9,6 +9,7 @@ import numpy as np
 from pandas import DataFrame
 
 from decorators import measure_time
+from src.constants import BAD_DATE_FORMAT, DATE_FORMAT
 
 
 class RE4SheetManager:
@@ -235,12 +236,10 @@ class RE4SheetManager:
         general_stats = general_stats.replace({np.nan: ""})
 
         data = general_stats.values.tolist()
-        input_format = "%Y-%m-%d"
-        output_format = "%d/%m/%Y"
         dates_formatted = list(
             map(
-                lambda date_str: datetime.strptime(date_str, input_format).strftime(
-                    output_format
+                lambda date_str: datetime.strptime(date_str, BAD_DATE_FORMAT).strftime(
+                    DATE_FORMAT
                 ),
                 data[0],
             )
