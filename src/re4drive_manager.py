@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-from src.decorators import measure_time
-from src.constants import DATE_TIME_FORMAT, GOOGLE_DRIVE_DATE_TIME_FORMAT
+from decorators import measure_time
+from constants import DATE_TIME_FORMAT, GOOGLE_DRIVE_DATE_TIME_FORMAT
 
 
 class RE4DriveManager:

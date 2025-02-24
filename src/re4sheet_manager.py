@@ -9,7 +9,7 @@ import numpy as np
 from pandas import DataFrame
 
 from decorators import measure_time
-from src.constants import BAD_DATE_FORMAT, DATE_FORMAT
+from constants import BAD_DATE_FORMAT, DATE_FORMAT
 
 
 class RE4SheetManager:

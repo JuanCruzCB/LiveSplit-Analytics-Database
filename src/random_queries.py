@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.classes.re4database_manager import RE4DatabaseManager
-from src.constants import DATE_FORMAT
+from re4database_manager import RE4DatabaseManager
+from constants import DATE_FORMAT
 
 
 def query_data(db_manager: RE4DatabaseManager, excel_name: str, query: str) -> None:
