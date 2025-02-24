@@ -1,3 +1,5 @@
+from datetime import datetime
+import json
 from pathlib import Path
 
 import psycopg2
@@ -110,25 +112,88 @@ class RE4DatabaseManager:
             return file.read()
 
     @measure_time
-    def update_runners_tables(self, files: list[dict[str, str]]) -> None:
+    def update_runners_tables(self, splits: dict[str, str]) -> None:
         """
         If there's currently a connection, run the main SQL script.
         """
         if not self.connection or not self.cursor:
             print("No database connection available.")
+            return
 
         try:
-            for file in files:
-                sql_script = self.get_main_sql_script_content()
+            with open(
+                file=Path(__file__).parent.parent.parent
+                / "info"
+                / "last_table_updates.json",
+                mode="r",
+            ) as json_file:
+                last_table_updates = json.load(json_file)
+        except FileNotFoundError:
+            with open(
+                file=Path(__file__).parent.parent.parent
+                / "info"
+                / "last_table_updates.json",
+                mode="w",
+            ) as json_file:
+                json.dump(
+                    {
+                        "1. NG Pro": "2025-01-01 1:00:00",
+                        "splits arcadan": "2025-01-01 1:00:00",
+                        "splits derek": "2025-01-01 1:00:00",
+                        "splits joker": "2025-01-01 1:00:00",
+                        "splits luis": "2025-01-01 1:00:00",
+                        "splits mateo": "2025-01-01 1:00:00",
+                        "splits richy": "2025-01-01 1:00:00",
+                    },
+                    json_file,
+                )
 
-                if "splits" in file["name"]:
-                    sql_script = sql_script.replace("sawken", file["runner"]).replace(
-                        r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{file['name']}"
+            with open(
+                file=Path(__file__).parent.parent.parent
+                / "info"
+                / "last_table_updates.json",
+                mode="r",
+            ) as json_file:
+                last_table_updates = json.load(json_file)
+
+        try:
+            for split, last_modified in splits.items():
+                if last_table_updates[split] < last_modified:
+                    sql_script = self.get_main_sql_script_content()
+
+                    if "splits" in split:
+                        sql_script = sql_script.replace("sawken", split[7:]).replace(
+                            r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{split}"
+                        )
+
+                    self.cursor.execute(sql_script)
+                    self.connection.commit()
+                    last_table_updates[split] = datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
                     )
+                    if "1. " in split:
+                        print("Updated the database tables for sawken succesfully!")
+                    else:
+                        print(
+                            f"Updated the database tables for {split[7:]} succesfully!"
+                        )
+                else:
+                    if "1. " in split:
+                        print(
+                            "Not updating the tables for sawken since they are already up to date."
+                        )
+                    else:
+                        print(
+                            f"Not updating the tables for {split[7:]} since they are already up to date."
+                        )
 
-                self.cursor.execute(sql_script)
-                self.connection.commit()
-                print(f"Updated the database tables for {file['runner']} succesfully!")
+            with open(
+                file=Path(__file__).parent.parent.parent
+                / "info"
+                / "last_table_updates.json",
+                mode="w",
+            ) as json_file:
+                json.dump(last_table_updates, json_file)
 
         except psycopg2.Error as e:
             raise e
