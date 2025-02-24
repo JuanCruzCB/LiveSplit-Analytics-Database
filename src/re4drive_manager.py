@@ -11,6 +11,14 @@ from constants import DATE_TIME_FORMAT, GOOGLE_DRIVE_DATE_TIME_FORMAT
 class RE4DriveManager:
     def __init__(self) -> None:
         self.splits_folder_id = "1-OvGMbjiemrxMaie166Cmwbu3k5WvXGh"
+        self.currently_allowed_runners = [
+            "arcadan",
+            "derek",
+            "joker",
+            "luis",
+            "mateo",
+            "richy",
+        ]
         self.output_folder = Path(
             r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\Not mine"
         )
@@ -91,7 +99,7 @@ class RE4DriveManager:
 
         for file in files_in_drive:
             title = file["title"]
-            if ".lss" not in title:
+            if title not in f"splits {self.currently_allowed_runners}.lss":
                 continue
 
             modified_date = file["modifiedDate"]
