@@ -103,7 +103,6 @@ class RE4DriveManager:
                 DATE_TIME_FORMAT
             )
             file_name = title.replace(".lss", "")
-            print(modified_date_formatted)
 
             if local_splits[file_name] < modified_date_formatted:
                 print(f"Downloading {title}...")

@@ -133,7 +133,7 @@ class RE4DatabaseManager:
                 mode="w",
             ) as json_file:
                 json.dump(
-                    {
+                    obj={
                         "1. NG Pro": "2025-01-01 1:00:00",
                         "splits arcadan": "2025-01-01 1:00:00",
                         "splits derek": "2025-01-01 1:00:00",
@@ -142,7 +142,8 @@ class RE4DatabaseManager:
                         "splits mateo": "2025-01-01 1:00:00",
                         "splits richy": "2025-01-01 1:00:00",
                     },
-                    json_file,
+                    fp=json_file,
+                    indent=4,
                 )
 
             with open(
@@ -186,7 +187,7 @@ class RE4DatabaseManager:
                 file=Path(__file__).parent.parent / "info" / "last_table_updates.json",
                 mode="w",
             ) as json_file:
-                json.dump(last_table_updates, json_file)
+                json.dump(obj=last_table_updates, fp=json_file, indent=4)
 
         except psycopg2.Error as e:
             raise e
