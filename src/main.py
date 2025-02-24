@@ -1,9 +1,9 @@
 import time
 from contextlib import contextmanager
 
-from classes.re4drive_manager import RE4DriveManager
-from classes.re4database_manager import RE4DatabaseManager
-from classes.re4sheet_manager import RE4SheetManager
+from re4drive_manager import RE4DriveManager
+from re4database_manager import RE4DatabaseManager
+from re4sheet_manager import RE4SheetManager
 from graphs import graph_village, graph_castle, graph_island
 from constants import TIME_FORMAT
 from timing import execution_times
