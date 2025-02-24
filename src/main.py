@@ -27,11 +27,12 @@ def get_splits() -> dict[str, str]:
     return drive_manager.download_splits()
 
 
-def update_query_database(splits: dict[str, str]) -> None:
-    db_manager = RE4DatabaseManager()
+def update_database(db_manager: RE4DatabaseManager, splits: dict[str, str]) -> None:
     db_manager.update_runners_tables(splits=splits)
     db_manager.update_global_tables()
 
+
+def query_database(db_manager: RE4DatabaseManager) -> tuple[DataFrame]:
     df_doorsplit_golds = db_manager.query_doorsplit_golds()
     df_chapter_golds = db_manager.query_chapter_golds()
     df_chapter_golds_by_doors = db_manager.query_chapter_golds_by_doors()
@@ -95,8 +96,10 @@ def update_sheet(dataframes: tuple[DataFrame]) -> None:
 def main() -> None:
     with measure_total_time():
         splits = get_splits()
-        dataframes = update_query_database(splits=splits)
-        update_sheet(dataframes=dataframes)
+        db_manager = RE4DatabaseManager()
+        update_database(db_manager=db_manager, splits=splits)
+        dataframes = query_database(db_manager=db_manager)
+        # update_sheet(dataframes=dataframes)
 
     for func_name, exec_time in execution_times.items():
         print(f"{func_name} took {exec_time}")
