@@ -80,18 +80,21 @@ class RE4DatabaseManager:
             "password": 123,
             "port": 5432,
         }
-        self.main_sql_script_path = Path(
+        self.main_sql_script = Path(
             r"H:\Juan\4. Speedrunning\RE4 Steam\script ng pro steam.sql"
         )
-        self.global_sql_script_path = Path(
+        self.global_sql_script = Path(
             r"H:\Juan\4. Speedrunning\RE4 Steam\global ng pro steam.sql"
+        )
+        self.last_updates_file = (
+            Path(__file__).parent.parent / "info" / "last_table_updates.json"
         )
         self.connection = None
         self.cursor = None
 
-        self.connect_to_database()
+        self._open_connection()
 
-    def connect_to_database(self) -> None:
+    def _open_connection(self) -> None:
         try:
             self.connection = psycopg2.connect(**self.config)
             self.cursor = self.connection.cursor()
@@ -104,13 +107,31 @@ class RE4DatabaseManager:
         if self.connection:
             self.connection.close()
 
-    def get_main_sql_script_content(self) -> str:
-        with open(file=self.main_sql_script_path, mode="r") as file:
+    def _read_sql_script(self, script_path: Path) -> str:
+        with open(script_path, "r") as file:
             return file.read()
 
-    def get_global_sql_script_content(self) -> str:
-        with open(file=self.global_sql_script_path, mode="r") as file:
-            return file.read()
+    def _load_last_updates(self) -> dict[str, str]:
+        if not self.last_updates_file.exists():
+            default_updates = {
+                "1. NG Pro": "2025-01-01 1:00:00",
+                "splits arcadan": "2025-01-01 1:00:00",
+                "splits derek": "2025-01-01 1:00:00",
+                "splits joker": "2025-01-01 1:00:00",
+                "splits luis": "2025-01-01 1:00:00",
+                "splits mateo": "2025-01-01 1:00:00",
+                "splits richy": "2025-01-01 1:00:00",
+            }
+            with open(file=self.last_updates_file, mode="w") as json_file:
+                json.dump(obj=default_updates, fp=json_file, indent=4)
+            return default_updates
+        else:
+            with open(file=self.last_updates_file, mode="r") as json_file:
+                return json.load(fp=json_file)
+
+    def _save_last_updates(self, updates: dict[str, str]) -> None:
+        with open(file=self.last_updates_file, mode="w") as json_file:
+            json.dump(obj=updates, fp=json_file, indent=4)
 
     @measure_time
     def update_runners_tables(self, splits: dict[str, str]) -> None:
@@ -121,73 +142,35 @@ class RE4DatabaseManager:
             print("No database connection available.")
             return
 
-        try:
-            with open(
-                file=Path(__file__).parent.parent / "info" / "last_table_updates.json",
-                mode="r",
-            ) as json_file:
-                last_table_updates = json.load(json_file)
-        except FileNotFoundError:
-            with open(
-                file=Path(__file__).parent.parent / "info" / "last_table_updates.json",
-                mode="w",
-            ) as json_file:
-                json.dump(
-                    obj={
-                        "1. NG Pro": "2025-01-01 1:00:00",
-                        "splits arcadan": "2025-01-01 1:00:00",
-                        "splits derek": "2025-01-01 1:00:00",
-                        "splits joker": "2025-01-01 1:00:00",
-                        "splits luis": "2025-01-01 1:00:00",
-                        "splits mateo": "2025-01-01 1:00:00",
-                        "splits richy": "2025-01-01 1:00:00",
-                    },
-                    fp=json_file,
-                    indent=4,
-                )
-
-            with open(
-                file=Path(__file__).parent.parent / "info" / "last_table_updates.json",
-                mode="r",
-            ) as json_file:
-                last_table_updates = json.load(json_file)
+        last_table_updates = self._load_last_updates()
+        sql_script = self._read_sql_script(self.main_sql_script_path)
 
         try:
             for split, last_modified in splits.items():
                 if last_table_updates[split] < last_modified:
-                    sql_script = self.get_main_sql_script_content()
+                    modified_script = sql_script
 
                     if "splits" in split:
-                        sql_script = sql_script.replace("sawken", split[7:]).replace(
-                            r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{split}"
-                        )
+                        modified_script = modified_script.replace(
+                            "sawken", split[7:]
+                        ).replace(r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{split}")
 
                     self.cursor.execute(sql_script)
                     self.connection.commit()
+
                     last_table_updates[split] = datetime.now().strftime(
                         DATE_TIME_FORMAT
                     )
-                    if "1. " in split:
-                        print("Updated the database tables for sawken succesfully!")
-                    else:
-                        print(
-                            f"Updated the database tables for {split[7:]} succesfully!"
-                        )
+                    runner_name = "sawken" if "1. " in split else split[7:]
+                    print(
+                        f"Updated the database tables for {runner_name} successfully!"
+                    )
                 else:
-                    if "1. " in split:
-                        print(
-                            "Not updating the tables for sawken since they are already up to date."
-                        )
-                    else:
-                        print(
-                            f"Not updating the tables for {split[7:]} since they are already up to date."
-                        )
+                    print(
+                        f"Not updating the tables for {split[7:]} since they are already up to date."
+                    )
 
-            with open(
-                file=Path(__file__).parent.parent / "info" / "last_table_updates.json",
-                mode="w",
-            ) as json_file:
-                json.dump(obj=last_table_updates, fp=json_file, indent=4)
+            self._save_last_updates(updates=last_table_updates)
 
         except psycopg2.Error as e:
             raise e
@@ -195,7 +178,8 @@ class RE4DatabaseManager:
     @measure_time
     def update_global_tables(self) -> None:
         try:
-            self.cursor.execute(self.get_global_sql_script_content())
+            sql_script = self._read_sql_script(script_path=self.global_sql_script)
+            self.cursor.execute(sql_script)
             self.connection.commit()
             print("Updated the database global tables succesfully!")
 
