@@ -9,7 +9,7 @@ import numpy as np
 from pandas import DataFrame
 
 from decorators import measure_time
-from constants import BAD_DATE_FORMAT, DATE_FORMAT
+from constants import BAD_DATE_FORMAT, DATE_FORMAT, DATE_TIME_FORMAT
 
 
 class RE4SheetManager:
@@ -316,6 +316,22 @@ class RE4SheetManager:
             sheet.update_acell("A1", f'=IMAGE("{url_village_graph}")')
             sheet.update_acell("A2", f'=IMAGE("{url_castle_graph}")')
             sheet.update_acell("A3", f'=IMAGE("{url_island_graph}")')
+        except gspread.exceptions.WorksheetNotFound:
+            raise Exception(
+                f"The tab {SHEET_TAB_NAME} does not exist in the google sheet."
+            )
+
+    @measure_time
+    def post_last_update(self) -> None:
+        SHEET_TAB_NAME = "Title"
+        try:
+            sheet = self.spreadsheet.worksheet(title=SHEET_TAB_NAME)
+            sheet.update_acell(
+                "A2",
+                f"Last updated on: {datetime.now().strftime(
+                        DATE_TIME_FORMAT
+                    )} (UTC-3)",
+            )
         except gspread.exceptions.WorksheetNotFound:
             raise Exception(
                 f"The tab {SHEET_TAB_NAME} does not exist in the google sheet."
