@@ -1,24 +1,12 @@
 import time
 from contextlib import contextmanager
-import argparse
 
-from drive import download_splits
-from re4database_manager import RE4DatabaseManager
-from re4sheet_manager import RE4SheetManager
+from classes.re4drive_manager import RE4DriveManager
+from classes.re4database_manager import RE4DatabaseManager
+from classes.re4sheet_manager import RE4SheetManager
 from graphs import graph_village, graph_castle, graph_island
-from constants import TIME_FORMAT, SPLITS_RUNNERS
+from constants import TIME_FORMAT
 from timing import execution_times
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Process splits.")
-    parser.add_argument(
-        "--download", action="store_true", help="Download splits from drive"
-    )
-    parser.add_argument(
-        "--update_tables", action="store_true", help="Update database tables"
-    )
-    return parser.parse_args()
 
 
 @contextmanager
@@ -37,15 +25,11 @@ def main() -> None:
         db_manager = RE4DatabaseManager()
         sheet_manager = RE4SheetManager()
 
-        args = parse_args()
-        if args.download:
-            files = download_splits()
-        else:
-            files = SPLITS_RUNNERS
+        drive_manager = RE4DriveManager()
+        splits = drive_manager.download_splits()
 
-        if args.update_tables:
-            db_manager.update_runners_tables(files=files)
-            db_manager.update_global_tables()
+        db_manager.update_runners_tables(splits=splits)
+        db_manager.update_global_tables()
 
         df_doorsplit_golds = db_manager.query_doorsplit_golds()
         df_chapter_golds = db_manager.query_chapter_golds()
