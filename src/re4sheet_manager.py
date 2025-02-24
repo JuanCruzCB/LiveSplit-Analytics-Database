@@ -263,14 +263,13 @@ class RE4SheetManager:
     ) -> None:
         SHEET_TAB_NAME = "Resets"
 
-        resets = resets.iloc[:, 1:8]
         resets = resets.replace({np.nan: ""})
         resets = resets.map(lambda x: float(x) if isinstance(x, Decimal) else x)
 
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
             data=resets.values.tolist(),
-            range_name="B3",
+            range_name="A3",
             make_copy=False,
         )
 
