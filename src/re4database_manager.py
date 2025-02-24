@@ -143,10 +143,11 @@ class RE4DatabaseManager:
             return
 
         last_table_updates = self._load_last_updates()
-        sql_script = self._read_sql_script(self.main_sql_script_path)
+        sql_script = self._read_sql_script(self.main_sql_script)
 
         try:
             for split, last_modified in splits.items():
+                runner_name = "sawken" if "1. " in split else split[7:]
                 if last_table_updates[split] < last_modified:
                     modified_script = sql_script
 
@@ -161,13 +162,12 @@ class RE4DatabaseManager:
                     last_table_updates[split] = datetime.now().strftime(
                         DATE_TIME_FORMAT
                     )
-                    runner_name = "sawken" if "1. " in split else split[7:]
                     print(
                         f"Updated the database tables for {runner_name} successfully!"
                     )
                 else:
                     print(
-                        f"Not updating the tables for {split[7:]} since they are already up to date."
+                        f"Not updating the tables for {runner_name} since they are already up to date."
                     )
 
             self._save_last_updates(updates=last_table_updates)
