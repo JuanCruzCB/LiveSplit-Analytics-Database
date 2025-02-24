@@ -148,7 +148,9 @@ class RE4DatabaseManager:
         try:
             for split, last_modified in splits.items():
                 runner_name = "sawken" if "1. " in split else split[7:]
-                if last_table_updates[split] < last_modified:
+                if datetime.strptime(
+                    last_table_updates[split], DATE_TIME_FORMAT
+                ) < datetime.strptime(last_modified, DATE_TIME_FORMAT):
                     modified_script = sql_script
 
                     if "splits" in split:
