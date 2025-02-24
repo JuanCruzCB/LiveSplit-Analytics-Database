@@ -60,6 +60,7 @@ def main() -> None:
         sheet_manager.copy_general_stats_to_sheet(general_stats=df_general_stats)
         sheet_manager.copy_resets_to_sheet(resets=df_resets)
         sheet_manager.copy_weekday_data_to_sheet(weekday_data=df_weekday_data)
+        sheet_manager.post_last_update()
 
         if False:
             url_village_graph = graph_village(excel=excel_files[9])
