@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -15,6 +16,19 @@ CREDENTIALS_FILE = Path(
 CLIENT_SECRETS_FILE = Path(
     r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\client_secrets.json"
 )
+
+
+@measure_time
+def splits_last_modified() -> dict[str, datetime]:
+    local_splits = {}
+    for splits in OUTPUT_FOLDER.glob(pattern="*.lss"):
+        path_obj = Path(splits)
+        split_name = path_obj.stem
+        mtime = path_obj.stat().st_mtime
+        mtime_date = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+        local_splits[split_name] = mtime_date
+
+    return local_splits
 
 
 @measure_time
@@ -60,19 +74,31 @@ def download_splits() -> list[dict[str, str]]:
 
     files = []
 
+    local_splits = splits_last_modified()
+
     for file in file_list:
-        if ".lss" in file["title"]:
-            print(f"Downloading {file['title']}...")
-            files.append(
-                {
-                    "name": file["title"].replace(".lss", ""),
-                    "runner": file["title"][7:].replace(".lss", ""),
-                }
-            )
-            file.GetContentFile(OUTPUT_FOLDER / file["title"])
+        title = file["title"]
+        modified_date = file["modifiedDate"]
+        if ".lss" in title:
+            modified_date_formatted = datetime.strptime(
+                modified_date, "%Y-%m-%dT%H:%M:%S.%fZ"
+            ).strftime("%Y-%m-%d %H:%M:%S")
+            name = title.replace(".lss", "")
+            if local_splits[name] < modified_date_formatted:
+                print(f"Downloading {title}...")
+                files.append(
+                    {
+                        "name": name,
+                        "runner": title[7:].replace(".lss", ""),
+                    }
+                )
+                file.GetContentFile(OUTPUT_FOLDER / title)
+            else:
+                print(
+                    f"{title} is already up to date locally, so there's no need to download it."
+                )
 
-    print("Finished downloading all the .lss files!\n")
-
+    print("Finished downloading the .lss files!\n")
     return [
         {
             "name": "1. NG Pro",
