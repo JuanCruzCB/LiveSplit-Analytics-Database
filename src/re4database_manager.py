@@ -114,13 +114,13 @@ class RE4DatabaseManager:
     def _load_last_updates(self) -> dict[str, str]:
         if not self.last_updates_file.exists():
             default_updates = {
-                "1. NG Pro": "2025-01-01 1:00:00",
-                "splits arcadan": "2025-01-01 1:00:00",
-                "splits derek": "2025-01-01 1:00:00",
-                "splits joker": "2025-01-01 1:00:00",
-                "splits luis": "2025-01-01 1:00:00",
-                "splits mateo": "2025-01-01 1:00:00",
-                "splits richy": "2025-01-01 1:00:00",
+                "1. NG Pro": "1/1/2025 1:00:00",
+                "splits arcadan": "1/1/2025 1:00:00",
+                "splits derek": "1/1/2025 1:00:00",
+                "splits joker": "1/1/2025 1:00:00",
+                "splits luis": "1/1/2025 1:00:00",
+                "splits mateo": "1/1/2025 1:00:00",
+                "splits richy": "1/1/2025 1:00:00",
             }
             with open(file=self.last_updates_file, mode="w") as json_file:
                 json.dump(obj=default_updates, fp=json_file, indent=4)
@@ -158,7 +158,7 @@ class RE4DatabaseManager:
                             "sawken", split[7:]
                         ).replace(r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{split}")
 
-                    self.cursor.execute(sql_script)
+                    self.cursor.execute(modified_script)
                     self.connection.commit()
 
                     last_table_updates[split] = datetime.now().strftime(
