@@ -99,7 +99,7 @@ def main() -> None:
         db_manager = RE4DatabaseManager()
         update_database(db_manager=db_manager, splits=splits)
         dataframes = query_database(db_manager=db_manager)
-        # update_sheet(dataframes=dataframes)
+        update_sheet(dataframes=dataframes)
 
     for func_name, exec_time in execution_times.items():
         print(f"{func_name} took {exec_time}")
