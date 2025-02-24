@@ -60,7 +60,7 @@ class RE4DriveManager:
         self.google_drive = GoogleDrive(auth=gauth)
 
     @measure_time
-    def splits_last_modified(self) -> dict[str, datetime]:
+    def splits_last_modified(self) -> dict[str, str]:
         if not self.output_folder.exists():
             raise Exception(
                 "The output folder for the splits of other runners does not exist."
@@ -96,23 +96,24 @@ class RE4DriveManager:
         ).GetList()
 
         local_splits = self.splits_last_modified()
+        allowed_splits = [
+            f"splits {runner}.lss" for runner in self.currently_allowed_runners
+        ]
 
         for file in files_in_drive:
             title = file["title"]
-            if title not in f"splits {self.currently_allowed_runners}.lss":
+            if title not in allowed_splits:
                 continue
 
-            modified_date = file["modifiedDate"]
-            modified_date_obj = datetime.strptime(
-                modified_date, GOOGLE_DRIVE_DATE_TIME_FORMAT
-            )
-            modified_date_obj_minus_3hrs = modified_date_obj - timedelta(hours=3)
-            modified_date_formatted = modified_date_obj_minus_3hrs.strftime(
-                DATE_TIME_FORMAT
-            )
-            file_name = title.replace(".lss", "")
+            modified_date = (
+                datetime.strptime(file["modifiedDate"], GOOGLE_DRIVE_DATE_TIME_FORMAT)
+                - timedelta(hours=3)
+            ).strftime(DATE_TIME_FORMAT)
 
-            if local_splits[file_name] < modified_date_formatted:
+            file_name = title.replace(".lss", "")
+            if datetime.strptime(
+                local_splits[file_name], DATE_TIME_FORMAT
+            ) < datetime.strptime(modified_date, DATE_TIME_FORMAT):
                 print(f"Downloading {title}...")
 
                 file.GetContentFile(self.output_folder / title)
