@@ -16,7 +16,7 @@ class RE4SheetManager:
     def __init__(self):
         self.sheet_url = "https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
         self.credentials = Credentials.from_service_account_file(
-            filename=Path(__file__).parent.parent.parent
+            filename=Path(__file__).parent.parent
             / "credentials"
             / "service_account_secrets.json",
             scopes=[

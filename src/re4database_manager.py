@@ -123,17 +123,13 @@ class RE4DatabaseManager:
 
         try:
             with open(
-                file=Path(__file__).parent.parent.parent
-                / "info"
-                / "last_table_updates.json",
+                file=Path(__file__).parent.parent / "info" / "last_table_updates.json",
                 mode="r",
             ) as json_file:
                 last_table_updates = json.load(json_file)
         except FileNotFoundError:
             with open(
-                file=Path(__file__).parent.parent.parent
-                / "info"
-                / "last_table_updates.json",
+                file=Path(__file__).parent.parent / "info" / "last_table_updates.json",
                 mode="w",
             ) as json_file:
                 json.dump(
@@ -150,9 +146,7 @@ class RE4DatabaseManager:
                 )
 
             with open(
-                file=Path(__file__).parent.parent.parent
-                / "info"
-                / "last_table_updates.json",
+                file=Path(__file__).parent.parent / "info" / "last_table_updates.json",
                 mode="r",
             ) as json_file:
                 last_table_updates = json.load(json_file)
@@ -189,9 +183,7 @@ class RE4DatabaseManager:
                         )
 
             with open(
-                file=Path(__file__).parent.parent.parent
-                / "info"
-                / "last_table_updates.json",
+                file=Path(__file__).parent.parent / "info" / "last_table_updates.json",
                 mode="w",
             ) as json_file:
                 json.dump(last_table_updates, json_file)
