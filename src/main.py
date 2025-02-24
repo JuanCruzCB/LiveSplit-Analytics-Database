@@ -28,11 +28,16 @@ def get_splits() -> dict[str, str]:
 
 
 def update_database(db_manager: RE4DatabaseManager, splits: dict[str, str]) -> None:
+    print("Updating the database")
+    print("=" * 100)
     db_manager.update_runners_tables(splits=splits)
     db_manager.update_global_tables()
+    print("=" * 100 + "\n")
 
 
 def query_database(db_manager: RE4DatabaseManager) -> tuple[DataFrame]:
+    print("Querying the database")
+    print("=" * 100)
     df_doorsplit_golds = db_manager.query_doorsplit_golds()
     df_chapter_golds = db_manager.query_chapter_golds()
     df_chapter_golds_by_doors = db_manager.query_chapter_golds_by_doors()
@@ -46,7 +51,7 @@ def query_database(db_manager: RE4DatabaseManager) -> tuple[DataFrame]:
     df_weekday_data = db_manager.query_weekday_data()
 
     db_manager.close_connection()
-
+    print("=" * 100 + "\n")
     return (
         df_doorsplit_golds,
         df_chapter_golds,
@@ -63,6 +68,8 @@ def query_database(db_manager: RE4DatabaseManager) -> tuple[DataFrame]:
 
 
 def update_sheet(dataframes: tuple[DataFrame]) -> None:
+    print("Updating the Google Sheet")
+    print("=" * 100)
     sheet_manager = RE4SheetManager()
     sheet_manager.copy_doorsplits_to_sheet(doorsplits=dataframes[0])
     sheet_manager.copy_chapters_to_sheet(
@@ -80,6 +87,7 @@ def update_sheet(dataframes: tuple[DataFrame]) -> None:
     sheet_manager.copy_resets_to_sheet(resets=dataframes[9])
     sheet_manager.copy_weekday_data_to_sheet(weekday_data=dataframes[10])
     sheet_manager.post_last_update()
+    print("=" * 100 + "\n")
 
     if False:
         url_village_graph = graph_village(excel=excel_files[9])
