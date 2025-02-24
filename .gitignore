@@ -1,6 +1,8 @@
 venv/
 credentials/
 excels/
+info/
+graphs/
 
 __pycache__/
 *.pyc
