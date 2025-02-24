@@ -3,6 +3,7 @@ credentials/
 excels/
 info/
 graphs/
+src/random_queries.py
 
 __pycache__/
 *.pyc
