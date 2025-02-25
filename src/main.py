@@ -26,12 +26,13 @@ def get_splits() -> dict[str, str]:
     return drive_manager.download_splits()
 
 
-def update_database(db_manager: RE4DatabaseManager, splits: dict[str, str]) -> None:
+def update_database(db_manager: RE4DatabaseManager, splits: dict[str, str]) -> bool:
     print("Updating the database")
     print("=" * 100)
-    db_manager.update_runners_tables(splits=splits)
+    new_updates = db_manager.update_runners_tables(splits=splits)
     db_manager.update_global_tables()
     print("=" * 100 + "\n")
+    return new_updates
 
 
 def query_database(
@@ -116,7 +117,7 @@ def update_sheet(
     sheet_manager.post_last_update()
     print("=" * 100 + "\n")
 
-    """    
+    """
     url_village_graph = graph_village(excel=excel_files[9])
     url_castle_graph = graph_castle(excel=excel_files[9])
     url_island_graph = graph_island(excel=excel_files[9])
@@ -125,7 +126,7 @@ def update_sheet(
         url_village_graph=url_village_graph,
         url_castle_graph=url_castle_graph,
         url_island_graph=url_island_graph,
-    ) 
+    )
     """
 
 
@@ -133,9 +134,14 @@ def main() -> None:
     with measure_total_time():
         splits = get_splits()
         db_manager = RE4DatabaseManager()
-        update_database(db_manager=db_manager, splits=splits)
-        dataframes = query_database(db_manager=db_manager)
-        update_sheet(dataframes=dataframes)
+        new_updates = update_database(db_manager=db_manager, splits=splits)
+        if new_updates:
+            dataframes = query_database(db_manager=db_manager)
+            update_sheet(dataframes=dataframes)
+        else:
+            print(
+                "Not querying the database nor updating the sheet since there's no new data."
+            )
 
     for func_name, exec_time in execution_times.items():
         print(f"{func_name} took {exec_time}")

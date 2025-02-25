@@ -124,6 +124,5 @@ class RE4DriveManager:
                     f"{title} is already up to date locally, so there's no need to download it."
                 )
 
-        print("Finished downloading the .lss files!")
         print("=" * 50 + "\n")
         return self.splits_last_modified()

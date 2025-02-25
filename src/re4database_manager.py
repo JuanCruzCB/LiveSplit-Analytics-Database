@@ -133,16 +133,16 @@ class RE4DatabaseManager:
             json.dump(obj=updates, fp=json_file, indent=4)
 
     @measure_time
-    def update_runners_tables(self, splits: dict[str, str]) -> None:
+    def update_runners_tables(self, splits: dict[str, str]) -> bool:
         """
         If there's currently a connection, run the main SQL script.
         """
         if not self.connection or not self.cursor:
-            print("No database connection available.")
-            return
+            raise Exception("No database connection available.")
 
         last_table_updates = self._load_last_updates()
         sql_script = self._read_sql_script(self.main_sql_script)
+        new_updates = False
 
         try:
             for split, last_modified in splits.items():
@@ -166,6 +166,7 @@ class RE4DatabaseManager:
                     print(
                         f"Updated the database tables for {runner_name} successfully!"
                     )
+                    new_updates = True
                 else:
                     print(
                         f"Not updating the tables for {runner_name} since they are already up to date."
@@ -175,6 +176,8 @@ class RE4DatabaseManager:
 
         except psycopg2.Error as e:
             raise e
+
+        return new_updates
 
     @measure_time
     def update_global_tables(self) -> None:
