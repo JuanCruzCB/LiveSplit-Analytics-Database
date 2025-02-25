@@ -1,6 +1,0 @@
-@echo off
-echo Activating virtual environment...
-call ..\venv\Scripts\activate
-
-echo Running script with --download flag only...
-python "..\src\main.py" --download 
