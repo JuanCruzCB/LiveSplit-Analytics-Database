@@ -85,8 +85,8 @@ class RE4DatabaseManager:
         self.global_sql_script = Path(
             r"H:\Juan\4. Speedrunning\RE4 Steam\global ng pro steam.sql"
         )
-        self.last_updates_file = (
-            Path(__file__).parent.parent / "info" / "last_table_updates.json"
+        self.last_updates_file = Path(
+            r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\info\last_table_updates.json"
         )
         self.connection = None
         self.cursor = None

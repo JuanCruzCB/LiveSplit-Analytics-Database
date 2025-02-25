@@ -16,9 +16,9 @@ class RE4SheetManager:
     def __init__(self):
         self.sheet_url = "https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
         self.credentials = Credentials.from_service_account_file(
-            filename=Path(__file__).parent.parent
-            / "credentials"
-            / "service_account_secrets.json",
+            filename=Path(
+                r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\service_account_secrets.json"
+            ),
             scopes=[
                 "https://www.googleapis.com/auth/spreadsheets",
                 "https://www.googleapis.com/auth/drive",
@@ -328,9 +328,7 @@ class RE4SheetManager:
             sheet = self.spreadsheet.worksheet(title=SHEET_TAB_NAME)
             sheet.update_acell(
                 "A2",
-                f"Last updated on: {datetime.now().strftime(
-                        DATE_TIME_FORMAT
-                    )} (UTC-3)",
+                f"Last updated on: {datetime.now().strftime(DATE_TIME_FORMAT)} (UTC-3)",
             )
         except gspread.exceptions.WorksheetNotFound:
             raise Exception(

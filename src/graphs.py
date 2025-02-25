@@ -60,7 +60,10 @@ def generate_graph(
         yaxis_title=None,
     )
 
-    graph_path = Path(__file__).parent.parent / "graphs" / output_filename
+    graph_path = (
+        Path(r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\graphs")
+        / output_filename
+    )
     fig.write_image(graph_path, height=HEIGHT, width=WIDTH)
 
     return upload_image_imgur(image_path=graph_path)
