@@ -1,5 +1,5 @@
-from datetime import datetime
 import json
+from datetime import datetime
 from pathlib import Path
 
 import psycopg2
@@ -7,7 +7,6 @@ from pandas import DataFrame
 
 from constants import DATE_TIME_FORMAT
 from decorators import measure_time
-
 
 GLOBAL_DOORSPLIT_GOLDS_QUERY = """
 select *
