@@ -1,0 +1,14 @@
+[tool.ruff]
+line-length = 88  # Customize if needed
+target-version = "py313"  # Match your Python version (py310, py311, etc.)
+select = ["E", "F", "I"]  # Choose linting rules
+ignore = ["E501"]  # Example: Ignore long line warnings
+
+[tool.ruff.lint]
+fixable = ["ALL"]  # Allow auto-fixes for all issues
+unfixable = []  # Prevent auto-fixing specific rules
+
+[tool.ruff.format]
+quote-style = "double"  # Use double quotes everywhere
+indent-style = "space"  # Always use spaces for indentation
+line-ending = "lf"  # Force LF line endings

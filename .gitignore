@@ -4,6 +4,8 @@ excels/
 info/
 graphs/
 src/random_queries.py
+.venv/
+.vscode/
 
 __pycache__/
 *.pyc
