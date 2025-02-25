@@ -1,11 +1,11 @@
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-from decorators import measure_time
 from constants import DATE_TIME_FORMAT, GOOGLE_DRIVE_DATE_TIME_FORMAT
+from decorators import measure_time
 
 
 class RE4DriveManager:
@@ -87,7 +87,7 @@ class RE4DriveManager:
         return local_splits
 
     @measure_time
-    def download_splits(self) -> dict[str, datetime]:
+    def download_splits(self) -> dict[str, str]:
         print("Getting splits")
         print("=" * 100)
         if self.google_drive is None:

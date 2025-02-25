@@ -3,11 +3,10 @@ from contextlib import contextmanager
 
 from pandas import DataFrame
 
-from re4drive_manager import RE4DriveManager
-from re4database_manager import RE4DatabaseManager
-from re4sheet_manager import RE4SheetManager
-from graphs import graph_village, graph_castle, graph_island
 from constants import TIME_FORMAT
+from re4database_manager import RE4DatabaseManager
+from re4drive_manager import RE4DriveManager
+from re4sheet_manager import RE4SheetManager
 from timing import execution_times
 
 
@@ -35,7 +34,21 @@ def update_database(db_manager: RE4DatabaseManager, splits: dict[str, str]) -> N
     print("=" * 100 + "\n")
 
 
-def query_database(db_manager: RE4DatabaseManager) -> tuple[DataFrame]:
+def query_database(
+    db_manager: RE4DatabaseManager,
+) -> tuple[
+    DataFrame,
+    DataFrame,
+    DataFrame,
+    DataFrame,
+    DataFrame,
+    DataFrame,
+    DataFrame,
+    DataFrame,
+    DataFrame,
+    DataFrame,
+    DataFrame,
+]:
     print("Querying the database")
     print("=" * 100)
     df_doorsplit_golds = db_manager.query_doorsplit_golds()
@@ -67,7 +80,21 @@ def query_database(db_manager: RE4DatabaseManager) -> tuple[DataFrame]:
     )
 
 
-def update_sheet(dataframes: tuple[DataFrame]) -> None:
+def update_sheet(
+    dataframes: tuple[
+        DataFrame,
+        DataFrame,
+        DataFrame,
+        DataFrame,
+        DataFrame,
+        DataFrame,
+        DataFrame,
+        DataFrame,
+        DataFrame,
+        DataFrame,
+        DataFrame,
+    ],
+) -> None:
     print("Updating the Google Sheet")
     print("=" * 100)
     sheet_manager = RE4SheetManager()
@@ -89,16 +116,17 @@ def update_sheet(dataframes: tuple[DataFrame]) -> None:
     sheet_manager.post_last_update()
     print("=" * 100 + "\n")
 
-    if False:
-        url_village_graph = graph_village(excel=excel_files[9])
-        url_castle_graph = graph_castle(excel=excel_files[9])
-        url_island_graph = graph_island(excel=excel_files[9])
+    """    
+    url_village_graph = graph_village(excel=excel_files[9])
+    url_castle_graph = graph_castle(excel=excel_files[9])
+    url_island_graph = graph_island(excel=excel_files[9])
 
-        sheet_manager.copy_graphs_to_sheet(
-            url_village_graph=url_village_graph,
-            url_castle_graph=url_castle_graph,
-            url_island_graph=url_island_graph,
-        )
+    sheet_manager.copy_graphs_to_sheet(
+        url_village_graph=url_village_graph,
+        url_castle_graph=url_castle_graph,
+        url_island_graph=url_island_graph,
+    ) 
+    """
 
 
 def main() -> None:
