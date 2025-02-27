@@ -18,6 +18,7 @@ class RE4DriveManager:
             "luis",
             "mateo",
             "richy",
+            "nevs",
         ]
         self.output_folder = Path(
             r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\Not mine"
