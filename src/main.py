@@ -1,5 +1,6 @@
 import time
 from contextlib import contextmanager
+from time import sleep
 
 from pandas import DataFrame
 
@@ -132,16 +133,18 @@ def update_sheet(
 
 def main() -> None:
     with measure_total_time():
-        splits = get_splits()
-        db_manager = RE4DatabaseManager()
-        new_updates = update_database(db_manager=db_manager, splits=splits)
-        if new_updates:
-            dataframes = query_database(db_manager=db_manager)
-            update_sheet(dataframes=dataframes)
-        else:
-            print(
-                "Not querying the database nor updating the sheet since there's no new data."
-            )
+        while True:
+            splits = get_splits()
+            db_manager = RE4DatabaseManager()
+            new_updates = update_database(db_manager=db_manager, splits=splits)
+            if new_updates:
+                dataframes = query_database(db_manager=db_manager)
+                update_sheet(dataframes=dataframes)
+            else:
+                print(
+                    "Not querying the database nor updating the sheet since there's no new data."
+                )
+                sleep(10)
 
     for func_name, exec_time in execution_times.items():
         print(f"{func_name} took {exec_time}")
