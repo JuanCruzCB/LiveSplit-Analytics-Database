@@ -1,12 +1,15 @@
 import json
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 
+import numpy as np
 import psycopg2
 from pandas import DataFrame
 
-from constants import CURRENTLY_ALLOWED_RUNNERS, ConstantQuery, Format
+from constants import CURRENTLY_ALLOWED_RUNNERS, DEFAULT_UPDATES, ConstantQuery, Format
 from decorators import measure_time
+from utils import get_days_hours_str, get_hours_minutes_str
 
 
 class RE4DatabaseManager:
@@ -51,19 +54,9 @@ class RE4DatabaseManager:
 
     def _load_last_updates(self) -> dict[str, str]:
         if not self.last_updates_file.exists():
-            default_updates = {
-                "1. NG Pro": "1/1/2025 1:00:00",
-                "splits arcadan": "1/1/2025 1:00:00",
-                "splits derek": "1/1/2025 1:00:00",
-                "splits joker": "1/1/2025 1:00:00",
-                "splits luis": "1/1/2025 1:00:00",
-                "splits mateo": "1/1/2025 1:00:00",
-                "splits richy": "1/1/2025 1:00:00",
-                "splits nevs": "1/1/2025 1:00:00",
-            }
             with open(file=self.last_updates_file, mode="w") as json_file:
-                json.dump(obj=default_updates, fp=json_file, indent=4)
-            return default_updates
+                json.dump(obj=DEFAULT_UPDATES, fp=json_file, indent=4)
+            return DEFAULT_UPDATES
         else:
             with open(file=self.last_updates_file, mode="r") as json_file:
                 return json.load(fp=json_file)
@@ -150,7 +143,9 @@ class RE4DatabaseManager:
 
     @measure_time
     def query_doorsplit_golds(self) -> DataFrame:
-        return self.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY.value)
+        df = self.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY.value)
+        df = df.replace({np.nan: ""})
+        return df.drop(columns=["split"])
 
     @measure_time
     def query_chapter_golds(self) -> DataFrame:
@@ -161,7 +156,9 @@ class RE4DatabaseManager:
         FROM global_chapter_golds
         WHERE chapter like '%-%' or chapter='Total';
         """
-        return self.query_db(query=GLOBAL_CHAPTER_GOLDS_QUERY)
+        df = self.query_db(query=GLOBAL_CHAPTER_GOLDS_QUERY)
+        df = df.replace({np.nan: ""})
+        return df.drop(columns=["chapter"])
 
     @measure_time
     def query_chapter_golds_by_doors(self) -> DataFrame:
@@ -171,7 +168,8 @@ class RE4DatabaseManager:
         SELECT {columns}
         FROM global_chapter_golds_doors;
         """
-        return self.query_db(query=GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY)
+        df = self.query_db(query=GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY)
+        return df.replace({np.nan: ""})
 
     @measure_time
     def query_section_golds(self) -> DataFrame:
@@ -181,7 +179,8 @@ class RE4DatabaseManager:
         SELECT {columns}
         FROM global_section_golds;
         """
-        return self.query_db(query=GLOBAL_SECTION_GOLDS_QUERY)
+        df = self.query_db(query=GLOBAL_SECTION_GOLDS_QUERY)
+        return df.replace({np.nan: ""})
 
     @measure_time
     def query_section_golds_by_chapters(self) -> DataFrame:
@@ -191,7 +190,8 @@ class RE4DatabaseManager:
         SELECT {columns}
         FROM global_section_golds_chapters;
         """
-        return self.query_db(query=GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY)
+        df = self.query_db(query=GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY)
+        return df.replace({np.nan: ""})
 
     @measure_time
     def query_section_golds_by_doors(self) -> DataFrame:
@@ -201,15 +201,21 @@ class RE4DatabaseManager:
         SELECT {columns}
         FROM global_section_golds_doors;
         """
-        return self.query_db(query=GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY)
+        df = self.query_db(query=GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY)
+        return df.replace({np.nan: ""})
 
     @measure_time
     def query_best_paces(self) -> DataFrame:
-        return self.query_db(query=ConstantQuery.BEST_PACES_QUERY.value)
+        df = self.query_db(query=ConstantQuery.BEST_PACES_QUERY.value)
+        df = df.replace({np.nan: ""})
+        return df.drop(columns=["chapter"])
 
     @measure_time
     def query_rng_patterns(self) -> DataFrame:
-        return self.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY.value)
+        df = self.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY.value)
+        df = df.replace({np.nan: ""})
+        df = df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
+        return df.drop(columns=["pattern"])
 
     @measure_time
     def query_general_stats(self) -> DataFrame:
@@ -219,7 +225,16 @@ class RE4DatabaseManager:
         FROM global_chapter_golds
         WHERE chapter NOT LIKE '%-%' AND chapter <> 'Total';
         """
-        return self.query_db(query=GENERAL_STATS_QUERY)
+        df = self.query_db(query=GENERAL_STATS_QUERY)
+        df = df.replace({np.nan: ""})
+        df = df.drop(columns=["chapter"])
+        df.iloc[0] = df.iloc[0].apply(
+            lambda date_str: datetime.strptime(
+                date_str, Format.BAD_DATE_FORMAT.value
+            ).strftime(Format.DATE_FORMAT.value)
+        )
+        df.iloc[3] = df.iloc[3].apply(lambda playtime: get_days_hours_str(playtime))
+        return df
 
     @measure_time
     def query_resets(self) -> DataFrame:
@@ -232,11 +247,26 @@ class RE4DatabaseManager:
         {columns}
         FROM global_resets;
         """
-        return self.query_db(query=RESETS_QUERY)
+        df = self.query_db(query=RESETS_QUERY)
+        df = df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
+        return df.replace({np.nan: ""})
 
     @measure_time
     def query_weekday_data(self) -> DataFrame:
-        return self.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY.value)
+        df = self.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY.value)
+        df = df.replace({np.nan: ""})
+
+        ranges_to_process = [
+            range(7, 14),
+            range(21, 28),
+            range(35, 42),
+            range(49, 56),
+            range(63, 70),
+        ]
+        for r in ranges_to_process:
+            for i in r:
+                df.iloc[i] = df.iloc[i].apply(get_hours_minutes_str)
+        return df.drop(columns=["day", "col"])
 
     def __del__(self) -> None:
         self.close_connection()
