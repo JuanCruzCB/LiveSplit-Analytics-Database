@@ -5,70 +5,8 @@ from pathlib import Path
 import psycopg2
 from pandas import DataFrame
 
-from constants import Format
+from constants import CURRENTLY_ALLOWED_RUNNERS, ConstantQuery, Format
 from decorators import measure_time
-
-GLOBAL_DOORSPLIT_GOLDS_QUERY = """
-select *
-from global_door_golds;
-"""
-
-GLOBAL_CHAPTER_GOLDS_QUERY = """
-select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, best_cumulative_chapters
-from global_chapter_golds
-where chapter like '%-%' or chapter='Total';
-"""
-
-GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY = """
-select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, cumulative_best
-from global_chapter_golds_doors;
-"""
-
-GLOBAL_SECTION_GOLDS_QUERY = """
-select section, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, best_cumulative_sections
-from global_section_golds;
-"""
-
-
-GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY = """
-select section, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, cumulative_best
-from global_section_golds_chapters;
-"""
-
-GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY = """
-select section, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, cumulative_best
-from global_section_golds_doors;
-"""
-
-GLOBAL_BEST_PACES_QUERY = """
-select *
-from global_best_paces_chapter;
-"""
-
-GLOBAL_RNG_PATTERNS_QUERY = """
-select *
-from global_rng_patterns;
-"""
-
-GENERAL_STATS_QUERY = """
-select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, nevs
-from global_chapter_golds
-where chapter not like '%-%' and chapter<>'Total';
-"""
-
-RESETS_QUERY = """
-select split, case when percent_sawken<0 then 0 else percent_sawken end as percent_sawken,
-case when percent_luis<0 then 0 else percent_luis end as percent_luis,
-case when percent_joker<0 then 0 else percent_joker end as percent_joker,
-case when percent_mateo<0 then 0 else percent_mateo end as percent_mateo,
-case when percent_arcadan<0 then 0 else percent_arcadan end as percent_arcadan,
-case when percent_richy<0 then 0 else percent_richy end as percent_richy,
-case when percent_derek<0 then 0 else percent_derek end as percent_derek,
-case when percent_nevs<0 then 0 else percent_nevs end as percent_nevs
-from global_resets;
-"""
-
-WEEKDAY_DATA_QUERY = """select * from global_weekday_data"""
 
 
 class RE4DatabaseManager:
@@ -212,47 +150,93 @@ class RE4DatabaseManager:
 
     @measure_time
     def query_doorsplit_golds(self) -> DataFrame:
-        return self.query_db(query=GLOBAL_DOORSPLIT_GOLDS_QUERY)
+        return self.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY.value)
 
     @measure_time
     def query_chapter_golds(self) -> DataFrame:
+        extra_columns = ["best", "best_cumulative_chapters"]
+        columns = ", ".join(["chapter"] + CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        GLOBAL_CHAPTER_GOLDS_QUERY = f"""
+        SELECT {columns}
+        FROM global_chapter_golds
+        WHERE chapter like '%-%' or chapter='Total';
+        """
         return self.query_db(query=GLOBAL_CHAPTER_GOLDS_QUERY)
 
     @measure_time
     def query_chapter_golds_by_doors(self) -> DataFrame:
+        extra_columns = ["best", "cumulative_best"]
+        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY = f"""
+        SELECT {columns}
+        FROM global_chapter_golds_doors;
+        """
         return self.query_db(query=GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY)
 
     @measure_time
     def query_section_golds(self) -> DataFrame:
+        extra_columns = ["best", "best_cumulative_sections"]
+        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        GLOBAL_SECTION_GOLDS_QUERY = f"""
+        SELECT {columns}
+        FROM global_section_golds;
+        """
         return self.query_db(query=GLOBAL_SECTION_GOLDS_QUERY)
 
     @measure_time
     def query_section_golds_by_chapters(self) -> DataFrame:
+        extra_columns = ["best", "cumulative_best"]
+        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY = f"""
+        SELECT {columns}
+        FROM global_section_golds_chapters;
+        """
         return self.query_db(query=GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY)
 
     @measure_time
     def query_section_golds_by_doors(self) -> DataFrame:
+        extra_columns = ["best", "cumulative_best"]
+        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY = f"""
+        SELECT {columns}
+        FROM global_section_golds_doors;
+        """
         return self.query_db(query=GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY)
 
     @measure_time
     def query_best_paces(self) -> DataFrame:
-        return self.query_db(query=GLOBAL_BEST_PACES_QUERY)
+        return self.query_db(query=ConstantQuery.BEST_PACES_QUERY.value)
 
     @measure_time
     def query_rng_patterns(self) -> DataFrame:
-        return self.query_db(query=GLOBAL_RNG_PATTERNS_QUERY)
+        return self.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY.value)
 
     @measure_time
     def query_general_stats(self) -> DataFrame:
+        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS)
+        GENERAL_STATS_QUERY = f"""
+        SELECT chapter, {columns}
+        FROM global_chapter_golds
+        WHERE chapter NOT LIKE '%-%' AND chapter <> 'Total';
+        """
         return self.query_db(query=GENERAL_STATS_QUERY)
 
     @measure_time
     def query_resets(self) -> DataFrame:
+        columns = ",\n".join(
+            f"case when percent_{name} < 0 then 0 else percent_{name} end as percent_{name}"
+            for name in CURRENTLY_ALLOWED_RUNNERS
+        )
+        RESETS_QUERY = f"""
+        SELECT split,
+        {columns}
+        FROM global_resets;
+        """
         return self.query_db(query=RESETS_QUERY)
 
     @measure_time
     def query_weekday_data(self) -> DataFrame:
-        return self.query_db(query=WEEKDAY_DATA_QUERY)
+        return self.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY.value)
 
     def __del__(self) -> None:
         self.close_connection()
