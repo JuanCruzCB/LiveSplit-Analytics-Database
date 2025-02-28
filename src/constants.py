@@ -17,11 +17,26 @@ class ConstantQuery(Enum):
 
 
 CURRENTLY_ALLOWED_RUNNERS = [
-    "arcadan",
-    "derek",
-    "joker",
+    "sawken",
     "luis",
+    "joker",
     "mateo",
+    "arcadan",
     "richy",
+    "derek",
     "nevs",
 ]
+
+DEFAULT_UPDATES = {
+    key: "1/1/2025 1:00:00"
+    for key in [
+        "1. NG Pro",
+        "splits arcadan",
+        "splits derek",
+        "splits joker",
+        "splits luis",
+        "splits mateo",
+        "splits richy",
+        "splits nevs",
+    ]
+}
