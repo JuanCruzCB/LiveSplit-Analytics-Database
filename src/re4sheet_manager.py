@@ -11,6 +11,9 @@ from pandas import DataFrame
 from constants import Format
 from decorators import measure_time
 
+CHAPTER_COLUMN_LIMIT = 11
+CHAPTER_BY_DOORS_COLUMN_LIMIT = 12
+
 
 class RE4SheetManager:
     def __init__(self):
@@ -141,9 +144,9 @@ class RE4SheetManager:
         self, chapters: DataFrame, chapters_by_doors: DataFrame
     ) -> None:
         SHEET_TAB_NAME = "Chapters"
-        chapters = chapters.iloc[:, 1:11]
+        chapters = chapters.iloc[:, 1:CHAPTER_COLUMN_LIMIT]
         chapters = chapters.replace({np.nan: ""})
-        chapters_by_doors = chapters_by_doors.iloc[:, 1:11]
+        # chapters_by_doors = chapters_by_doors.iloc[:, 1:11]
         chapters_by_doors = chapters_by_doors.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
@@ -167,11 +170,11 @@ class RE4SheetManager:
     ) -> None:
         SHEET_TAB_NAME = "Sections"
 
-        sections = sections.iloc[:, 1:]
+        # sections = sections.iloc[:, 1:]
         sections = sections.replace({np.nan: ""})
-        sections_by_chapters = sections_by_chapters.iloc[:, 1:10]
+        # sections_by_chapters = sections_by_chapters.iloc[:, 1:10]
         sections_by_chapters = sections_by_chapters.replace({np.nan: ""})
-        sections_by_doors = sections_by_doors.iloc[:, 1:10]
+        # sections_by_doors = sections_by_doors.iloc[:, 1:10]
         sections_by_doors = sections_by_doors.replace({np.nan: ""})
 
         self.copy_excel_to_sheet(
