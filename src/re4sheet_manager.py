@@ -29,9 +29,9 @@ class RE4SheetManager:
 
     def _get_hours_minutes_str(self, seconds: str) -> str:
         try:
-            seconds = int(seconds)
-            hours = seconds // 3600
-            remaining_seconds = seconds % 3600
+            secs = int(seconds)
+            hours = secs // 3600
+            remaining_seconds = secs % 3600
             minutes = remaining_seconds // 60
         except Exception:
             return ""
@@ -64,9 +64,9 @@ class RE4SheetManager:
 
     def _get_days_hours_str(self, seconds: str) -> str:
         try:
-            seconds = int(seconds)
-            days = seconds // 86400
-            remaining_seconds = seconds % 86400
+            secs = int(seconds)
+            days = secs // 86400
+            remaining_seconds = secs % 86400
             hours = remaining_seconds // 3600
         except Exception:
             return ""
@@ -127,7 +127,7 @@ class RE4SheetManager:
     @measure_time
     def copy_doorsplits_to_sheet(self, doorsplits: DataFrame) -> None:
         SHEET_TAB_NAME = "Doors"
-        selected_columns = doorsplits.iloc[:, 1:8]
+        selected_columns = doorsplits.iloc[:, 1:]
         selected_columns = selected_columns.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
@@ -141,9 +141,9 @@ class RE4SheetManager:
         self, chapters: DataFrame, chapters_by_doors: DataFrame
     ) -> None:
         SHEET_TAB_NAME = "Chapters"
-        chapters = chapters.iloc[:, 1:10]
+        chapters = chapters.iloc[:, 1:11]
         chapters = chapters.replace({np.nan: ""})
-        chapters_by_doors = chapters_by_doors.iloc[:, 1:10]
+        chapters_by_doors = chapters_by_doors.iloc[:, 1:11]
         chapters_by_doors = chapters_by_doors.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
@@ -167,7 +167,7 @@ class RE4SheetManager:
     ) -> None:
         SHEET_TAB_NAME = "Sections"
 
-        sections = sections.iloc[:, 1:10]
+        sections = sections.iloc[:, 1:]
         sections = sections.replace({np.nan: ""})
         sections_by_chapters = sections_by_chapters.iloc[:, 1:10]
         sections_by_chapters = sections_by_chapters.replace({np.nan: ""})
@@ -199,7 +199,7 @@ class RE4SheetManager:
         paces: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "Paces"
-        paces = paces.iloc[:, 1:9]
+        paces = paces.iloc[:, 1:]
         paces = paces.replace({np.nan: ""})
         self.copy_excel_to_sheet(
             sheet_tab_name=SHEET_TAB_NAME,
@@ -214,7 +214,7 @@ class RE4SheetManager:
         rng_patterns: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "RNG Patterns"
-        rng_patterns = rng_patterns.iloc[:, 1:15]
+        rng_patterns = rng_patterns.iloc[:, 1:]
         rng_patterns = rng_patterns.replace({np.nan: ""})
         rng_patterns = rng_patterns.map(
             lambda x: float(x) if isinstance(x, Decimal) else x
@@ -232,7 +232,7 @@ class RE4SheetManager:
         general_stats: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "General"
-        general_stats = general_stats.iloc[:, 1:8]
+        general_stats = general_stats.iloc[:, 1:]
         general_stats = general_stats.replace({np.nan: ""})
 
         data = general_stats.values.tolist()
@@ -278,7 +278,7 @@ class RE4SheetManager:
         weekday_data: DataFrame,
     ) -> None:
         SHEET_TAB_NAME = "Weekday"
-        weekday_data = weekday_data.iloc[:, 2:9]
+        weekday_data = weekday_data.iloc[:, 2:]
         weekday_data = weekday_data.replace({np.nan: ""})
         data = weekday_data.values.tolist()
 

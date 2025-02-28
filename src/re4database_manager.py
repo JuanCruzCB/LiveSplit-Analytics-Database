@@ -14,29 +14,29 @@ from global_door_golds;
 """
 
 GLOBAL_CHAPTER_GOLDS_QUERY = """
-select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, best, best_cumulative_chapters
+select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, best_cumulative_chapters
 from global_chapter_golds
 where chapter like '%-%' or chapter='Total';
 """
 
 GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY = """
-select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, best, cumulative_best
+select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, cumulative_best
 from global_chapter_golds_doors;
 """
 
 GLOBAL_SECTION_GOLDS_QUERY = """
-select section, sawken, luis, joker, mateo, arcadan, richy, derek, best, best_cumulative_sections
+select section, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, best_cumulative_sections
 from global_section_golds;
 """
 
 
 GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY = """
-select section, sawken, luis, joker, mateo, arcadan, richy, derek, best, cumulative_best
+select section, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, cumulative_best
 from global_section_golds_chapters;
 """
 
 GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY = """
-select section, sawken, luis, joker, mateo, arcadan, richy, derek, best, cumulative_best
+select section, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, best, cumulative_best
 from global_section_golds_doors;
 """
 
@@ -51,7 +51,7 @@ from global_rng_patterns;
 """
 
 GENERAL_STATS_QUERY = """
-select chapter, sawken, luis, joker, mateo, arcadan, richy, derek
+select chapter, sawken, luis, joker, mateo, arcadan, richy, derek, nevs
 from global_chapter_golds
 where chapter not like '%-%' and chapter<>'Total';
 """
@@ -63,7 +63,8 @@ case when percent_joker<0 then 0 else percent_joker end as percent_joker,
 case when percent_mateo<0 then 0 else percent_mateo end as percent_mateo,
 case when percent_arcadan<0 then 0 else percent_arcadan end as percent_arcadan,
 case when percent_richy<0 then 0 else percent_richy end as percent_richy,
-case when percent_derek<0 then 0 else percent_derek end as percent_derek
+case when percent_derek<0 then 0 else percent_derek end as percent_derek,
+case when percent_nevs<0 then 0 else percent_nevs end as percent_nevs
 from global_resets;
 """
 
@@ -120,6 +121,7 @@ class RE4DatabaseManager:
                 "splits luis": "1/1/2025 1:00:00",
                 "splits mateo": "1/1/2025 1:00:00",
                 "splits richy": "1/1/2025 1:00:00",
+                "splits nevs": "1/1/2025 1:00:00",
             }
             with open(file=self.last_updates_file, mode="w") as json_file:
                 json.dump(obj=default_updates, fp=json_file, indent=4)
