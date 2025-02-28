@@ -4,22 +4,13 @@ from pathlib import Path
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-from constants import Format
+from constants import CURRENTLY_ALLOWED_RUNNERS, Format
 from decorators import measure_time
 
 
 class RE4DriveManager:
     def __init__(self) -> None:
         self.splits_folder_id = "1-OvGMbjiemrxMaie166Cmwbu3k5WvXGh"
-        self.currently_allowed_runners = [
-            "arcadan",
-            "derek",
-            "joker",
-            "luis",
-            "mateo",
-            "richy",
-            "nevs",
-        ]
         self.output_folder = Path(
             r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\Not mine"
         )
@@ -102,7 +93,7 @@ class RE4DriveManager:
 
         local_splits = self.splits_last_modified()
         allowed_splits = [
-            f"splits {runner}.lss" for runner in self.currently_allowed_runners
+            f"splits {runner}.lss" for runner in CURRENTLY_ALLOWED_RUNNERS
         ]
 
         for file in files_in_drive:
