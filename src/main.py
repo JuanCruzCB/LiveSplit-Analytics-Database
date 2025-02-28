@@ -4,7 +4,7 @@ from time import sleep
 
 from pandas import DataFrame
 
-from constants import TIME_FORMAT
+from constants import Format
 from re4database_manager import RE4DatabaseManager
 from re4drive_manager import RE4DriveManager
 from re4sheet_manager import RE4SheetManager
@@ -18,7 +18,7 @@ def measure_total_time():
     execution_time = time.time() - start_time
     seconds = int(execution_time)
     milliseconds = int((execution_time % 1) * 1000)
-    execution_time_formatted = TIME_FORMAT.format(seconds, milliseconds)
+    execution_time_formatted = Format.TIME_FORMAT.value.format(seconds, milliseconds)
     execution_times["The whole script"] = execution_time_formatted
 
 

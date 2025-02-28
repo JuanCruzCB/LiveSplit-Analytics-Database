@@ -4,7 +4,7 @@ from pathlib import Path
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-from constants import DATE_TIME_FORMAT, GOOGLE_DRIVE_DATE_TIME_FORMAT
+from constants import Format
 from decorators import measure_time
 
 
@@ -71,7 +71,9 @@ class RE4DriveManager:
             path_obj = Path(splits)
             split_name = path_obj.stem
             mtime = path_obj.stat().st_mtime
-            mtime_date = datetime.fromtimestamp(mtime).strftime(DATE_TIME_FORMAT)
+            mtime_date = datetime.fromtimestamp(mtime).strftime(
+                Format.DATE_TIME_FORMAT.value
+            )
             local_splits[split_name] = mtime_date
 
         my_splits = Path(
@@ -80,7 +82,7 @@ class RE4DriveManager:
         my_splits_name = my_splits.stem
         my_splits_mtime = my_splits.stat().st_mtime
         my_splits_mtime_date = datetime.fromtimestamp(my_splits_mtime).strftime(
-            DATE_TIME_FORMAT
+            Format.DATE_TIME_FORMAT.value
         )
 
         local_splits[my_splits_name] = my_splits_mtime_date
@@ -109,14 +111,16 @@ class RE4DriveManager:
                 continue
 
             modified_date = (
-                datetime.strptime(file["modifiedDate"], GOOGLE_DRIVE_DATE_TIME_FORMAT)
+                datetime.strptime(
+                    file["modifiedDate"], Format.GOOGLE_DRIVE_DATE_TIME_FORMAT.value
+                )
                 - timedelta(hours=3)
-            ).strftime(DATE_TIME_FORMAT)
+            ).strftime(Format.DATE_TIME_FORMAT.value)
 
             file_name = title.replace(".lss", "")
             if datetime.strptime(
-                local_splits[file_name], DATE_TIME_FORMAT
-            ) < datetime.strptime(modified_date, DATE_TIME_FORMAT):
+                local_splits[file_name], Format.DATE_TIME_FORMAT.value
+            ) < datetime.strptime(modified_date, Format.DATE_TIME_FORMAT.value):
                 print(f"Downloading {title}...")
 
                 file.GetContentFile(self.output_folder / title)

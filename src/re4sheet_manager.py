@@ -8,7 +8,7 @@ import numpy as np
 from google.oauth2.service_account import Credentials
 from pandas import DataFrame
 
-from constants import BAD_DATE_FORMAT, DATE_FORMAT, DATE_TIME_FORMAT
+from constants import Format
 from decorators import measure_time
 
 
@@ -238,9 +238,9 @@ class RE4SheetManager:
         data = general_stats.values.tolist()
         dates_formatted = list(
             map(
-                lambda date_str: datetime.strptime(date_str, BAD_DATE_FORMAT).strftime(
-                    DATE_FORMAT
-                ),
+                lambda date_str: datetime.strptime(
+                    date_str, Format.BAD_DATE_FORMAT.value
+                ).strftime(Format.DATE_FORMAT.value),
                 data[0],
             )
         )
@@ -328,7 +328,7 @@ class RE4SheetManager:
             sheet = self.spreadsheet.worksheet(title=SHEET_TAB_NAME)
             sheet.update_acell(
                 "A2",
-                f"Last updated on: {datetime.now().strftime(DATE_TIME_FORMAT)} (UTC-3)",
+                f"Last updated on: {datetime.now().strftime(Format.DATE_TIME_FORMAT.value)} (UTC-3)",
             )
         except gspread.exceptions.WorksheetNotFound:
             raise Exception(

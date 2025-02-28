@@ -5,7 +5,7 @@ from pathlib import Path
 import psycopg2
 from pandas import DataFrame
 
-from constants import DATE_TIME_FORMAT
+from constants import Format
 from decorators import measure_time
 
 GLOBAL_DOORSPLIT_GOLDS_QUERY = """
@@ -150,8 +150,8 @@ class RE4DatabaseManager:
             for split, last_modified in splits.items():
                 runner_name = "sawken" if "1. " in split else split[7:]
                 if datetime.strptime(
-                    last_table_updates[split], DATE_TIME_FORMAT
-                ) < datetime.strptime(last_modified, DATE_TIME_FORMAT):
+                    last_table_updates[split], Format.DATE_TIME_FORMAT.value
+                ) < datetime.strptime(last_modified, Format.DATE_TIME_FORMAT.value):
                     modified_script = sql_script
 
                     if "splits" in split:
@@ -163,7 +163,7 @@ class RE4DatabaseManager:
                     self.connection.commit()
 
                     last_table_updates[split] = datetime.now().strftime(
-                        DATE_TIME_FORMAT
+                        Format.DATE_TIME_FORMAT.value
                     )
                     print(
                         f"Updated the database tables for {runner_name} successfully!"
@@ -183,6 +183,9 @@ class RE4DatabaseManager:
 
     @measure_time
     def update_global_tables(self) -> None:
+        if not self.connection or not self.cursor:
+            raise Exception("No database connection available.")
+
         try:
             sql_script = self._read_sql_script(script_path=self.global_sql_script)
             self.cursor.execute(sql_script)
@@ -194,6 +197,9 @@ class RE4DatabaseManager:
 
     @measure_time
     def query_db(self, query: str) -> DataFrame:
+        if not self.connection or not self.cursor:
+            raise Exception("No database connection available.")
+
         try:
             self.cursor.execute(query)
             df = DataFrame(
