@@ -8,9 +8,8 @@
 
 # How to add a new runner
 
-1. Make Luis update the Main and Global .sql scripts with the new runner's tables.
-2. Add the runner's name to the list "currently_allowed_runners".
-3. Download the runners splits manually the first time, and place them on the proper folder.
-4. Add the runner's name to the dictionary initializing the last table updates, and delete the .json for it.
-5. Update the Global queries on the DB Manager class.
-6. Update the iloc ranges on the Sheet Manager class.
+1. Tell Luis to update the Main and Global .sql scripts with the new runner's tables.
+2. Add the runner's name to the list **CURRENTLY_ALLOWED_RUNNERS**.
+3. Add the runner's splits name to the dict comprehension **DEFAULT_UPDATES**.
+4. Delete **last_table_updates.json**.
+5. Download the runners splits manually the first time, and place them on the proper folder.
