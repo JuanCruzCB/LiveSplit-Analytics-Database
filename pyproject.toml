@@ -6,8 +6,15 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "gspread>=6.2.0",
+    "openpyxl>=3.1.5",
     "pandas>=2.2.3",
     "psycopg2>=2.9.10",
     "pydrive>=1.3.1",
     "ruff>=0.9.9",
 ]
+[tool.ruff]
+line-length = 88  # Adjust if needed
+extend-select = ["E", "W", "F"]  # Enable error, warning, and formatting checks
+
+[tool.ruff.format]
+docstring-code-format = true  # Ensures formatting of inline code in docstrings

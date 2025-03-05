@@ -33,6 +33,7 @@ def get_hours_minutes_str(seconds: str) -> str:
     else:
         return "0 mins"
 
+
 def get_days_hours_str(seconds: str) -> str:
     try:
         secs = int(seconds)
