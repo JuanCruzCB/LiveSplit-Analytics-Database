@@ -14,55 +14,55 @@ from utils import get_days_hours_str, get_hours_minutes_str
 
 class RE4DatabaseManager:
     def __init__(self) -> None:
-        self.config = {
+        self._config = {
             "dbname": "postgres",
             "user": "postgres",
             "host": "localhost",
             "password": 123,
             "port": 5432,
         }
-        self.main_sql_script = Path(
+        self._main_sql_script = Path(
             r"H:\Juan\4. Speedrunning\RE4 Steam\script ng pro steam.sql"
         )
-        self.global_sql_script = Path(
+        self._global_sql_script = Path(
             r"H:\Juan\4. Speedrunning\RE4 Steam\global ng pro steam.sql"
         )
-        self.last_updates_file = Path(
+        self._last_updates_file = Path(
             r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\info\last_table_updates.json"
         )
-        self.connection = None
-        self.cursor = None
+        self._connection = None
+        self._cursor = None
 
         self._open_connection()
 
     def _open_connection(self) -> None:
         try:
-            self.connection = psycopg2.connect(**self.config)
-            self.cursor = self.connection.cursor()
+            self._connection = psycopg2.connect(**self._config)
+            self._cursor = self._connection.cursor()
         except psycopg2.Error as e:
             raise e
 
     def close_connection(self) -> None:
-        if self.cursor:
-            self.cursor.close()
-        if self.connection:
-            self.connection.close()
+        if self._cursor:
+            self._cursor.close()
+        if self._connection:
+            self._connection.close()
 
     def _read_sql_script(self, script_path: Path) -> str:
         with open(script_path, "r") as file:
             return file.read()
 
     def _load_last_updates(self) -> dict[str, str]:
-        if not self.last_updates_file.exists():
-            with open(file=self.last_updates_file, mode="w") as json_file:
+        if not self._last_updates_file.exists():
+            with open(file=self._last_updates_file, mode="w") as json_file:
                 json.dump(obj=DEFAULT_UPDATES, fp=json_file, indent=4)
             return DEFAULT_UPDATES
         else:
-            with open(file=self.last_updates_file, mode="r") as json_file:
+            with open(file=self._last_updates_file, mode="r") as json_file:
                 return json.load(fp=json_file)
 
     def _save_last_updates(self, updates: dict[str, str]) -> None:
-        with open(file=self.last_updates_file, mode="w") as json_file:
+        with open(file=self._last_updates_file, mode="w") as json_file:
             json.dump(obj=updates, fp=json_file, indent=4)
 
     @measure_time
@@ -70,11 +70,11 @@ class RE4DatabaseManager:
         """
         If there's currently a connection, run the main SQL script.
         """
-        if not self.connection or not self.cursor:
+        if not self._connection or not self._cursor:
             raise Exception("No database connection available.")
 
         last_table_updates = self._load_last_updates()
-        sql_script = self._read_sql_script(self.main_sql_script)
+        sql_script = self._read_sql_script(self._main_sql_script)
         new_updates = False
 
         try:
@@ -90,8 +90,8 @@ class RE4DatabaseManager:
                             "sawken", split[7:]
                         ).replace(r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{split}")
 
-                    self.cursor.execute(modified_script)
-                    self.connection.commit()
+                    self._cursor.execute(modified_script)
+                    self._connection.commit()
 
                     last_table_updates[split] = datetime.now().strftime(
                         Format.DATE_TIME_FORMAT.value
@@ -114,13 +114,13 @@ class RE4DatabaseManager:
 
     @measure_time
     def update_global_tables(self) -> None:
-        if not self.connection or not self.cursor:
+        if not self._connection or not self._cursor:
             raise Exception("No database connection available.")
 
         try:
-            sql_script = self._read_sql_script(script_path=self.global_sql_script)
-            self.cursor.execute(sql_script)
-            self.connection.commit()
+            sql_script = self._read_sql_script(script_path=self._global_sql_script)
+            self._cursor.execute(sql_script)
+            self._connection.commit()
             print("Updated the database global tables succesfully!")
 
         except psycopg2.Error as e:
@@ -128,14 +128,14 @@ class RE4DatabaseManager:
 
     @measure_time
     def query_db(self, query: str) -> DataFrame:
-        if not self.connection or not self.cursor:
+        if not self._connection or not self._cursor:
             raise Exception("No database connection available.")
 
         try:
-            self.cursor.execute(query)
+            self._cursor.execute(query)
             df = DataFrame(
-                data=self.cursor.fetchall(),
-                columns=[desc[0] for desc in self.cursor.description],
+                data=self._cursor.fetchall(),
+                columns=[desc[0] for desc in self._cursor.description],
             )
             return df
         except psycopg2.Error as e:
