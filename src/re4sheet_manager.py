@@ -9,14 +9,10 @@ from pandas import DataFrame
 from constants import Format
 from decorators import measure_time
 
-CHAPTER_COLUMN_LIMIT = 11
-CHAPTER_BY_DOORS_COLUMN_LIMIT = 12
-
 
 class RE4SheetManager:
     def __init__(self):
-        self.sheet_url = "https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
-        self.credentials = Credentials.from_service_account_file(
+        credentials = Credentials.from_service_account_file(
             filename=Path(
                 r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\service_account_secrets.json"
             ),
@@ -25,22 +21,24 @@ class RE4SheetManager:
                 "https://www.googleapis.com/auth/drive",
             ],
         )
-        client = gspread.authorize(credentials=self.credentials)
-        self.spreadsheet = client.open_by_url(url=self.sheet_url)
+        client = gspread.authorize(credentials=credentials)
+        self._spreadsheet = client.open_by_url(
+            url="https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
+        )
 
-    def copy_excel_to_sheet(
+    def _update_sheet(
         self,
         sheet_tab_name: str,
         data: list[list[Any]],
         range_name: str,
-        make_copy: bool,
+        make_copy: bool = False,
     ) -> None:
         try:
-            original_sheet = self.spreadsheet.worksheet(title=sheet_tab_name)
+            original_sheet = self._spreadsheet.worksheet(title=sheet_tab_name)
 
             if make_copy:
                 old_sheet_tab_name = f"{sheet_tab_name} old"
-                old_sheet = self.spreadsheet.worksheet(title=old_sheet_tab_name)
+                old_sheet = self._spreadsheet.worksheet(title=old_sheet_tab_name)
                 original_data = original_sheet.get_all_values()
                 if original_data:
                     old_sheet.update(values=original_data, range_name="A1")
@@ -60,7 +58,7 @@ class RE4SheetManager:
 
     @measure_time
     def copy_doorsplits_to_sheet(self, doorsplits: DataFrame) -> None:
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="Doors",
             data=doorsplits.values.tolist(),
             range_name="B3",
@@ -71,17 +69,16 @@ class RE4SheetManager:
     def copy_chapters_to_sheet(
         self, chapters: DataFrame, chapters_by_doors: DataFrame
     ) -> None:
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="Chapters",
             data=chapters.values.tolist(),
             range_name="B3",
             make_copy=True,
         )
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="Chapters",
             data=chapters_by_doors.values.tolist(),
             range_name="B25",
-            make_copy=False,
         )
 
     @measure_time
@@ -91,23 +88,21 @@ class RE4SheetManager:
         sections_by_chapters: DataFrame,
         sections_by_doors: DataFrame,
     ) -> None:
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="Sections",
             data=sections.values.tolist(),
             range_name="B3",
             make_copy=True,
         )
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="Sections",
             data=sections_by_chapters.values.tolist(),
             range_name="B9",
-            make_copy=False,
         )
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="Sections",
             data=sections_by_doors.values.tolist(),
             range_name="B15",
-            make_copy=False,
         )
 
     @measure_time
@@ -115,7 +110,7 @@ class RE4SheetManager:
         self,
         paces: DataFrame,
     ) -> None:
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="Paces",
             data=paces.values.tolist(),
             range_name="B3",
@@ -127,7 +122,7 @@ class RE4SheetManager:
         self,
         rng_patterns: DataFrame,
     ) -> None:
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="RNG Patterns",
             data=rng_patterns.values.tolist(),
             range_name="B4",
@@ -139,11 +134,10 @@ class RE4SheetManager:
         self,
         general_stats: DataFrame,
     ) -> None:
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="General",
             data=general_stats.values.tolist(),
             range_name="B3",
-            make_copy=False,
         )
 
     @measure_time
@@ -151,11 +145,10 @@ class RE4SheetManager:
         self,
         resets: DataFrame,
     ) -> None:
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="Resets",
             data=resets.values.tolist(),
             range_name="A3",
-            make_copy=False,
         )
 
     @measure_time
@@ -163,11 +156,10 @@ class RE4SheetManager:
         self,
         weekday_data: DataFrame,
     ) -> None:
-        self.copy_excel_to_sheet(
+        self._update_sheet(
             sheet_tab_name="Weekday",
             data=weekday_data.values.tolist(),
             range_name="C2",
-            make_copy=False,
         )
 
     @measure_time
@@ -178,7 +170,7 @@ class RE4SheetManager:
         url_island_graph: str,
     ) -> None:
         try:
-            sheet = self.spreadsheet.worksheet(title="Resets graphs")
+            sheet = self._spreadsheet.worksheet(title="Resets graphs")
             sheet.update_acell("A1", f'=IMAGE("{url_village_graph}")')
             sheet.update_acell("A2", f'=IMAGE("{url_castle_graph}")')
             sheet.update_acell("A3", f'=IMAGE("{url_island_graph}")')
@@ -190,10 +182,10 @@ class RE4SheetManager:
     @measure_time
     def post_last_update(self) -> None:
         try:
-            sheet = self.spreadsheet.worksheet(title="Title")
+            sheet = self._spreadsheet.worksheet(title="Title")
             sheet.update_acell(
                 "A2",
                 f"Last updated on: {datetime.now().strftime(Format.DATE_TIME_FORMAT.value)} (UTC-3)",
             )
         except gspread.exceptions.WorksheetNotFound:
-            raise Exception('The tab "Title" does not exist in the google sheet.')
+            raise Exception("The tab 'Title' does not exist in the google sheet.")
