@@ -1,25 +1,29 @@
-def get_singular_plural_str(time: int, type: str) -> str:
-    match time:
-        case 0:
-            return ""
-        case 1:
-            return f"1 {type}"
-        case _:
-            return f"{time} {type}s"
-
-
 def get_hours_minutes_str(seconds: str) -> str:
     try:
         secs = int(seconds)
         hours = secs // 3600
         remaining_seconds = secs % 3600
         minutes = remaining_seconds // 60
-    except Exception as e:
-        raise e
+    except Exception:
+        return ""
 
-    hours_str = get_singular_plural_str(time=hours, type="hour")
-    minutes_str = get_singular_plural_str(time=minutes, type="min")
+    # Format hours string
+    if hours == 0:
+        hours_str = ""
+    elif hours == 1:
+        hours_str = "1 hr"
+    else:
+        hours_str = f"{hours} hs"
 
+    # Format minutes string
+    if minutes == 0:
+        minutes_str = ""
+    elif minutes == 1:
+        minutes_str = "1 min"
+    else:
+        minutes_str = f"{minutes} mins"
+
+    # Combine hours and minutes
     if hours_str and minutes_str:
         return f"{hours_str} and {minutes_str}"
     elif hours_str:
@@ -39,8 +43,19 @@ def get_days_hours_str(seconds: str) -> str:
     except Exception:
         return ""
 
-    days_str = get_singular_plural_str(time=days, type="day")
-    hours_str = get_singular_plural_str(time=hours, type="hour")
+    if days == 0:
+        days_str = ""
+    elif days == 1:
+        days_str = "1 day"
+    else:
+        days_str = f"{days} days"
+
+    if hours == 0:
+        hours_str = ""
+    elif hours == 1:
+        hours_str = "1 hour"
+    else:
+        hours_str = f"{hours} hours"
 
     if days_str and hours_str:
         return f"{days_str} and {hours_str}"
