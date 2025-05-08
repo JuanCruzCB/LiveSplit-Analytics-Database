@@ -61,6 +61,7 @@ CURRENTLY_ALLOWED_RUNNERS = [
     "derek",
     "nevs",
     "otaku",
+    "pocho",
 ]
 
 DEFAULT_UPDATES = {
@@ -75,5 +76,6 @@ DEFAULT_UPDATES = {
         "splits richy",
         "splits nevs",
         "splits otaku",
+        "splits pocho",
     ]
 }
