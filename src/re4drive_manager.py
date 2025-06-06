@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 
 from constants import CURRENTLY_ALLOWED_RUNNERS, Format
 from decorators import measure_time
@@ -14,11 +14,8 @@ class RE4DriveManager:
         self._output_folder = Path(
             r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\Not mine"
         )
-        self._credentials_file = Path(
-            r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\my_credentials.txt"
-        )
-        self._client_secrets_file = Path(
-            r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\client_secrets.json"
+        self._service_account_secrets = Path(
+            r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\service_account_secrets.json"
         )
         self._google_drive = None
         self._login_google()
@@ -26,30 +23,19 @@ class RE4DriveManager:
     @measure_time
     def _login_google(self) -> None:
         gauth = GoogleAuth()
+        gauth.settings = {
+            "client_config_backend": "service",
+            "service_config": {
+                "client_json_file_path": str(self._service_account_secrets),
+                "client_user_email": "",
+            },
+            "oauth_scope": [
+                "https://www.googleapis.com/auth/drive",
+            ],
+        }
 
-        gauth.LoadClientConfigFile(client_config_file=str(self._client_secrets_file))
-
-        gauth.client_config_file = str(self._client_secrets_file)
-
-        try:
-            gauth.LoadCredentialsFile(credentials_file=self._credentials_file)
-        except FileNotFoundError:
-            print("Credentials file not found. Starting authentication...")
-            gauth.LocalWebserverAuth()
-            gauth.SaveCredentialsFile(credentials_file=self._credentials_file)
-
-        if gauth.credentials is None:
-            gauth.LocalWebserverAuth()
-            gauth.SaveCredentialsFile(credentials_file=self._credentials_file)
-        elif gauth.access_token_expired:
-            try:
-                gauth.Refresh()
-            except Exception:
-                print("Token refresh failed. Re-authenticating...")
-                gauth.LocalWebserverAuth()
-                gauth.SaveCredentialsFile(credentials_file=self._credentials_file)
-
-        self._google_drive = GoogleDrive(auth=gauth)
+        gauth.ServiceAuth()
+        self._google_drive = GoogleDrive(gauth)
 
     @measure_time
     def _splits_last_modified(self) -> dict[str, str]:
