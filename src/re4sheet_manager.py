@@ -25,6 +25,7 @@ class RE4SheetManager:
         self._spreadsheet = client.open_by_url(
             url="https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
         )
+        print("Logged in to Google Sheets successfully.")
 
     def _update_sheet(
         self,

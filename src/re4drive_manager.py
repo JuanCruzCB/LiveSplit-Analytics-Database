@@ -36,6 +36,7 @@ class RE4DriveManager:
 
         gauth.ServiceAuth()
         self._google_drive = GoogleDrive(gauth)
+        print("Logged in to Google Drive successfully.")
 
     @measure_time
     def _splits_last_modified(self) -> dict[str, str]:
