@@ -22,17 +22,18 @@ class RE4DriveManager:
 
     @measure_time
     def _login_google(self) -> None:
-        gauth = GoogleAuth()
-        gauth.settings = {
-            "client_config_backend": "service",
-            "service_config": {
-                "client_json_file_path": str(self._service_account_secrets),
-                "client_user_email": "",
-            },
-            "oauth_scope": [
-                "https://www.googleapis.com/auth/drive",
-            ],
-        }
+        gauth = GoogleAuth(
+            settings={
+                "client_config_backend": "service",
+                "service_config": {
+                    "client_json_file_path": str(self._service_account_secrets),
+                    "client_user_email": "",
+                },
+                "oauth_scope": [
+                    "https://www.googleapis.com/auth/drive",
+                ],
+            }
+        )
 
         gauth.ServiceAuth()
         self._google_drive = GoogleDrive(gauth)

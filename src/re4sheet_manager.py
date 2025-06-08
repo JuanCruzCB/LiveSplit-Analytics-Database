@@ -12,16 +12,17 @@ from decorators import measure_time
 
 class RE4SheetManager:
     def __init__(self):
-        credentials = Credentials.from_service_account_file(
-            filename=Path(
-                r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\service_account_secrets.json"
-            ),
-            scopes=[
-                "https://www.googleapis.com/auth/spreadsheets",
-                "https://www.googleapis.com/auth/drive",
-            ],
+        client = gspread.authorize(
+            credentials=Credentials.from_service_account_file(
+                filename=Path(
+                    r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\service_account_secrets.json"
+                ),
+                scopes=[
+                    "https://www.googleapis.com/auth/spreadsheets",
+                    "https://www.googleapis.com/auth/drive",
+                ],
+            )
         )
-        client = gspread.authorize(credentials=credentials)
         self._spreadsheet = client.open_by_url(
             url="https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
         )
