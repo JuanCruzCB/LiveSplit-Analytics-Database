@@ -1,9 +1,7 @@
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 import gspread
-from google.oauth2.service_account import Credentials
 from pandas import DataFrame
 
 from constants import Format
@@ -11,22 +9,8 @@ from decorators import measure_time
 
 
 class RE4SheetManager:
-    def __init__(self):
-        client = gspread.authorize(
-            credentials=Credentials.from_service_account_file(
-                filename=Path(
-                    r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\service_account_secrets.json"
-                ),
-                scopes=[
-                    "https://www.googleapis.com/auth/spreadsheets",
-                    "https://www.googleapis.com/auth/drive",
-                ],
-            )
-        )
-        self._spreadsheet = client.open_by_url(
-            url="https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
-        )
-        print("Logged in to Google Sheets successfully.")
+    def __init__(self, gspread_client: gspread.Client, google_sheet_url: str):
+        self._spreadsheet = gspread_client.open_by_url(url=google_sheet_url)
 
     def _update_sheet(
         self,
