@@ -5,7 +5,6 @@ import gspread
 from pandas import DataFrame
 
 from constants import Format
-from decorators import measure_time
 
 
 class RE4SheetManager:
@@ -42,7 +41,6 @@ class RE4SheetManager:
 
         print(f"Sheet '{sheet_tab_name}' updated successfully!")
 
-    @measure_time
     def copy_doorsplits_to_sheet(self, doorsplits: DataFrame) -> None:
         self._update_sheet(
             sheet_tab_name="Doors",
@@ -51,7 +49,6 @@ class RE4SheetManager:
             make_copy=True,
         )
 
-    @measure_time
     def copy_chapters_to_sheet(
         self, chapters: DataFrame, chapters_by_doors: DataFrame
     ) -> None:
@@ -67,7 +64,6 @@ class RE4SheetManager:
             range_name="B25",
         )
 
-    @measure_time
     def copy_sections_to_sheet(
         self,
         sections: DataFrame,
@@ -91,7 +87,6 @@ class RE4SheetManager:
             range_name="B15",
         )
 
-    @measure_time
     def copy_paces_to_sheet(
         self,
         paces: DataFrame,
@@ -103,7 +98,6 @@ class RE4SheetManager:
             make_copy=True,
         )
 
-    @measure_time
     def copy_rng_patterns_to_sheet(
         self,
         rng_patterns: DataFrame,
@@ -115,7 +109,6 @@ class RE4SheetManager:
             make_copy=True,
         )
 
-    @measure_time
     def copy_general_stats_to_sheet(
         self,
         general_stats: DataFrame,
@@ -126,7 +119,6 @@ class RE4SheetManager:
             range_name="B3",
         )
 
-    @measure_time
     def copy_resets_to_sheet(
         self,
         resets: DataFrame,
@@ -137,7 +129,6 @@ class RE4SheetManager:
             range_name="A3",
         )
 
-    @measure_time
     def copy_weekday_data_to_sheet(
         self,
         weekday_data: DataFrame,
@@ -148,7 +139,6 @@ class RE4SheetManager:
             range_name="C2",
         )
 
-    @measure_time
     def copy_graphs_to_sheet(
         self,
         url_village_graph: str,
@@ -165,7 +155,6 @@ class RE4SheetManager:
                 'The tab "Resets graphs" does not exist in the google sheet.'
             )
 
-    @measure_time
     def post_last_update(self) -> None:
         try:
             sheet = self._spreadsheet.worksheet(title="Title")

@@ -8,7 +8,6 @@ import psycopg2
 from pandas import DataFrame
 
 from constants import ConstantQuery, Format
-from decorators import measure_time
 from utils import get_days_hours_str, get_hours_minutes_str
 
 
@@ -62,7 +61,6 @@ class RE4DatabaseManager:
         with open(file=self._last_updates_file, mode="w") as json_file:
             json.dump(obj=updates, fp=json_file, indent=4)
 
-    @measure_time
     def update_runners_tables(self, splits: dict[str, str]) -> bool:
         """
         If there's currently a connection, run the main SQL script.
@@ -109,7 +107,6 @@ class RE4DatabaseManager:
 
         return new_updates
 
-    @measure_time
     def update_global_tables(self) -> None:
         if not self._connection or not self._cursor:
             raise Exception("No database connection available.")
@@ -123,7 +120,6 @@ class RE4DatabaseManager:
         except psycopg2.Error as e:
             raise e
 
-    @measure_time
     def query_db(self, query: str) -> DataFrame:
         if not self._connection or not self._cursor:
             raise Exception("No database connection available.")
@@ -138,13 +134,11 @@ class RE4DatabaseManager:
         except psycopg2.Error as e:
             raise e
 
-    @measure_time
     def query_doorsplit_golds(self) -> DataFrame:
         df = self.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY.value)
         df = df.replace({np.nan: ""})
         return df.drop(columns=["split"])
 
-    @measure_time
     def query_chapter_golds(self) -> DataFrame:
         extra_columns = ["best", "best_cumulative_chapters"]
         columns = ", ".join(
@@ -159,7 +153,6 @@ class RE4DatabaseManager:
         df = df.replace({np.nan: ""})
         return df.drop(columns=["chapter"])
 
-    @measure_time
     def query_chapter_golds_by_doors(self) -> DataFrame:
         extra_columns = ["best", "cumulative_best"]
         columns = ", ".join(self._currently_allowed_runners + extra_columns)
@@ -170,7 +163,6 @@ class RE4DatabaseManager:
         df = self.query_db(query=GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY)
         return df.replace({np.nan: ""})
 
-    @measure_time
     def query_section_golds(self) -> DataFrame:
         extra_columns = ["best", "best_cumulative_sections"]
         columns = ", ".join(self._currently_allowed_runners + extra_columns)
@@ -181,7 +173,6 @@ class RE4DatabaseManager:
         df = self.query_db(query=GLOBAL_SECTION_GOLDS_QUERY)
         return df.replace({np.nan: ""})
 
-    @measure_time
     def query_section_golds_by_chapters(self) -> DataFrame:
         extra_columns = ["best", "cumulative_best"]
         columns = ", ".join(self._currently_allowed_runners + extra_columns)
@@ -192,7 +183,6 @@ class RE4DatabaseManager:
         df = self.query_db(query=GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY)
         return df.replace({np.nan: ""})
 
-    @measure_time
     def query_section_golds_by_doors(self) -> DataFrame:
         extra_columns = ["best", "cumulative_best"]
         columns = ", ".join(self._currently_allowed_runners + extra_columns)
@@ -203,20 +193,17 @@ class RE4DatabaseManager:
         df = self.query_db(query=GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY)
         return df.replace({np.nan: ""})
 
-    @measure_time
     def query_best_paces(self) -> DataFrame:
         df = self.query_db(query=ConstantQuery.BEST_PACES_QUERY.value)
         df = df.replace({np.nan: ""})
         return df.drop(columns=["chapter"])
 
-    @measure_time
     def query_rng_patterns(self) -> DataFrame:
         df = self.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY.value)
         df = df.replace({np.nan: ""})
         df = df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         return df.drop(columns=["pattern"])
 
-    @measure_time
     def query_general_stats(self) -> DataFrame:
         columns = ", ".join(self._currently_allowed_runners)
         GENERAL_STATS_QUERY = f"""
@@ -235,7 +222,6 @@ class RE4DatabaseManager:
         df.iloc[3] = df.iloc[3].apply(lambda playtime: get_days_hours_str(playtime))
         return df
 
-    @measure_time
     def query_resets(self) -> DataFrame:
         columns = ",\n".join(
             f"case when percent_{name} < 0 then 0 else percent_{name} end as percent_{name}"
@@ -250,7 +236,6 @@ class RE4DatabaseManager:
         df = df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         return df.replace({np.nan: ""})
 
-    @measure_time
     def query_weekday_data(self) -> DataFrame:
         df = self.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY.value)
         df = df.replace({np.nan: ""})

@@ -4,7 +4,6 @@ from pathlib import Path
 from pydrive2.drive import GoogleDrive
 
 from constants import Format
-from decorators import measure_time
 
 
 class RE4DriveManager:
@@ -22,7 +21,6 @@ class RE4DriveManager:
         self._splits_output_folder = splits_output_folder
         self._my_splits_file = my_splits_file
 
-    @measure_time
     def _splits_last_modified(self) -> dict[str, str]:
         if not self._splits_output_folder.exists():
             raise Exception(
@@ -49,7 +47,6 @@ class RE4DriveManager:
 
         return local_splits
 
-    @measure_time
     def download_splits(self) -> dict[str, str]:
         print("Getting splits")
         print("=" * 100)

@@ -1,10 +1,8 @@
-from contextlib import contextmanager
-from time import sleep, time
+from time import sleep
 
 from pandas import DataFrame
 
 from constants import (
-    Format,
     Files,
     GOOGLE_DRIVE_FOLDER_ID,
     SPLITS_OUTPUT_FOLDER,
@@ -17,18 +15,6 @@ from google_auth_manager import GoogleAuthManager
 from re4database_manager import RE4DatabaseManager
 from re4drive_manager import RE4DriveManager
 from re4sheet_manager import RE4SheetManager
-from timing import execution_times
-
-
-@contextmanager
-def measure_total_time():
-    start_time = time()
-    yield
-    execution_time = time() - start_time
-    seconds = int(execution_time)
-    milliseconds = int((execution_time % 1) * 1000)
-    execution_time_formatted = Format.TIME_FORMAT.value.format(seconds, milliseconds)
-    execution_times["The whole script"] = execution_time_formatted
 
 
 def update_database(db_manager: RE4DatabaseManager, splits: dict[str, str]) -> bool:
@@ -136,44 +122,40 @@ def update_sheet(
 
 
 def main() -> None:
-    with measure_total_time():
-        auth_manager = GoogleAuthManager(
-            service_account_path=Files.GOOGLE_SERVICE_ACCOUNT_SECRETS.value
-        )
-        drive_manager = RE4DriveManager(
-            google_drive=auth_manager.google_drive,
-            google_drive_folder_id=GOOGLE_DRIVE_FOLDER_ID,
-            currently_allowed_runners=CURRENTLY_ALLOWED_RUNNERS,
-            splits_output_folder=SPLITS_OUTPUT_FOLDER,
-            my_splits_file=Files.MY_SPLITS_FILE.value,
-        )
-        sheet_manager = RE4SheetManager(
-            gspread_client=auth_manager.gspread_client,
-            google_sheet_url=GOOGLE_SHEET_URL,
-        )
-        db_manager = RE4DatabaseManager(
-            db_config=DB_CONFIG,
-            main_sql_script=Files.MAIN_SQL_SCRIPT.value,
-            global_sql_script=Files.GLOBAL_SQL_SCRIPT.value,
-            last_updates_file=Files.LAST_UPDATES_FILE.value,
-            currently_allowed_runners=CURRENTLY_ALLOWED_RUNNERS,
-            default_updates=DEFAULT_UPDATES,
-        )
+    auth_manager = GoogleAuthManager(
+        service_account_path=Files.GOOGLE_SERVICE_ACCOUNT_SECRETS.value
+    )
+    drive_manager = RE4DriveManager(
+        google_drive=auth_manager.google_drive,
+        google_drive_folder_id=GOOGLE_DRIVE_FOLDER_ID,
+        currently_allowed_runners=CURRENTLY_ALLOWED_RUNNERS,
+        splits_output_folder=SPLITS_OUTPUT_FOLDER,
+        my_splits_file=Files.MY_SPLITS_FILE.value,
+    )
+    sheet_manager = RE4SheetManager(
+        gspread_client=auth_manager.gspread_client,
+        google_sheet_url=GOOGLE_SHEET_URL,
+    )
+    db_manager = RE4DatabaseManager(
+        db_config=DB_CONFIG,
+        main_sql_script=Files.MAIN_SQL_SCRIPT.value,
+        global_sql_script=Files.GLOBAL_SQL_SCRIPT.value,
+        last_updates_file=Files.LAST_UPDATES_FILE.value,
+        currently_allowed_runners=CURRENTLY_ALLOWED_RUNNERS,
+        default_updates=DEFAULT_UPDATES,
+    )
 
-        while True:
-            splits = drive_manager.download_splits()
-            new_updates = update_database(db_manager=db_manager, splits=splits)
-            if new_updates:
-                dataframes = query_database(db_manager=db_manager)
-                update_sheet(sheet_manager=sheet_manager, dataframes=dataframes)
-            else:
-                print(
-                    "Not querying the database nor updating the sheet since there's no new data."
-                )
-                sleep(5)
-
-    for func_name, exec_time in execution_times.items():
-        print(f"{func_name} took {exec_time}")
+    while True:
+        splits = drive_manager.download_splits()
+        new_updates = update_database(db_manager=db_manager, splits=splits)
+        if new_updates:
+            dataframes = query_database(db_manager=db_manager)
+            update_sheet(sheet_manager=sheet_manager, dataframes=dataframes)
+        else:
+            print(
+                "Not querying the database nor updating the sheet since there's no new data."
+            )
+            sleep(5)
 
 
 if __name__ == "__main__":
