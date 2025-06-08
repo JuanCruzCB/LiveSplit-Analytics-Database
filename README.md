@@ -13,3 +13,9 @@
 3. Add the runner's splits name to the dict comprehension **DEFAULT_UPDATES**.
 4. Delete **last_table_updates.json**.
 5. Download the runners splits manually the first time, and place them on the proper folder.
+
+# Import order
+
+1. Python standard library modules.
+2. .venv dependencies.
+3. Project files.

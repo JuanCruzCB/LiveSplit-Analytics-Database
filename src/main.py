@@ -1,6 +1,5 @@
-import time
 from contextlib import contextmanager
-from time import sleep
+from time import sleep, time
 
 from pandas import DataFrame
 
@@ -23,9 +22,9 @@ from timing import execution_times
 
 @contextmanager
 def measure_total_time():
-    start_time = time.time()
+    start_time = time()
     yield
-    execution_time = time.time() - start_time
+    execution_time = time() - start_time
     seconds = int(execution_time)
     milliseconds = int((execution_time % 1) * 1000)
     execution_time_formatted = Format.TIME_FORMAT.value.format(seconds, milliseconds)

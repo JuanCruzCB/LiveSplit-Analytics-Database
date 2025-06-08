@@ -1,14 +1,13 @@
 from pathlib import Path
+import requests
 
 import pandas as pd
 import plotly.express as px
-import requests
 
 IMGUR_CLIENT_ID = "4975f1d3020260e"
 IMGUR_CLIENT_SECRET = "61b59ff225592f86034a5cdbd4fc2fe03a6e1ad4"
 URL = "https://api.imgur.com/3/upload"
 HEADERS = {"Authorization": f"Client-ID {IMGUR_CLIENT_ID}"}
-
 
 HEIGHT = 350
 WIDTH = 910
