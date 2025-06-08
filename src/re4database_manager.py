@@ -7,32 +7,29 @@ import numpy as np
 import psycopg2
 from pandas import DataFrame
 
-from constants import CURRENTLY_ALLOWED_RUNNERS, DEFAULT_UPDATES, ConstantQuery, Format
+from constants import ConstantQuery, Format
 from decorators import measure_time
 from utils import get_days_hours_str, get_hours_minutes_str
 
 
 class RE4DatabaseManager:
-    def __init__(self) -> None:
-        self._config = {
-            "dbname": "postgres",
-            "user": "postgres",
-            "host": "localhost",
-            "password": 123,
-            "port": 5432,
-        }
-        self._main_sql_script = Path(
-            r"H:\Juan\4. Speedrunning\RE4 Steam\script ng pro steam.sql"
-        )
-        self._global_sql_script = Path(
-            r"H:\Juan\4. Speedrunning\RE4 Steam\global ng pro steam.sql"
-        )
-        self._last_updates_file = Path(
-            r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\info\last_table_updates.json"
-        )
+    def __init__(
+        self,
+        db_config: dict,
+        main_sql_script: Path,
+        global_sql_script: Path,
+        last_updates_file: Path,
+        currently_allowed_runners: list[str],
+        default_updates: dict[str, str],
+    ) -> None:
+        self._config = db_config
+        self._main_sql_script = main_sql_script
+        self._global_sql_script = global_sql_script
+        self._last_updates_file = last_updates_file
+        self._currently_allowed_runners = currently_allowed_runners
+        self._default_updates = default_updates
         self._connection = None
         self._cursor = None
-
         self._open_connection()
 
     def _open_connection(self) -> None:
@@ -55,8 +52,8 @@ class RE4DatabaseManager:
     def _load_last_updates(self) -> dict[str, str]:
         if not self._last_updates_file.exists():
             with open(file=self._last_updates_file, mode="w") as json_file:
-                json.dump(obj=DEFAULT_UPDATES, fp=json_file, indent=4)
-            return DEFAULT_UPDATES
+                json.dump(obj=self._default_updates, fp=json_file, indent=4)
+            return self._default_updates
         else:
             with open(file=self._last_updates_file, mode="r") as json_file:
                 return json.load(fp=json_file)
@@ -150,7 +147,9 @@ class RE4DatabaseManager:
     @measure_time
     def query_chapter_golds(self) -> DataFrame:
         extra_columns = ["best", "best_cumulative_chapters"]
-        columns = ", ".join(["chapter"] + CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        columns = ", ".join(
+            ["chapter"] + self._currently_allowed_runners + extra_columns
+        )
         GLOBAL_CHAPTER_GOLDS_QUERY = f"""
         SELECT {columns}
         FROM global_chapter_golds
@@ -163,7 +162,7 @@ class RE4DatabaseManager:
     @measure_time
     def query_chapter_golds_by_doors(self) -> DataFrame:
         extra_columns = ["best", "cumulative_best"]
-        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        columns = ", ".join(self._currently_allowed_runners + extra_columns)
         GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY = f"""
         SELECT {columns}
         FROM global_chapter_golds_doors;
@@ -174,7 +173,7 @@ class RE4DatabaseManager:
     @measure_time
     def query_section_golds(self) -> DataFrame:
         extra_columns = ["best", "best_cumulative_sections"]
-        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        columns = ", ".join(self._currently_allowed_runners + extra_columns)
         GLOBAL_SECTION_GOLDS_QUERY = f"""
         SELECT {columns}
         FROM global_section_golds;
@@ -185,7 +184,7 @@ class RE4DatabaseManager:
     @measure_time
     def query_section_golds_by_chapters(self) -> DataFrame:
         extra_columns = ["best", "cumulative_best"]
-        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        columns = ", ".join(self._currently_allowed_runners + extra_columns)
         GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY = f"""
         SELECT {columns}
         FROM global_section_golds_chapters;
@@ -196,7 +195,7 @@ class RE4DatabaseManager:
     @measure_time
     def query_section_golds_by_doors(self) -> DataFrame:
         extra_columns = ["best", "cumulative_best"]
-        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        columns = ", ".join(self._currently_allowed_runners + extra_columns)
         GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY = f"""
         SELECT {columns}
         FROM global_section_golds_doors;
@@ -219,7 +218,7 @@ class RE4DatabaseManager:
 
     @measure_time
     def query_general_stats(self) -> DataFrame:
-        columns = ", ".join(CURRENTLY_ALLOWED_RUNNERS)
+        columns = ", ".join(self._currently_allowed_runners)
         GENERAL_STATS_QUERY = f"""
         SELECT chapter, {columns}
         FROM global_chapter_golds
@@ -240,7 +239,7 @@ class RE4DatabaseManager:
     def query_resets(self) -> DataFrame:
         columns = ",\n".join(
             f"case when percent_{name} < 0 then 0 else percent_{name} end as percent_{name}"
-            for name in CURRENTLY_ALLOWED_RUNNERS
+            for name in self._currently_allowed_runners
         )
         RESETS_QUERY = f"""
         SELECT split,
