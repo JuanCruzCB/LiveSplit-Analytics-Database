@@ -7,14 +7,14 @@ class Files(Enum):
         r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\1. NG Pro.lss"
     )
     GOOGLE_SERVICE_ACCOUNT_SECRETS = Path(
-        r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\credentials\service_account_secrets.json"
+        r"H:\Juan\3. Projects\GH Sawken\Python\Automated LiveSplit Stats Sheet\credentials\service_account_secrets.json"
     )
     MAIN_SQL_SCRIPT = Path(r"H:\Juan\4. Speedrunning\RE4 Steam\script ng pro steam.sql")
     GLOBAL_SQL_SCRIPT = Path(
         r"H:\Juan\4. Speedrunning\RE4 Steam\global ng pro steam.sql"
     )
     LAST_UPDATES_FILE = Path(
-        r"H:\Juan\3. Projects\GH Sawken\Python\UpdateGoldsGlobal\info\last_table_updates.json"
+        r"H:\Juan\3. Projects\GH Sawken\Python\Automated LiveSplit Stats Sheet\info\last_table_updates.json"
     )
 
 

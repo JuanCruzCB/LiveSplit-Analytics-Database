@@ -1,5 +1,5 @@
 [project]
-name = "updategoldsglobal"
+name = "automated-livesplit-stats-sheet"
 version = "0.1.0"
 description = "Project that downloads LiveSplit files off Google Drive, updates a local database, and posts the resulting data on a Google Sheet."
 readme = "README.md"
