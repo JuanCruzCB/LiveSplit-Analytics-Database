@@ -3,7 +3,8 @@ credentials/
 excels/
 info/
 graphs/
-src/random_queries.py
+src/queries.py
+src/re4query_runner.py
 .venv/
 .vscode/
 

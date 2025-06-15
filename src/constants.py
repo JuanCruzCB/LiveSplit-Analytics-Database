@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, StrEnum
 from pathlib import Path
 
 
@@ -16,6 +16,12 @@ class Files(Enum):
     LAST_UPDATES_FILE = Path(
         r"H:\Juan\3. Projects\GH Sawken\Python\Automated LiveSplit Stats Sheet\info\last_table_updates.json"
     )
+
+
+class ORDER_COLUMNS(StrEnum):
+    LRT_NUMBER = "lrt_number"
+    CLE2 = "cle2"
+    DATE_STARTED = "date_started"
 
 
 class Format(Enum):
