@@ -14,7 +14,7 @@ from utils import get_days_hours_str, get_hours_minutes_str
 class RE4DatabaseManager:
     def __init__(
         self,
-        db_config: dict,
+        db_config: dict[str, str | int],
         main_sql_script: Path,
         global_sql_script: Path,
         last_updates_file: Path,
@@ -29,9 +29,8 @@ class RE4DatabaseManager:
         self._default_updates = default_updates
         self._connection = None
         self._cursor = None
-        self._open_connection()
 
-    def _open_connection(self) -> None:
+    def open_connection(self) -> None:
         try:
             self._connection = psycopg2.connect(**self._config)
             self._cursor = self._connection.cursor()

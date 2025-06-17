@@ -6,15 +6,16 @@ class Files(Enum):
     MY_SPLITS_FILE = Path(
         r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\1. NG Pro.lss"
     )
-    GOOGLE_SERVICE_ACCOUNT_SECRETS = Path(
+    GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE = Path(
         r"H:\Juan\3. Projects\GH Sawken\Python\Automated LiveSplit Stats Sheet\credentials\service_account_secrets.json"
     )
-    MAIN_SQL_SCRIPT = Path(r"H:\Juan\4. Speedrunning\RE4 Steam\script ng pro steam.sql")
-    GLOBAL_SQL_SCRIPT = Path(
-        r"H:\Juan\4. Speedrunning\RE4 Steam\global ng pro steam.sql"
-    )
+    MAIN_SQL_FILE = Path(r"H:\Juan\4. Speedrunning\RE4 Steam\script ng pro steam.sql")
+    GLOBAL_SQL_FILE = Path(r"H:\Juan\4. Speedrunning\RE4 Steam\global ng pro steam.sql")
     LAST_UPDATES_FILE = Path(
         r"H:\Juan\3. Projects\GH Sawken\Python\Automated LiveSplit Stats Sheet\info\last_table_updates.json"
+    )
+    SPLITS_OUTPUT_FOLDER = Path(
+        r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\Not mine"
     )
 
 
@@ -75,9 +76,6 @@ class ConstantQuery(Enum):
 
 
 GOOGLE_DRIVE_FOLDER_ID = "1-OvGMbjiemrxMaie166Cmwbu3k5WvXGh"
-SPLITS_OUTPUT_FOLDER = Path(
-    r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\Not mine"
-)
 GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
 DB_CONFIG = {
     "dbname": "postgres",
