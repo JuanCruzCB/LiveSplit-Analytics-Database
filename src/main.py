@@ -53,7 +53,7 @@ def update_db_and_sheet(
 
 def main() -> None:
     auth_manager = GoogleAuthManager(
-        service_account_path=Files.GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE.value
+        service_account_file=Files.GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE.value
     )
     drive_manager = RE4DriveManager(
         google_drive=auth_manager.google_drive,

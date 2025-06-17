@@ -1,3 +1,4 @@
+from datetime import timedelta
 from enum import Enum, StrEnum
 from pathlib import Path
 
@@ -75,6 +76,7 @@ class ConstantQuery(Enum):
     """
 
 
+GOOGLE_DRIVE_TIMEZONE_OFFSET = timedelta(hours=3)
 GOOGLE_DRIVE_FOLDER_ID = "1-OvGMbjiemrxMaie166Cmwbu3k5WvXGh"
 GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
 DB_CONFIG = {
