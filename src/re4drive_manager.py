@@ -48,8 +48,6 @@ class RE4DriveManager:
         return local_splits
 
     def download_splits(self) -> dict[str, str]:
-        print("Getting splits")
-        print("=" * 100)
         if self._google_drive is None:
             raise Exception("We are not connected to Google Drive.")
 
@@ -86,5 +84,4 @@ class RE4DriveManager:
                     f"{title} is already up to date locally, so there's no need to download it."
                 )
 
-        print("=" * 50 + "\n")
         return self._splits_last_modified()
