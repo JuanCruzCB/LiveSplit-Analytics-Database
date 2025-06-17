@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+import time
 from decimal import Decimal
 from pathlib import Path
 
@@ -112,9 +113,13 @@ class RE4DatabaseManager:
 
         try:
             sql_script = self._read_sql_script(script_path=self._global_sql_script)
+            start = time.time()
             self._cursor.execute(sql_script)
             self._connection.commit()
-            print("Updated the database global tables succesfully!")
+            end = time.time()
+            print(
+                f"Updated the database global tables successfully in {end - start:.3f} seconds!"
+            )
 
         except psycopg2.Error as e:
             raise e
