@@ -98,6 +98,9 @@ CURRENTLY_ALLOWED_RUNNERS = [
     "otaku",
     "pocho",
 ]
+CURRENTLY_ALLOWED_SPLITS = [
+    f"splits {runner}.lss" for runner in CURRENTLY_ALLOWED_RUNNERS
+]
 DEFAULT_UPDATES = {
     key: "1/1/2025 1:00:00"
     for key in [

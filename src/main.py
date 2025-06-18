@@ -58,7 +58,6 @@ def main() -> None:
     drive_manager = RE4DriveManager(
         google_drive=auth_manager.google_drive,
         google_drive_folder_id=GOOGLE_DRIVE_FOLDER_ID,
-        currently_allowed_runners=CURRENTLY_ALLOWED_RUNNERS,
         splits_output_folder=Files.SPLITS_OUTPUT_FOLDER.value,
         my_splits_file=Files.MY_SPLITS_FILE.value,
     )
@@ -77,7 +76,8 @@ def main() -> None:
 
     print("Getting splits")
     print("=" * 100)
-    splits = drive_manager.download_splits()
+    drive_manager.update_local_splits()
+    splits = drive_manager.get_local_splits()
     print("=" * 50 + "\n")
 
     print("Updating the database")
