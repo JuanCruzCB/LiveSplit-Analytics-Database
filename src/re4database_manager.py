@@ -61,7 +61,7 @@ class RE4DatabaseManager:
         with open(file=self._last_updates_file, mode="w") as json_file:
             json.dump(obj=updates, fp=json_file, indent=4)
 
-    def update_runners_tables(self, splits: dict[str, str]) -> bool:
+    def update_runners_tables(self, splits: dict[str, datetime]) -> bool:
         """
         If there's currently a connection, run the main SQL script.
         """
@@ -72,38 +72,44 @@ class RE4DatabaseManager:
         sql_script = self._read_sql_script(self._main_sql_script)
         new_updates = False
 
-        try:
-            for split, last_modified in splits.items():
-                runner_name = "sawken" if "1. " in split else split[7:]
-                if datetime.strptime(
+        for split, last_modified in splits.items():
+            modified_script = sql_script
+            if "splits" in split:
+                modified_script = modified_script.replace("sawken", split[7:]).replace(
+                    r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{split}"
+                )
+                runner_name = split[7:]
+            else:
+                runner_name = "sawken"
+
+            if not (
+                datetime.strptime(
                     last_table_updates[split], Format.DATE_TIME_FORMAT.value
-                ) < datetime.strptime(last_modified, Format.DATE_TIME_FORMAT.value):
-                    modified_script = sql_script
+                )
+                < last_modified
+            ):
+                print(
+                    f"Not updating the tables for {runner_name} since they are already up to date."
+                )
+                continue
 
-                    if "splits" in split:
-                        modified_script = modified_script.replace(
-                            "sawken", split[7:]
-                        ).replace(r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{split}")
+            try:
+                start = time.time()
+                self._cursor.execute(modified_script)
+                self._connection.commit()
+                end = time.time()
+            except psycopg2.Error as e:
+                raise e
 
-                    self._cursor.execute(modified_script)
-                    self._connection.commit()
+            last_table_updates[split] = datetime.now().strftime(
+                Format.DATE_TIME_FORMAT.value
+            )
+            print(
+                f"Updated the database tables for {runner_name} successfully in {end - start:.3f} seconds!"
+            )
+            new_updates = True
 
-                    last_table_updates[split] = datetime.now().strftime(
-                        Format.DATE_TIME_FORMAT.value
-                    )
-                    print(
-                        f"Updated the database tables for {runner_name} successfully!"
-                    )
-                    new_updates = True
-                else:
-                    print(
-                        f"Not updating the tables for {runner_name} since they are already up to date."
-                    )
-
-            self._save_last_updates(updates=last_table_updates)
-
-        except psycopg2.Error as e:
-            raise e
+        self._save_last_updates(updates=last_table_updates)
 
         return new_updates
 
