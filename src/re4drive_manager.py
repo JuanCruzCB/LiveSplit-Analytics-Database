@@ -19,18 +19,6 @@ class RE4DriveManager:
         self._splits_output_folder = splits_output_folder
         self._my_splits_file = my_splits_file
 
-    def _timestamp_to_str(self, timestamp: float) -> str:
-        """
-        Converts a float timestamp to a string in the format specified by DATE_TIME_FORMAT.
-        """
-        return datetime.fromtimestamp(timestamp).strftime(Format.DATE_TIME_FORMAT.value)
-
-    def _str_to_datetime(self, date: str) -> datetime:
-        """
-        Converts a string of a date to a datetime object in the format specified by GOOGLE_DRIVE_DATE_TIME_FORMAT.
-        """
-        return datetime.strptime(date, Format.DATE_TIME_FORMAT.value)
-
     def _get_drive_splits(self) -> list:
         """
         Returns a list with data about all the splits files that are currently on
@@ -42,7 +30,7 @@ class RE4DriveManager:
 
         return [file for file in files if file["title"] in CURRENTLY_ALLOWED_SPLITS]
 
-    def get_local_splits(self) -> dict[str, str]:
+    def get_local_splits(self) -> dict[str, datetime]:
         """
         Checks the local folder containing the splits of the runners and
         returns a dict where each key is the splits file name and the value is
@@ -54,14 +42,12 @@ class RE4DriveManager:
             )
 
         local_splits = {
-            splits_file.stem: self._timestamp_to_str(
-                timestamp=splits_file.stat().st_mtime
-            )
+            splits_file.stem: datetime.fromtimestamp(splits_file.stat().st_mtime)
             for splits_file in self._splits_output_folder.glob(pattern="*.lss")
         }
 
-        local_splits[self._my_splits_file.stem] = self._timestamp_to_str(
-            timestamp=self._my_splits_file.stat().st_mtime
+        local_splits[self._my_splits_file.stem] = datetime.fromtimestamp(
+            self._my_splits_file.stat().st_mtime
         )
 
         return local_splits
@@ -77,23 +63,22 @@ class RE4DriveManager:
         local_splits = self.get_local_splits()
 
         for splits_file in self._get_drive_splits():
-            title = splits_file["title"]
-            splits_file_name = title.replace(".lss", "")
+            splits_name = splits_file["title"]
+            splits_file_name = splits_name.replace(".lss", "")
 
-            modified_date = (
+            last_modified_date_time_local = local_splits[splits_file_name]
+            last_modified_date_time_remote = (
                 datetime.strptime(
                     splits_file["modifiedDate"],
                     Format.GOOGLE_DRIVE_DATE_TIME_FORMAT.value,
                 )
                 - GOOGLE_DRIVE_TIMEZONE_OFFSET
-            ).strftime(Format.DATE_TIME_FORMAT.value)
+            )
 
-            if self._str_to_datetime(
-                date=local_splits[splits_file_name]
-            ) < self._str_to_datetime(date=modified_date):
-                print(f"Downloading {title}...")
-                splits_file.GetContentFile(self._splits_output_folder / title)
+            if last_modified_date_time_remote > last_modified_date_time_local:
+                print(f"Downloading {splits_name}...")
+                splits_file.GetContentFile(self._splits_output_folder / splits_name)
             else:
                 print(
-                    f"{title} is already up to date locally, so there's no need to download it."
+                    f"{splits_name} is already up to date locally, so there's no need to download it."
                 )
