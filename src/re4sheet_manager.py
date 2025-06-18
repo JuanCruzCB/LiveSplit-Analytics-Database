@@ -139,22 +139,6 @@ class RE4SheetManager:
             range_name="C2",
         )
 
-    def copy_graphs_to_sheet(
-        self,
-        url_village_graph: str,
-        url_castle_graph: str,
-        url_island_graph: str,
-    ) -> None:
-        try:
-            sheet = self._spreadsheet.worksheet(title="Resets graphs")
-            sheet.update_acell("A1", f'=IMAGE("{url_village_graph}")')
-            sheet.update_acell("A2", f'=IMAGE("{url_castle_graph}")')
-            sheet.update_acell("A3", f'=IMAGE("{url_island_graph}")')
-        except gspread.exceptions.WorksheetNotFound:
-            raise Exception(
-                'The tab "Resets graphs" does not exist in the google sheet.'
-            )
-
     def post_last_update(self) -> None:
         try:
             sheet = self._spreadsheet.worksheet(title="Title")
