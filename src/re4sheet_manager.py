@@ -8,8 +8,10 @@ from constants import Format
 
 
 class RE4SheetManager:
-    def __init__(self, gspread_client: gspread.Client, google_sheet_url: str):
-        self._spreadsheet = gspread_client.open_by_url(url=google_sheet_url)
+    GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
+
+    def __init__(self, gspread_client: gspread.Client):
+        self._spreadsheet = gspread_client.open_by_url(url=self.GOOGLE_SHEET_URL)
 
     def _update_sheet(
         self,

@@ -1,11 +1,4 @@
-from constants import (
-    Files,
-    GOOGLE_DRIVE_FOLDER_ID,
-    GOOGLE_SHEET_URL,
-    DB_CONFIG,
-    CURRENTLY_ALLOWED_RUNNERS,
-    DEFAULT_UPDATES,
-)
+from constants import Files
 from google_auth_manager import GoogleAuthManager
 from re4database_manager import RE4DatabaseManager
 from re4drive_manager import RE4DriveManager
@@ -57,21 +50,16 @@ def main() -> None:
     )
     drive_manager = RE4DriveManager(
         google_drive=auth_manager.google_drive,
-        google_drive_folder_id=GOOGLE_DRIVE_FOLDER_ID,
         splits_output_folder=Files.SPLITS_OUTPUT_FOLDER.value,
         my_splits_file=Files.MY_SPLITS_FILE.value,
     )
     sheet_manager = RE4SheetManager(
         gspread_client=auth_manager.gspread_client,
-        google_sheet_url=GOOGLE_SHEET_URL,
     )
     db_manager = RE4DatabaseManager(
-        db_config=DB_CONFIG,
         main_sql_script=Files.MAIN_SQL_FILE.value,
         global_sql_script=Files.GLOBAL_SQL_FILE.value,
         last_updates_file=Files.LAST_UPDATES_FILE.value,
-        currently_allowed_runners=CURRENTLY_ALLOWED_RUNNERS,
-        default_updates=DEFAULT_UPDATES,
     )
 
     print("Getting splits")

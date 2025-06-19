@@ -1,4 +1,3 @@
-from datetime import timedelta
 from enum import Enum, StrEnum
 from pathlib import Path
 
@@ -74,45 +73,3 @@ class ConstantQuery(Enum):
     ON s.cle2 = j.cle2
     ORDER BY s.cle2;
     """
-
-
-GOOGLE_DRIVE_TIMEZONE_OFFSET = timedelta(hours=3)
-GOOGLE_DRIVE_FOLDER_ID = "1-OvGMbjiemrxMaie166Cmwbu3k5WvXGh"
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1q1e9GCgaUc-LbhQWHEVjKkl0275hkfDVq0rHgQLrF-E/edit?usp=sharing"
-DB_CONFIG = {
-    "dbname": "postgres",
-    "user": "postgres",
-    "host": "localhost",
-    "password": 123,
-    "port": 5432,
-}
-CURRENTLY_ALLOWED_RUNNERS = [
-    "sawken",
-    "luis",
-    "joker",
-    "mateo",
-    "arcadan",
-    "richy",
-    "derek",
-    "nevs",
-    "otaku",
-    "pocho",
-]
-CURRENTLY_ALLOWED_SPLITS = [
-    f"splits {runner}.lss" for runner in CURRENTLY_ALLOWED_RUNNERS
-]
-DEFAULT_UPDATES = {
-    key: "1/1/2025 1:00:00"
-    for key in [
-        "1. NG Pro",
-        "splits arcadan",
-        "splits derek",
-        "splits joker",
-        "splits luis",
-        "splits mateo",
-        "splits richy",
-        "splits nevs",
-        "splits otaku",
-        "splits pocho",
-    ]
-}

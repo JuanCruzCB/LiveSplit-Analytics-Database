@@ -1,21 +1,33 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from pydrive2.drive import GoogleDrive
 
-from constants import Format, GOOGLE_DRIVE_TIMEZONE_OFFSET, CURRENTLY_ALLOWED_SPLITS
+from constants import Format
 
 
 class RE4DriveManager:
+    GOOGLE_DRIVE_TIMEZONE_OFFSET = timedelta(hours=3)
+    GOOGLE_DRIVE_FOLDER_ID = "1-OvGMbjiemrxMaie166Cmwbu3k5WvXGh"
+    CURRENTLY_ALLOWED_SPLITS = [
+        "splits luis.lss",
+        "splits joker.lss",
+        "splits mateo.lss",
+        "splits arcadan.lss",
+        "splits richy.lss",
+        "splits derek.lss",
+        "splits nevs.lss",
+        "splits otaku.lss",
+        "splits pocho.lss",
+    ]
+
     def __init__(
         self,
         google_drive: GoogleDrive,
-        google_drive_folder_id: str,
         splits_output_folder: Path,
         my_splits_file: Path,
     ) -> None:
         self._google_drive = google_drive
-        self._google_drive_folder_id = google_drive_folder_id
         self._splits_output_folder = splits_output_folder
         self._my_splits_file = my_splits_file
 
@@ -25,10 +37,12 @@ class RE4DriveManager:
         the Google Drive folder and that are allowed.
         """
         files = self._google_drive.ListFile(
-            {"q": f"'{self._google_drive_folder_id}' in parents and trashed=false"}
+            {"q": f"'{self.GOOGLE_DRIVE_FOLDER_ID}' in parents and trashed=false"}
         ).GetList()
 
-        return [file for file in files if file["title"] in CURRENTLY_ALLOWED_SPLITS]
+        return [
+            file for file in files if file["title"] in self.CURRENTLY_ALLOWED_SPLITS
+        ]
 
     def get_local_splits(self) -> dict[str, datetime]:
         """
@@ -72,7 +86,7 @@ class RE4DriveManager:
                     splits_file["modifiedDate"],
                     Format.GOOGLE_DRIVE_DATE_TIME_FORMAT.value,
                 )
-                - GOOGLE_DRIVE_TIMEZONE_OFFSET
+                - self.GOOGLE_DRIVE_TIMEZONE_OFFSET
             )
 
             if last_modified_date_time_remote > last_modified_date_time_local:
