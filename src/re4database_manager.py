@@ -113,9 +113,7 @@ class RE4DatabaseManager:
                 runner_name = "sawken"
 
             if not (
-                datetime.strptime(
-                    last_table_updates[split], Format.DATE_TIME_FORMAT.value
-                )
+                datetime.strptime(last_table_updates[split], Format.DATE_TIME_FORMAT)
                 < last_modified
             ):
                 print(
@@ -131,9 +129,7 @@ class RE4DatabaseManager:
             except psycopg2.Error as e:
                 raise e
 
-            last_table_updates[split] = datetime.now().strftime(
-                Format.DATE_TIME_FORMAT.value
-            )
+            last_table_updates[split] = datetime.now().strftime(Format.DATE_TIME_FORMAT)
             print(
                 f"Updated the database tables for {runner_name} successfully in {end - start:.3f} seconds!"
             )
@@ -175,7 +171,7 @@ class RE4DatabaseManager:
             raise e
 
     def query_doorsplit_golds(self) -> DataFrame:
-        df = self.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY.value)
+        df = self.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY)
         df = df.replace({np.nan: ""})
         return df.drop(columns=["split"])
 
@@ -234,12 +230,12 @@ class RE4DatabaseManager:
         return df.replace({np.nan: ""})
 
     def query_best_paces(self) -> DataFrame:
-        df = self.query_db(query=ConstantQuery.BEST_PACES_QUERY.value)
+        df = self.query_db(query=ConstantQuery.BEST_PACES_QUERY)
         df = df.replace({np.nan: ""})
         return df.drop(columns=["chapter"])
 
     def query_rng_patterns(self) -> DataFrame:
-        df = self.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY.value)
+        df = self.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY)
         df = df.replace({np.nan: ""})
         df = df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         return df.drop(columns=["pattern"])
@@ -256,8 +252,8 @@ class RE4DatabaseManager:
         df = df.drop(columns=["chapter"])
         df.iloc[0] = df.iloc[0].apply(
             lambda date_str: datetime.strptime(
-                date_str, Format.BAD_DATE_FORMAT.value
-            ).strftime(Format.DATE_FORMAT.value)
+                date_str, Format.BAD_DATE_FORMAT
+            ).strftime(Format.DATE_FORMAT)
         )
         df.iloc[3] = df.iloc[3].apply(lambda playtime: get_days_hours_str(playtime))
         return df
@@ -277,7 +273,7 @@ class RE4DatabaseManager:
         return df.replace({np.nan: ""})
 
     def query_weekday_data(self) -> DataFrame:
-        df = self.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY.value)
+        df = self.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY)
         df = df.replace({np.nan: ""})
 
         ranges_to_process = [

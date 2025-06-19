@@ -84,7 +84,7 @@ class RE4DriveManager:
             last_modified_date_time_remote = (
                 datetime.strptime(
                     splits_file["modifiedDate"],
-                    Format.GOOGLE_DRIVE_DATE_TIME_FORMAT.value,
+                    Format.GOOGLE_DRIVE_DATE_TIME_FORMAT,
                 )
                 - self.GOOGLE_DRIVE_TIMEZONE_OFFSET
             )

@@ -25,7 +25,7 @@ class ORDER_COLUMNS(StrEnum):
     DATE_STARTED = "date_started"
 
 
-class Format(Enum):
+class Format(StrEnum):
     DATE_FORMAT = "%d/%m/%Y"
     DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
     GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -33,7 +33,7 @@ class Format(Enum):
     TIME_FORMAT = "{:02}.{:03}"
 
 
-class ConstantQuery(Enum):
+class ConstantQuery(StrEnum):
     DOORSPLIT_GOLDS_QUERY = "SELECT * FROM global_door_golds;"
     BEST_PACES_QUERY = "SELECT * FROM global_best_paces_chapter;"
     RNG_PATTERNS_QUERY = "SELECT * FROM global_rng_patterns;"
