@@ -74,8 +74,12 @@ class RE4DatabaseManager:
         if self._connection:
             self._connection.close()
 
-    def _read_sql_script(self, script_path: Path) -> str:
-        with open(script_path, "r") as file:
+    def _read_main_sql_script(self) -> str:
+        with open(self._main_sql_script, "r") as file:
+            return file.read()
+
+    def _read_global_sql_script(self) -> str:
+        with open(self._global_sql_script, "r") as file:
             return file.read()
 
     def _load_last_updates(self) -> dict[str, str]:
@@ -99,11 +103,21 @@ class RE4DatabaseManager:
             raise Exception("No database connection available.")
 
         last_table_updates = self._load_last_updates()
-        sql_script = self._read_sql_script(self._main_sql_script)
+        sql_script = self._read_main_sql_script()
         new_updates = False
 
-        for split, last_modified in splits.items():
+        for split, file_last_modified in splits.items():
             modified_script = sql_script
+            db_last_modified = datetime.strptime(
+                last_table_updates[split], Format.DATE_TIME_FORMAT
+            )
+
+            if db_last_modified > file_last_modified:
+                print(
+                    f"Not updating the tables for file {split} since they are already up to date."
+                )
+                continue
+
             if "splits" in split:
                 modified_script = modified_script.replace("sawken", split[7:]).replace(
                     r"2024 LRT\1. NG Pro", rf"2024 LRT\Not mine\{split}"
@@ -111,15 +125,6 @@ class RE4DatabaseManager:
                 runner_name = split[7:]
             else:
                 runner_name = "sawken"
-
-            if not (
-                datetime.strptime(last_table_updates[split], Format.DATE_TIME_FORMAT)
-                < last_modified
-            ):
-                print(
-                    f"Not updating the tables for {runner_name} since they are already up to date."
-                )
-                continue
 
             try:
                 start = time.time()
@@ -144,7 +149,7 @@ class RE4DatabaseManager:
             raise Exception("No database connection available.")
 
         try:
-            sql_script = self._read_sql_script(script_path=self._global_sql_script)
+            sql_script = self._read_global_sql_script()
             start = time.time()
             self._cursor.execute(sql_script)
             self._connection.commit()
