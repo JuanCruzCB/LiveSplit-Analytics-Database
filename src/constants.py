@@ -1,22 +1,19 @@
 from enum import Enum, StrEnum
 from pathlib import Path
 
+PROJECT_FOLDER = Path(__file__).parent.parent
+LIVESPLIT_FOLDER = Path(r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT")
+
 
 class Files(Enum):
-    MY_SPLITS_FILE = Path(
-        r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\1. NG Pro.lss"
+    GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE = (
+        PROJECT_FOLDER / "credentials" / "service_account_secrets.json"
     )
-    GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE = Path(
-        r"H:\Juan\3. Projects\GH Sawken\Python\Automated LiveSplit Stats Sheet\credentials\service_account_secrets.json"
-    )
-    MAIN_SQL_FILE = Path(r"H:\Juan\4. Speedrunning\RE4 Steam\script ng pro steam.sql")
-    GLOBAL_SQL_FILE = Path(r"H:\Juan\4. Speedrunning\RE4 Steam\global ng pro steam.sql")
-    LAST_UPDATES_FILE = Path(
-        r"H:\Juan\3. Projects\GH Sawken\Python\Automated LiveSplit Stats Sheet\info\last_table_updates.json"
-    )
-    SPLITS_OUTPUT_FOLDER = Path(
-        r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\Not mine"
-    )
+    MAIN_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Individual.sql"
+    GLOBAL_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Global.sql"
+    LAST_UPDATES_FILE = PROJECT_FOLDER / "info" / "last_table_updates.json"
+    MY_SPLITS_FILE = LIVESPLIT_FOLDER / "1. NG Pro.lss"
+    SPLITS_OUTPUT_FOLDER = LIVESPLIT_FOLDER / "Not mine"
 
 
 class ORDER_COLUMNS(StrEnum):
@@ -30,7 +27,6 @@ class Format(StrEnum):
     DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
     GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
     BAD_DATE_FORMAT = "%Y-%m-%d"
-    TIME_FORMAT = "{:02}.{:03}"
 
 
 class ConstantQuery(StrEnum):
