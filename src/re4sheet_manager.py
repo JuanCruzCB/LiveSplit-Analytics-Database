@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 
 import gspread
+from gspread.exceptions import APIError, WorksheetNotFound
 from pandas import DataFrame
 
 from constants import Format
@@ -31,17 +32,24 @@ class RE4SheetManager:
                     old_sheet.update(values=original_data, range_name="A1")
                     print(f"Backup '{old_sheet_tab_name}' overwritten successfully!")
 
-        except gspread.exceptions.WorksheetNotFound:
-            raise Exception(
-                f"The tab {sheet_tab_name} does not exist in the google sheet."
+            original_sheet.update(
+                range_name=range_name,
+                values=data,
             )
+            print(f"Sheet '{sheet_tab_name}' updated successfully!")
 
-        original_sheet.update(
-            range_name=range_name,
-            values=data,
-        )
-
-        print(f"Sheet '{sheet_tab_name}' updated successfully!")
+        except WorksheetNotFound as e:
+            raise ValueError(
+                f"Sheet tab '{sheet_tab_name}' not found in the Google Sheet."
+            ) from e
+        except APIError as e:
+            raise RuntimeError(
+                f"Google Sheets API error while updating '{sheet_tab_name}': {str(e)}"
+            ) from e
+        except Exception as e:
+            raise RuntimeError(
+                f"Unexpected error while updating '{sheet_tab_name}': {str(e)}"
+            ) from e
 
     def copy_doorsplits_to_sheet(self, doorsplits: DataFrame) -> None:
         self._update_sheet(
@@ -144,9 +152,18 @@ class RE4SheetManager:
     def post_last_update(self) -> None:
         try:
             sheet = self._spreadsheet.worksheet(title="Title")
+            current_time = datetime.now().strftime(Format.DATE_TIME_FORMAT)
             sheet.update_acell(
                 "A2",
-                f"Last updated on: {datetime.now().strftime(Format.DATE_TIME_FORMAT.value)} (UTC-3)",
+                f"Last updated on: {current_time} (UTC-3)",
             )
-        except gspread.exceptions.WorksheetNotFound:
-            raise Exception("The tab 'Title' does not exist in the google sheet.")
+        except WorksheetNotFound as e:
+            raise ValueError(
+                "The tab 'Title' does not exist in the Google Sheet."
+            ) from e
+        except APIError as e:
+            raise RuntimeError(
+                "Google Sheets API error during post_last_update."
+            ) from e
+        except Exception as e:
+            raise RuntimeError("Unexpected error during post_last_update.") from e
