@@ -62,6 +62,9 @@ class RE4DatabaseManager:
         self._cursor = None
 
     def open_connection(self) -> None:
+        """
+        Connect to the local postgres db using the hardcoded credentials and create a cursor object.
+        """
         try:
             self._connection = psycopg2.connect(**self.DB_CONFIG)
             self._cursor = self._connection.cursor()
@@ -69,20 +72,32 @@ class RE4DatabaseManager:
             raise e
 
     def close_connection(self) -> None:
+        """
+        Close the cursor object and close the connection to the local postgres db.
+        """
         if self._cursor:
             self._cursor.close()
         if self._connection:
             self._connection.close()
 
     def _read_main_sql_script(self) -> str:
+        """
+        Return the content of the main SQL script.
+        """
         with open(self._main_sql_script, "r") as file:
             return file.read()
 
     def _read_global_sql_script(self) -> str:
+        """
+        Return the content of the global SQL script.
+        """
         with open(self._global_sql_script, "r") as file:
             return file.read()
 
     def _load_last_updates(self) -> dict[str, str]:
+        """
+        Create the last updates json file if it doesn't exist. Return its contents if it exists.
+        """
         if not self._last_updates_file.exists():
             with open(file=self._last_updates_file, mode="w") as json_file:
                 json.dump(obj=self.DEFAULT_UPDATES, fp=json_file, indent=4)
@@ -92,6 +107,9 @@ class RE4DatabaseManager:
                 return json.load(fp=json_file)
 
     def _save_last_updates(self, updates: dict[str, str]) -> None:
+        """
+        Update the last updates json file with new data.
+        """
         with open(file=self._last_updates_file, mode="w") as json_file:
             json.dump(obj=updates, fp=json_file, indent=4)
 
@@ -145,6 +163,9 @@ class RE4DatabaseManager:
         return new_updates
 
     def update_global_tables(self) -> None:
+        """
+        Run the global SQL script that updates the global tables.
+        """
         if not self._connection or not self._cursor:
             raise Exception("No database connection available.")
 
@@ -162,16 +183,19 @@ class RE4DatabaseManager:
             raise e
 
     def query_db(self, query: str) -> DataFrame:
+        """
+        Return a DataFrame with the results of running the specified query
+        on the db.
+        """
         if not self._connection or not self._cursor:
             raise Exception("No database connection available.")
 
         try:
             self._cursor.execute(query)
-            df = DataFrame(
+            return DataFrame(
                 data=self._cursor.fetchall(),
                 columns=[desc[0] for desc in self._cursor.description],
             )
-            return df
         except psycopg2.Error as e:
             raise e
 
