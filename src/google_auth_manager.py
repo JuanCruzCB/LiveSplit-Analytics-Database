@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from gspread import authorize
 from google.oauth2.service_account import Credentials
+from gspread import authorize
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
