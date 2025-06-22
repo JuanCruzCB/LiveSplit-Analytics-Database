@@ -4,7 +4,7 @@ def get_hours_minutes_str(seconds: str) -> str:
         hours = secs // 3600
         remaining_seconds = secs % 3600
         minutes = remaining_seconds // 60
-    except Exception:
+    except ValueError:
         return ""
 
     # Format hours string
