@@ -1,6 +1,6 @@
 import json
-from datetime import datetime
 import time
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -35,7 +35,7 @@ class RE4DatabaseManager:
             "splits pocho",
         ]
     }
-    CURRENTLY_ALLOWED_RUNNERS = [
+    CURRENTLY_ALLOWED_RUNNERS = (
         "sawken",
         "luis",
         "joker",
@@ -46,7 +46,7 @@ class RE4DatabaseManager:
         "nevs",
         "otaku",
         "pocho",
-    ]
+    )
 
     def __init__(
         self,
@@ -205,9 +205,9 @@ class RE4DatabaseManager:
         return df.drop(columns=["split"])
 
     def query_chapter_golds(self) -> DataFrame:
-        extra_columns = ["best", "best_cumulative_chapters"]
+        extra_columns = ("best", "best_cumulative_chapters")
         columns = ", ".join(
-            ["chapter"] + self.CURRENTLY_ALLOWED_RUNNERS + extra_columns
+            ("chapter",) + self.CURRENTLY_ALLOWED_RUNNERS + extra_columns
         )
         GLOBAL_CHAPTER_GOLDS_QUERY = f"""
         SELECT {columns}
@@ -219,7 +219,7 @@ class RE4DatabaseManager:
         return df.drop(columns=["chapter"])
 
     def query_chapter_golds_by_doors(self) -> DataFrame:
-        extra_columns = ["best", "cumulative_best"]
+        extra_columns = ("best", "cumulative_best")
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
         GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY = f"""
         SELECT {columns}
@@ -229,7 +229,7 @@ class RE4DatabaseManager:
         return df.replace({np.nan: ""})
 
     def query_section_golds(self) -> DataFrame:
-        extra_columns = ["best", "best_cumulative_sections"]
+        extra_columns = ("best", "best_cumulative_sections")
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
         GLOBAL_SECTION_GOLDS_QUERY = f"""
         SELECT {columns}
@@ -239,7 +239,7 @@ class RE4DatabaseManager:
         return df.replace({np.nan: ""})
 
     def query_section_golds_by_chapters(self) -> DataFrame:
-        extra_columns = ["best", "cumulative_best"]
+        extra_columns = ("best", "cumulative_best")
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
         GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY = f"""
         SELECT {columns}
@@ -249,7 +249,7 @@ class RE4DatabaseManager:
         return df.replace({np.nan: ""})
 
     def query_section_golds_by_doors(self) -> DataFrame:
-        extra_columns = ["best", "cumulative_best"]
+        extra_columns = ("best", "cumulative_best")
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
         GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY = f"""
         SELECT {columns}

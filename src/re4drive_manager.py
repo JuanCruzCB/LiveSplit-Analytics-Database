@@ -9,7 +9,7 @@ from constants import Format
 class RE4DriveManager:
     GOOGLE_DRIVE_TIMEZONE_OFFSET = timedelta(hours=3)
     GOOGLE_DRIVE_FOLDER_ID = "1-OvGMbjiemrxMaie166Cmwbu3k5WvXGh"
-    CURRENTLY_ALLOWED_SPLITS = [
+    CURRENTLY_ALLOWED_SPLITS = (
         "splits luis.lss",
         "splits joker.lss",
         "splits mateo.lss",
@@ -19,7 +19,7 @@ class RE4DriveManager:
         "splits nevs.lss",
         "splits otaku.lss",
         "splits pocho.lss",
-    ]
+    )
 
     def __init__(
         self,
