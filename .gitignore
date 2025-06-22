@@ -4,7 +4,6 @@ excels/
 info/
 graphs/
 src/queries.py
-src/re4query_runner.py
 .venv/
 .vscode/
 

@@ -1,26 +1,26 @@
 from constants import Files
 from google_auth_manager import GoogleAuthManager
-from re4database_manager import RE4DatabaseManager
 from re4drive_manager import RE4DriveManager
+from re4query_runner import RE4QueryRunner
 from re4sheet_manager import RE4SheetManager
 
 
 def update_db_and_sheet(
-    db_manager: RE4DatabaseManager, sheet_manager: RE4SheetManager
+    query_runner: RE4QueryRunner, sheet_manager: RE4SheetManager
 ) -> None:
     print("Querying the database")
     print("=" * 100)
-    df_doorsplit_golds = db_manager.query_doorsplit_golds()
-    df_chapter_golds = db_manager.query_chapter_golds()
-    df_chapter_golds_by_doors = db_manager.query_chapter_golds_by_doors()
-    df_section_golds = db_manager.query_section_golds()
-    df_section_golds_by_chapters = db_manager.query_section_golds_by_chapters()
-    df_section_golds_by_doors = db_manager.query_section_golds_by_doors()
-    df_best_paces = db_manager.query_best_paces()
-    df_rng_patterns = db_manager.query_rng_patterns()
-    df_general_stats = db_manager.query_general_stats()
-    df_resets = db_manager.query_resets()
-    df_weekday_data = db_manager.query_weekday_data()
+    df_doorsplit_golds = query_runner.query_doorsplit_golds()
+    df_chapter_golds = query_runner.query_chapter_golds()
+    df_chapter_golds_by_doors = query_runner.query_chapter_golds_by_doors()
+    df_section_golds = query_runner.query_section_golds()
+    df_section_golds_by_chapters = query_runner.query_section_golds_by_chapters()
+    df_section_golds_by_doors = query_runner.query_section_golds_by_doors()
+    df_best_paces = query_runner.query_best_paces()
+    df_rng_patterns = query_runner.query_rng_patterns()
+    df_general_stats = query_runner.query_general_stats()
+    df_resets = query_runner.query_resets()
+    df_weekday_data = query_runner.query_weekday_data()
     print("=" * 100 + "\n")
 
     print("Updating the Google Sheet")
@@ -56,7 +56,7 @@ def main() -> None:
     sheet_manager = RE4SheetManager(
         gspread_client=auth_manager.gspread_client,
     )
-    db_manager = RE4DatabaseManager(
+    query_runner = RE4QueryRunner(
         main_sql_script=Files.MAIN_SQL_FILE.value,
         global_sql_script=Files.GLOBAL_SQL_FILE.value,
         last_updates_file=Files.LAST_UPDATES_FILE.value,
@@ -70,19 +70,19 @@ def main() -> None:
 
     print("Updating the database")
     print("=" * 100)
-    db_manager.open_connection()
-    new_updates = db_manager.update_runners_tables(splits=splits)
-    db_manager.update_global_tables()
+    query_runner.db.open_connection()
+    new_updates = query_runner.db.update_runners_tables(splits=splits)
+    query_runner.db.update_global_tables()
     print("=" * 100 + "\n")
 
     if new_updates:
-        update_db_and_sheet(db_manager=db_manager, sheet_manager=sheet_manager)
+        update_db_and_sheet(query_runner=query_runner, sheet_manager=sheet_manager)
     else:
         print(
             "Not querying the database nor updating the sheet since there's no new data."
         )
 
-    db_manager.close_connection()
+    query_runner.db.close_connection()
 
 
 if __name__ == "__main__":

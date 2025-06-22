@@ -1,15 +1,12 @@
 import json
 import time
 from datetime import datetime
-from decimal import Decimal
 from pathlib import Path
 
-import numpy as np
 import psycopg2
 from pandas import DataFrame
 
-from constants import ConstantQuery, Format
-from utils import get_days_hours_str, get_hours_minutes_str
+from constants import Format
 
 
 class RE4DatabaseManager:
@@ -35,18 +32,6 @@ class RE4DatabaseManager:
             "splits pocho",
         ]
     }
-    CURRENTLY_ALLOWED_RUNNERS = (
-        "sawken",
-        "luis",
-        "joker",
-        "mateo",
-        "arcadan",
-        "richy",
-        "derek",
-        "nevs",
-        "otaku",
-        "pocho",
-    )
 
     def __init__(
         self,
@@ -198,124 +183,6 @@ class RE4DatabaseManager:
             )
         except psycopg2.Error as e:
             raise e
-
-    def query_doorsplit_golds(self) -> DataFrame:
-        df = self.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY)
-        df = df.replace({np.nan: ""})
-        return df.drop(columns=["split"])
-
-    def query_chapter_golds(self) -> DataFrame:
-        extra_columns = ("best", "best_cumulative_chapters")
-        columns = ", ".join(
-            ("chapter",) + self.CURRENTLY_ALLOWED_RUNNERS + extra_columns
-        )
-        GLOBAL_CHAPTER_GOLDS_QUERY = f"""
-        SELECT {columns}
-        FROM global_chapter_golds
-        WHERE chapter like '%-%' or chapter='Total';
-        """
-        df = self.query_db(query=GLOBAL_CHAPTER_GOLDS_QUERY)
-        df = df.replace({np.nan: ""})
-        return df.drop(columns=["chapter"])
-
-    def query_chapter_golds_by_doors(self) -> DataFrame:
-        extra_columns = ("best", "cumulative_best")
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
-        GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY = f"""
-        SELECT {columns}
-        FROM global_chapter_golds_doors;
-        """
-        df = self.query_db(query=GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY)
-        return df.replace({np.nan: ""})
-
-    def query_section_golds(self) -> DataFrame:
-        extra_columns = ("best", "best_cumulative_sections")
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
-        GLOBAL_SECTION_GOLDS_QUERY = f"""
-        SELECT {columns}
-        FROM global_section_golds;
-        """
-        df = self.query_db(query=GLOBAL_SECTION_GOLDS_QUERY)
-        return df.replace({np.nan: ""})
-
-    def query_section_golds_by_chapters(self) -> DataFrame:
-        extra_columns = ("best", "cumulative_best")
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
-        GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY = f"""
-        SELECT {columns}
-        FROM global_section_golds_chapters;
-        """
-        df = self.query_db(query=GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY)
-        return df.replace({np.nan: ""})
-
-    def query_section_golds_by_doors(self) -> DataFrame:
-        extra_columns = ("best", "cumulative_best")
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
-        GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY = f"""
-        SELECT {columns}
-        FROM global_section_golds_doors;
-        """
-        df = self.query_db(query=GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY)
-        return df.replace({np.nan: ""})
-
-    def query_best_paces(self) -> DataFrame:
-        df = self.query_db(query=ConstantQuery.BEST_PACES_QUERY)
-        df = df.replace({np.nan: ""})
-        return df.drop(columns=["chapter"])
-
-    def query_rng_patterns(self) -> DataFrame:
-        df = self.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY)
-        df = df.replace({np.nan: ""})
-        df = df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
-        return df.drop(columns=["pattern"])
-
-    def query_general_stats(self) -> DataFrame:
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
-        GENERAL_STATS_QUERY = f"""
-        SELECT chapter, {columns}
-        FROM global_chapter_golds
-        WHERE chapter NOT LIKE '%-%' AND chapter <> 'Total';
-        """
-        df = self.query_db(query=GENERAL_STATS_QUERY)
-        df = df.replace({np.nan: ""})
-        df = df.drop(columns=["chapter"])
-        df.iloc[0] = df.iloc[0].apply(
-            lambda date_str: datetime.strptime(
-                date_str, Format.BAD_DATE_FORMAT
-            ).strftime(Format.DATE_FORMAT)
-        )
-        df.iloc[3] = df.iloc[3].apply(lambda playtime: get_days_hours_str(playtime))
-        return df
-
-    def query_resets(self) -> DataFrame:
-        columns = ",\n".join(
-            f"case when percent_{name} < 0 then 0 else percent_{name} end as percent_{name}"
-            for name in self.CURRENTLY_ALLOWED_RUNNERS
-        )
-        RESETS_QUERY = f"""
-        SELECT split,
-        {columns}
-        FROM global_resets;
-        """
-        df = self.query_db(query=RESETS_QUERY)
-        df = df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
-        return df.replace({np.nan: ""})
-
-    def query_weekday_data(self) -> DataFrame:
-        df = self.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY)
-        df = df.replace({np.nan: ""})
-
-        ranges_to_process = [
-            range(7, 14),
-            range(21, 28),
-            range(35, 42),
-            range(49, 56),
-            range(63, 70),
-        ]
-        for r in ranges_to_process:
-            for i in r:
-                df.iloc[i] = df.iloc[i].apply(get_hours_minutes_str)
-        return df.drop(columns=["day", "col"])
 
     def __del__(self) -> None:
         self.close_connection()
