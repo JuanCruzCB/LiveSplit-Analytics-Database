@@ -18,7 +18,7 @@ class GoogleAuthManager:
             self._gspread_client = self._auth_google_sheets()
         except Exception as e:
             raise Exception(
-                f"Failed to authenticate with Google Drive or Google Sheets: {e}"
+                f"Failed to authenticate with Google Drive or Google Sheets: {e}",
             )
         print("Logged in to Google Drive and Google Sheets succesfully.")
 
@@ -32,7 +32,8 @@ class GoogleAuthManager:
 
     def _auth_google_drive(self):
         """
-        Authenticate with Google Drive using PyDrive2 based on the auth data inside a service account file.
+        Authenticate with Google Drive using PyDrive2 based
+        on the auth data inside a service account file.
         """
         gauth = GoogleAuth(
             settings={
@@ -44,14 +45,15 @@ class GoogleAuthManager:
                 "oauth_scope": [
                     "https://www.googleapis.com/auth/drive",
                 ],
-            }
+            },
         )
         gauth.ServiceAuth()
         return GoogleDrive(gauth)
 
     def _auth_google_sheets(self):
         """
-        Authenticate with Google Sheets using gspread based on the auth data inside a service account file.
+        Authenticate with Google Sheets using gspread based
+        on the auth data inside a service account file.
         """
         return authorize(
             credentials=Credentials.from_service_account_file(
@@ -60,5 +62,5 @@ class GoogleAuthManager:
                     "https://www.googleapis.com/auth/spreadsheets",
                     "https://www.googleapis.com/auth/drive",
                 ],
-            )
+            ),
         )
