@@ -8,9 +8,9 @@ import pandas as pd
 from pandas import DataFrame
 
 from constants import (
-    ORDER_COLUMNS,
     ConstantQuery,
     Format,
+    OrderColumns,
 )
 from re4database_manager import RE4DatabaseManager
 from utils import get_days_hours_str, get_hours_minutes_str
@@ -62,7 +62,7 @@ class RE4QueryRunner:
     def query_chapter_golds(self) -> DataFrame:
         extra_columns = ("best", "best_cumulative_chapters")
         columns = ", ".join(
-            ("chapter",) + self.CURRENTLY_ALLOWED_RUNNERS + extra_columns
+            ("chapter",) + self.CURRENTLY_ALLOWED_RUNNERS + extra_columns,
         )
         GLOBAL_CHAPTER_GOLDS_QUERY = f"""
         SELECT {columns}
@@ -136,8 +136,9 @@ class RE4QueryRunner:
         df = df.drop(columns=["chapter"])
         df.iloc[0] = df.iloc[0].apply(
             lambda date_str: datetime.strptime(
-                date_str, Format.BAD_DATE_FORMAT
-            ).strftime(Format.DATE_FORMAT)
+                date_str,
+                Format.BAD_DATE_FORMAT,
+            ).strftime(Format.DATE_FORMAT),
         )
         df.iloc[3] = df.iloc[3].apply(lambda playtime: get_days_hours_str(playtime))
         return df
@@ -181,7 +182,8 @@ class RE4QueryRunner:
         df = self._db.query_db(query)
         if "date_started" in df.columns:
             df["date_started"] = pd.to_datetime(
-                df["date_started"], errors="coerce"
+                df["date_started"],
+                errors="coerce",
             ).dt.strftime(Format.DATE_FORMAT.value)
         if excel_name:
             df.to_excel(self._excel_dir / f"{excel_name}.xlsx", index=False)
@@ -196,7 +198,8 @@ class RE4QueryRunner:
         ]
 
         with open(
-            Path(__file__).parent.parent / "info" / "relevant_tables.txt", "w"
+            Path(__file__).parent.parent / "info" / "relevant_tables.txt",
+            "w",
         ) as f:
             f.write("\n".join(relevant))
 
@@ -367,7 +370,7 @@ class RE4QueryRunner:
     def split_history(
         self,
         split_name: str,
-        order_by: StrEnum = ORDER_COLUMNS.LRT_NUMBER,
+        order_by: StrEnum = OrderColumns.LRT_NUMBER,
         desc: bool = True,
     ) -> DataFrame:
         """
@@ -384,7 +387,9 @@ class RE4QueryRunner:
         )
 
     def compare_runners(
-        self, other_runner: str, compare_type: str = "golds"
+        self,
+        other_runner: str,
+        compare_type: str = "golds",
     ) -> DataFrame:
         """
         Compare two runners (golds or medians)

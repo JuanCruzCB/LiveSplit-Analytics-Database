@@ -16,7 +16,7 @@ class Files(Enum):
     SPLITS_OUTPUT_FOLDER = LIVESPLIT_FOLDER / "Not mine"
 
 
-class ORDER_COLUMNS(StrEnum):
+class OrderColumns(StrEnum):
     LRT_NUMBER = "lrt_number"
     CLE2 = "cle2"
     DATE_STARTED = "date_started"
