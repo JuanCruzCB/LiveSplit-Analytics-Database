@@ -23,7 +23,7 @@ class OrderColumns(StrEnum):
 
 
 class Format(StrEnum):
-    DATE_FORMAT = "%d/%m/%Y"
+    GOOD_DATE_FORMAT = "%d/%m/%Y"
     DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
     GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
     BAD_DATE_FORMAT = "%Y-%m-%d"
