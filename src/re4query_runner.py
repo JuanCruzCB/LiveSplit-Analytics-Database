@@ -112,7 +112,7 @@ class RE4QueryRunner:
         SELECT {columns}
         FROM global_chapter_golds
         WHERE chapter like '%-%' or chapter='Total';
-        """
+        """  # noqa: S608
         chapter_golds = self._db.query_db(query=global_chapter_golds_query)
         chapter_golds = chapter_golds.replace({np.nan: ""})
         return chapter_golds.drop(columns=["chapter"])
@@ -123,7 +123,7 @@ class RE4QueryRunner:
         global_chapter_golds_by_doors_query = f"""
         SELECT {columns}
         FROM global_chapter_golds_doors;
-        """
+        """  # noqa: S608
         chapter_golds_by_doors = self._db.query_db(
             query=global_chapter_golds_by_doors_query
         )
@@ -135,7 +135,7 @@ class RE4QueryRunner:
         global_section_golds_query = f"""
         SELECT {columns}
         FROM global_section_golds;
-        """
+        """  # noqa: S608
         section_golds = self._db.query_db(query=global_section_golds_query)
         return section_golds.replace({np.nan: ""})
 
@@ -145,7 +145,7 @@ class RE4QueryRunner:
         global_section_golds_by_chapters_query = f"""
         SELECT {columns}
         FROM global_section_golds_chapters;
-        """
+        """  # noqa: S608
         section_golds_by_chapters = self._db.query_db(
             query=global_section_golds_by_chapters_query
         )
@@ -157,7 +157,7 @@ class RE4QueryRunner:
         global_section_golds_by_doors_query = f"""
         SELECT {columns}
         FROM global_section_golds_doors;
-        """
+        """  # noqa: S608
         section_golds_by_doors = self._db.query_db(
             query=global_section_golds_by_doors_query
         )
@@ -182,7 +182,7 @@ class RE4QueryRunner:
         SELECT chapter, {columns}
         FROM global_chapter_golds
         WHERE chapter NOT LIKE '%-%' AND chapter <> 'Total';
-        """
+        """  # noqa: S608
         general_stats = self._db.query_db(query=general_stats_query)
         general_stats = general_stats.replace({np.nan: ""})
         general_stats = general_stats.drop(columns=["chapter"])
@@ -205,7 +205,7 @@ class RE4QueryRunner:
         SELECT split,
         {columns}
         FROM global_resets;
-        """
+        """  # noqa: S608
         resets = self._db.query_db(query=resets_query)
         resets = resets.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         return resets.replace({np.nan: ""})

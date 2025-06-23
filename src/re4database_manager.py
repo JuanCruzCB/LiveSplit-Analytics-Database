@@ -207,7 +207,7 @@ class RE4DatabaseManager:
                 original_exception=e,
             ) from e
 
-    def query_db(self, query: str) -> DataFrame:
+    def query_db(self, query: str, params: tuple | None = None) -> DataFrame:
         """
         Return a DataFrame with the results of running the specified query
         on the db.
@@ -218,7 +218,7 @@ class RE4DatabaseManager:
             )
 
         try:
-            self._cursor.execute(query)
+            self._cursor.execute(query, params)
             return DataFrame(
                 data=self._cursor.fetchall(),
                 columns=[desc[0] for desc in self._cursor.description],
