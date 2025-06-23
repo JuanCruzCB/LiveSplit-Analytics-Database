@@ -7,13 +7,57 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
-from constants import (
-    ConstantQuery,
-    Format,
-    OrderColumns,
-)
+from constants import Format
 from re4database_manager import RE4DatabaseManager
 from utils import get_days_hours_str, get_hours_minutes_str
+
+
+class ConstantQuery(StrEnum):
+    DOORSPLIT_GOLDS_QUERY = "SELECT * FROM global_door_golds;"
+    BEST_PACES_QUERY = "SELECT * FROM global_best_paces_chapter;"
+    RNG_PATTERNS_QUERY = "SELECT * FROM global_rng_patterns;"
+    WEEKDAY_DATA_QUERY = "SELECT * FROM global_weekday_data;"
+    ALL_TABLE_NAMES = """
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+        ORDER BY table_name;
+    """
+    SAWKEN_VS_JOKER_MEDIAN_DOORSPLITS = """
+    SELECT
+    s.cle2,
+    s.door_median AS sawken_door_median,
+    j.door_median AS joker_door_median,
+    s.door_median2 AS sawken_door_median2,
+    j.door_median2 AS joker_door_median2,
+    s.door_median - j.door_median AS difference
+    FROM
+    (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_sawken) s
+    FULL JOIN
+    (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_joker) j
+    ON s.cle2 = j.cle2
+    ORDER BY s.cle2;
+    """
+    SAWKEN_VS_JOKER_GOLD_DOORSPLITS = """SELECT
+        s.cle2,
+        s.gold AS sawken_door_gold,
+        j.gold AS joker_door_gold,
+        s.gold2 AS sawken_door_gold2,
+        j.gold2 AS joker_door_gold2,
+        s.gold - j.gold AS difference
+    FROM
+        (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_sawken) s
+    FULL JOIN
+        (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_joker) j
+    ON s.cle2 = j.cle2
+    ORDER BY s.cle2;
+    """
+
+
+class OrderColumns(StrEnum):
+    LRT_NUMBER = "lrt_number"
+    CLE2 = "cle2"
+    DATE_STARTED = "date_started"
 
 
 class RE4QueryRunner:

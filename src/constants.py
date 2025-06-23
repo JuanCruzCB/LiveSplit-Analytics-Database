@@ -1,8 +1,11 @@
+import os
 from enum import Enum, StrEnum
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
 PROJECT_FOLDER = Path(__file__).parent.parent
-LIVESPLIT_FOLDER = Path(r"H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT")
 
 
 class Files(Enum):
@@ -12,14 +15,8 @@ class Files(Enum):
     MAIN_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Individual.sql"
     GLOBAL_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Global.sql"
     LAST_UPDATES_FILE = PROJECT_FOLDER / "info" / "last_table_updates.json"
-    MY_SPLITS_FILE = LIVESPLIT_FOLDER / "1. NG Pro.lss"
-    SPLITS_OUTPUT_FOLDER = LIVESPLIT_FOLDER / "Not mine"
-
-
-class OrderColumns(StrEnum):
-    LRT_NUMBER = "lrt_number"
-    CLE2 = "cle2"
-    DATE_STARTED = "date_started"
+    MY_SPLITS_FILE = os.getenv("MY_SPLITS_FILE")
+    SPLITS_OUTPUT_FOLDER = os.getenv("OTHER_RUNNERS_SPLITS_FOLDER")
 
 
 class Format(StrEnum):
@@ -27,45 +24,3 @@ class Format(StrEnum):
     DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
     GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
     BAD_DATE_FORMAT = "%Y-%m-%d"
-
-
-class ConstantQuery(StrEnum):
-    DOORSPLIT_GOLDS_QUERY = "SELECT * FROM global_door_golds;"
-    BEST_PACES_QUERY = "SELECT * FROM global_best_paces_chapter;"
-    RNG_PATTERNS_QUERY = "SELECT * FROM global_rng_patterns;"
-    WEEKDAY_DATA_QUERY = "SELECT * FROM global_weekday_data;"
-    ALL_TABLE_NAMES = """
-        SELECT table_name
-        FROM information_schema.tables
-        WHERE table_schema = 'public'
-        ORDER BY table_name;
-    """
-    SAWKEN_VS_JOKER_MEDIAN_DOORSPLITS = """
-    SELECT
-    s.cle2,
-    s.door_median AS sawken_door_median,
-    j.door_median AS joker_door_median,
-    s.door_median2 AS sawken_door_median2,
-    j.door_median2 AS joker_door_median2,
-    s.door_median - j.door_median AS difference
-    FROM
-    (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_sawken) s
-    FULL JOIN
-    (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_joker) j
-    ON s.cle2 = j.cle2
-    ORDER BY s.cle2;
-    """
-    SAWKEN_VS_JOKER_GOLD_DOORSPLITS = """SELECT
-        s.cle2,
-        s.gold AS sawken_door_gold,
-        j.gold AS joker_door_gold,
-        s.gold2 AS sawken_door_gold2,
-        j.gold2 AS joker_door_gold2,
-        s.gold - j.gold AS difference
-    FROM
-        (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_sawken) s
-    FULL JOIN
-        (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_joker) j
-    ON s.cle2 = j.cle2
-    ORDER BY s.cle2;
-    """
