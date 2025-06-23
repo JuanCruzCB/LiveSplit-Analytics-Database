@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pydrive2.drive import GoogleDrive
@@ -7,7 +7,6 @@ from constants import Format
 
 
 class RE4DriveManager:
-    GOOGLE_DRIVE_TIMEZONE_OFFSET = timedelta(hours=3)
     GOOGLE_DRIVE_FOLDER_ID = "1-OvGMbjiemrxMaie166Cmwbu3k5WvXGh"
     CURRENTLY_ALLOWED_SPLITS = (
         "splits luis.lss",
@@ -51,17 +50,18 @@ class RE4DriveManager:
         that splits last modification time.
         """
         if not self._splits_output_folder.exists():
-            raise FileNotFoundError(
-                "The output folder for the splits of other runners does not exist."
-            )
+            msg = "The output folder for the splits of other runners does not exist."
+            raise FileNotFoundError(msg)
 
         local_splits = {
-            splits_file.stem: datetime.fromtimestamp(splits_file.stat().st_mtime)
+            splits_file.stem: datetime.fromtimestamp(
+                splits_file.stat().st_mtime, tz=UTC
+            )
             for splits_file in self._splits_output_folder.glob(pattern="*.lss")
         }
 
         local_splits[self._my_splits_file.stem] = datetime.fromtimestamp(
-            self._my_splits_file.stat().st_mtime
+            self._my_splits_file.stat().st_mtime, tz=UTC
         )
 
         return local_splits
@@ -72,7 +72,8 @@ class RE4DriveManager:
         are newer than the local ones.
         """
         if self._google_drive is None:
-            raise ValueError("We are not connected to Google Drive.")
+            msg = "We are not connected to Google Drive."
+            raise ValueError(msg)
 
         local_splits = self.get_local_splits()
 
@@ -81,13 +82,10 @@ class RE4DriveManager:
             splits_file_name = splits_name.replace(".lss", "")
 
             last_modified_date_time_local = local_splits[splits_file_name]
-            last_modified_date_time_remote = (
-                datetime.strptime(
-                    splits_file["modifiedDate"],
-                    Format.GOOGLE_DRIVE_DATE_TIME_FORMAT,
-                )
-                - self.GOOGLE_DRIVE_TIMEZONE_OFFSET
-            )
+            last_modified_date_time_remote = datetime.strptime(
+                splits_file["modifiedDate"],
+                Format.GOOGLE_DRIVE_DATE_TIME_FORMAT,
+            ).replace(tzinfo=UTC)
 
             if last_modified_date_time_remote > last_modified_date_time_local:
                 print(f"Downloading {splits_name}...")
