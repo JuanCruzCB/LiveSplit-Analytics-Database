@@ -1,6 +1,6 @@
 import json
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -141,10 +141,10 @@ class RE4DatabaseManager:
 
         for split, file_last_modified in splits.items():
             modified_script = sql_script
-            db_last_modified = datetime.strptime(  # noqa: DTZ007
+            db_last_modified = datetime.strptime(
                 last_table_updates[split],
                 Format.DATE_TIME_FORMAT,
-            )
+            ).astimezone(UTC)
 
             if db_last_modified > file_last_modified:
                 print(
