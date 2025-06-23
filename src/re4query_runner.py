@@ -55,111 +55,120 @@ class RE4QueryRunner:
         return self._db
 
     def query_doorsplit_golds(self) -> DataFrame:
-        df = self._db.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY)
-        df = df.replace({np.nan: ""})
-        return df.drop(columns=["split"])
+        doorsplit_golds = self._db.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY)
+        doorsplit_golds = doorsplit_golds.replace({np.nan: ""})
+        return doorsplit_golds.drop(columns=["split"])
 
     def query_chapter_golds(self) -> DataFrame:
         extra_columns = ("best", "best_cumulative_chapters")
         columns = ", ".join(
-            ("chapter",) + self.CURRENTLY_ALLOWED_RUNNERS + extra_columns,
+            ("chapter", *self.CURRENTLY_ALLOWED_RUNNERS, *extra_columns),
         )
-        GLOBAL_CHAPTER_GOLDS_QUERY = f"""
+        global_chapter_golds_query = f"""
         SELECT {columns}
         FROM global_chapter_golds
         WHERE chapter like '%-%' or chapter='Total';
         """
-        df = self._db.query_db(query=GLOBAL_CHAPTER_GOLDS_QUERY)
-        df = df.replace({np.nan: ""})
-        return df.drop(columns=["chapter"])
+        chapter_golds = self._db.query_db(query=global_chapter_golds_query)
+        chapter_golds = chapter_golds.replace({np.nan: ""})
+        return chapter_golds.drop(columns=["chapter"])
 
     def query_chapter_golds_by_doors(self) -> DataFrame:
         extra_columns = ("best", "cumulative_best")
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
-        GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY = f"""
+        global_chapter_golds_by_doors_query = f"""
         SELECT {columns}
         FROM global_chapter_golds_doors;
         """
-        df = self._db.query_db(query=GLOBAL_CHAPTER_GOLDS_BY_DOORS_QUERY)
-        return df.replace({np.nan: ""})
+        chapter_golds_by_doors = self._db.query_db(
+            query=global_chapter_golds_by_doors_query
+        )
+        return chapter_golds_by_doors.replace({np.nan: ""})
 
     def query_section_golds(self) -> DataFrame:
         extra_columns = ("best", "best_cumulative_sections")
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
-        GLOBAL_SECTION_GOLDS_QUERY = f"""
+        global_section_golds_query = f"""
         SELECT {columns}
         FROM global_section_golds;
         """
-        df = self._db.query_db(query=GLOBAL_SECTION_GOLDS_QUERY)
-        return df.replace({np.nan: ""})
+        section_golds = self._db.query_db(query=global_section_golds_query)
+        return section_golds.replace({np.nan: ""})
 
     def query_section_golds_by_chapters(self) -> DataFrame:
         extra_columns = ("best", "cumulative_best")
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
-        GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY = f"""
+        global_section_golds_by_chapters_query = f"""
         SELECT {columns}
         FROM global_section_golds_chapters;
         """
-        df = self._db.query_db(query=GLOBAL_SECTION_GOLDS_BY_CHAPTERS_QUERY)
-        return df.replace({np.nan: ""})
+        section_golds_by_chapters = self._db.query_db(
+            query=global_section_golds_by_chapters_query
+        )
+        return section_golds_by_chapters.replace({np.nan: ""})
 
     def query_section_golds_by_doors(self) -> DataFrame:
         extra_columns = ("best", "cumulative_best")
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
-        GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY = f"""
+        global_section_golds_by_doors_query = f"""
         SELECT {columns}
         FROM global_section_golds_doors;
         """
-        df = self._db.query_db(query=GLOBAL_SECTION_GOLDS_BY_DOORS_QUERY)
-        return df.replace({np.nan: ""})
+        section_golds_by_doors = self._db.query_db(
+            query=global_section_golds_by_doors_query
+        )
+        return section_golds_by_doors.replace({np.nan: ""})
 
     def query_best_paces(self) -> DataFrame:
-        df = self._db.query_db(query=ConstantQuery.BEST_PACES_QUERY)
-        df = df.replace({np.nan: ""})
-        return df.drop(columns=["chapter"])
+        best_paces = self._db.query_db(query=ConstantQuery.BEST_PACES_QUERY)
+        best_paces = best_paces.replace({np.nan: ""})
+        return best_paces.drop(columns=["chapter"])
 
     def query_rng_patterns(self) -> DataFrame:
-        df = self._db.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY)
-        df = df.replace({np.nan: ""})
-        df = df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
-        return df.drop(columns=["pattern"])
+        rng_patterns = self._db.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY)
+        rng_patterns = rng_patterns.replace({np.nan: ""})
+        rng_patterns = rng_patterns.map(
+            lambda x: float(x) if isinstance(x, Decimal) else x
+        )
+        return rng_patterns.drop(columns=["pattern"])
 
     def query_general_stats(self) -> DataFrame:
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
-        GENERAL_STATS_QUERY = f"""
+        general_stats_query = f"""
         SELECT chapter, {columns}
         FROM global_chapter_golds
         WHERE chapter NOT LIKE '%-%' AND chapter <> 'Total';
         """
-        df = self._db.query_db(query=GENERAL_STATS_QUERY)
-        df = df.replace({np.nan: ""})
-        df = df.drop(columns=["chapter"])
-        df.iloc[0] = df.iloc[0].apply(
+        general_stats = self._db.query_db(query=general_stats_query)
+        general_stats = general_stats.replace({np.nan: ""})
+        general_stats = general_stats.drop(columns=["chapter"])
+        general_stats.iloc[0] = general_stats.iloc[0].apply(
             lambda date_str: datetime.strptime(
-                date_str,
-                Format.BAD_DATE_FORMAT,
-            ).strftime(Format.DATE_FORMAT),
+                date_str, Format.BAD_DATE_FORMAT
+            ).strftime(Format.GOOD_DATE_FORMAT),
         )
-        df.iloc[3] = df.iloc[3].apply(lambda playtime: get_days_hours_str(playtime))
-        return df
+        general_stats.iloc[3] = general_stats.iloc[3].apply(
+            lambda playtime: get_days_hours_str(playtime)
+        )
+        return general_stats
 
     def query_resets(self) -> DataFrame:
         columns = ",\n".join(
             f"case when percent_{name} < 0 then 0 else percent_{name} end as percent_{name}"
             for name in self.CURRENTLY_ALLOWED_RUNNERS
         )
-        RESETS_QUERY = f"""
+        resets_query = f"""
         SELECT split,
         {columns}
         FROM global_resets;
         """
-        df = self._db.query_db(query=RESETS_QUERY)
-        df = df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
-        return df.replace({np.nan: ""})
+        resets = self._db.query_db(query=resets_query)
+        resets = resets.map(lambda x: float(x) if isinstance(x, Decimal) else x)
+        return resets.replace({np.nan: ""})
 
     def query_weekday_data(self) -> DataFrame:
-        df = self._db.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY)
-        df = df.replace({np.nan: ""})
+        weekday = self._db.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY)
+        weekday = weekday.replace({np.nan: ""})
 
         ranges_to_process = [
             range(7, 14),
@@ -170,42 +179,44 @@ class RE4QueryRunner:
         ]
         for r in ranges_to_process:
             for i in r:
-                df.iloc[i] = df.iloc[i].apply(get_hours_minutes_str)
-        return df.drop(columns=["day", "col"])
+                weekday.iloc[i] = weekday.iloc[i].apply(get_hours_minutes_str)
+        return weekday.drop(columns=["day", "col"])
 
     """
     SECONDARY QUERIES
     """
 
     def run(self, query: str, excel_name: str = "") -> DataFrame:
-        """Execute query and optionally save to Excel"""
-        df = self._db.query_db(query)
-        if "date_started" in df.columns:
-            df["date_started"] = pd.to_datetime(
-                df["date_started"],
+        """
+        Execute query and optionally save to Excel.
+        """
+        result = self._db.query_db(query)
+        if "date_started" in result.columns:
+            result["date_started"] = pd.to_datetime(
+                result["date_started"],
                 errors="coerce",
-            ).dt.strftime(Format.DATE_FORMAT.value)
+            ).dt.strftime(Format.GOOD_DATE_FORMAT.value)
         if excel_name:
-            df.to_excel(self._excel_dir / f"{excel_name}.xlsx", index=False)
-        return df
+            result.to_excel(self._excel_dir / f"{excel_name}.xlsx", index=False)
+        return result
 
     def export_table_names(self):
-        df = self._db.query_db(ConstantQuery.ALL_TABLE_NAMES.value)
-        relevant = [
+        table_names = self._db.query_db(ConstantQuery.ALL_TABLE_NAMES.value)
+        relevant_table_names = [
             t
-            for t in df["table_name"]
+            for t in table_names["table_name"]
             if not any(x in t for x in ["treatment", "cleaned", "info", "notepad"])
         ]
 
-        with open(
-            Path(__file__).parent.parent / "info" / "relevant_tables.txt",
-            "w",
-        ) as f:
-            f.write("\n".join(relevant))
+        relevant_tables_path = (
+            Path(__file__).parent.parent / "info" / "relevant_tables.txt"
+        )
+        with Path(relevant_tables_path).open("w") as f:
+            f.write("\n".join(relevant_table_names))
 
     def doorsplit_golds(self, version: int = 2, ties: bool = False) -> DataFrame:
         """
-        Get all doorsplit golds (version 1 or 2)
+        Get all doorsplit golds (version 1 or 2).
         """
         if version == 1:
             return self.run(
@@ -240,7 +251,7 @@ class RE4QueryRunner:
 
     def chapter_golds(self, version: int = 2) -> DataFrame:
         """
-        Get chapter golds (version 1 or 2)
+        Get chapter golds (version 1 or 2).
         """
         if version == 1:
             return self.run(
@@ -265,7 +276,7 @@ class RE4QueryRunner:
 
     def section_golds(self, version: int = 2) -> DataFrame:
         """
-        Get section golds (version 1 or 2)
+        Get section golds (version 1 or 2).
         """
         if version == 1:
             return self.run(
@@ -357,7 +368,7 @@ class RE4QueryRunner:
 
     def doorsplits_of_chapter_gold(self, chapter: str) -> DataFrame:
         """
-        Get all doorsplits that make up a chapter gold
+        Get all doorsplits that make up a chapter gold.
         """
         return self.run(
             f"""SELECT cle2, split, chapter, lrt_split, gold2, chapter_gold2, date_started
@@ -374,7 +385,7 @@ class RE4QueryRunner:
         desc: bool = True,
     ) -> DataFrame:
         """
-        Get history of a specific split
+        Get history of a specific split.
         """
         if "{" not in split_name:
             split_name = f"-{split_name}"
@@ -392,7 +403,7 @@ class RE4QueryRunner:
         compare_type: str = "golds",
     ) -> DataFrame:
         """
-        Compare two runners (golds or medians)
+        Compare two runners (golds or medians).
         """
         queries = {
             "golds": ConstantQuery.SAWKEN_VS_JOKER_GOLD_DOORSPLITS,
