@@ -16,10 +16,11 @@ class GoogleAuthManager:
         try:
             self._google_drive = self._auth_google_drive()
             self._gspread_client = self._auth_google_sheets()
-        except Exception as e:
-            raise Exception(
-                f"Failed to authenticate with Google Drive or Google Sheets: {e}",
-            )
+        except (OSError, ValueError) as e:
+            msg = f"Failed to authenticate with Google Drive or Google Sheets: {e}"
+            raise RuntimeError(
+                msg,
+            ) from e
         print("Logged in to Google Drive and Google Sheets succesfully.")
 
     @property
