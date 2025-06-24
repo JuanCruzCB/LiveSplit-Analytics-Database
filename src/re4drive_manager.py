@@ -70,24 +70,20 @@ class RE4DriveManager:
         Print a message for each unknown split file found,
         indicating that it was not downloaded.
         """
-        unknown_splits = [
-            file
-            for file in drive_files
-            if "splits" in file["title"]
-            and file["title"] not in self.CURRENTLY_ALLOWED_SPLITS
-        ]
+        allowed_splits = []
+        for file in drive_files:
+            title = file["title"]
+            if "splits" not in title:
+                continue
 
-        for unknown_split in unknown_splits:
-            print(
-                f"Unknown splits file found: {unknown_split['title']}. "
-                "This file was not downloaded."
-            )
+            if title in self.CURRENTLY_ALLOWED_SPLITS:
+                allowed_splits.append(file)
+            else:
+                print(
+                    f"Unknown splits file found: {title}. This file was not downloaded."
+                )
 
-        return [
-            file
-            for file in drive_files
-            if file["title"] in self.CURRENTLY_ALLOWED_SPLITS
-        ]
+        return allowed_splits
 
     def update_local_splits(self) -> None:
         """
@@ -103,19 +99,20 @@ class RE4DriveManager:
         known_splits = self._get_known_splits(drive_files)
 
         for splits_file in known_splits:
-            splits_name = splits_file["title"]
-            splits_file_name = splits_name.replace(".lss", "")
+            splits_filename = splits_file["title"]
 
-            last_modified_date_time_local = local_splits[splits_file_name]
-            last_modified_date_time_remote = datetime.strptime(
+            last_modified_datetime_local = local_splits[
+                splits_filename.replace(".lss", "")
+            ]
+            last_modified_datetime_remote = datetime.strptime(
                 splits_file["modifiedDate"],
                 Format.GOOGLE_DRIVE_DATE_TIME_FORMAT,
             ).replace(tzinfo=UTC)
 
-            if last_modified_date_time_remote > last_modified_date_time_local:
-                print(f"Downloading {splits_name}...")
-                splits_file.GetContentFile(self._splits_output_folder / splits_name)
+            if last_modified_datetime_remote > last_modified_datetime_local:
+                print(f"Downloading {splits_filename}...")
+                splits_file.GetContentFile(self._splits_output_folder / splits_filename)
             else:
                 print(
-                    f"{splits_name} is already up to date locally, so there's no need to download it."
+                    f"{splits_filename} is already up to date locally, so there's no need to download it."
                 )
