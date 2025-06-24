@@ -30,18 +30,14 @@ class RE4DriveManager:
         self._splits_output_folder = splits_output_folder
         self._my_splits_file = my_splits_file
 
-    def _get_drive_splits(self) -> list:
+    def _get_drive_files(self) -> list:
         """
-        Returns a list with data about all the splits files that are currently on
-        the Google Drive folder and that are allowed.
+        Returns a list with data about all the files that are currently on
+        the Google Drive folder.
         """
-        files = self._google_drive.ListFile(
+        return self._google_drive.ListFile(
             {"q": f"'{self.GOOGLE_DRIVE_FOLDER_ID}' in parents and trashed=false"}
         ).GetList()
-
-        return [
-            file for file in files if file["title"] in self.CURRENTLY_ALLOWED_SPLITS
-        ]
 
     def get_local_splits(self) -> dict[str, datetime]:
         """
@@ -66,6 +62,33 @@ class RE4DriveManager:
 
         return local_splits
 
+    def _get_known_splits(self, drive_files: list) -> list:
+        """
+        Filter the list of splits files from the Google Drive folder
+        to only include the ones that are currently allowed.
+
+        Print a message for each unknown split file found,
+        indicating that it was not downloaded.
+        """
+        unknown_splits = [
+            file
+            for file in drive_files
+            if "splits" in file["title"]
+            and file["title"] not in self.CURRENTLY_ALLOWED_SPLITS
+        ]
+
+        for unknown_split in unknown_splits:
+            print(
+                f"Unknown splits file found: {unknown_split['title']}. "
+                "This file was not downloaded."
+            )
+
+        return [
+            file
+            for file in drive_files
+            if file["title"] in self.CURRENTLY_ALLOWED_SPLITS
+        ]
+
     def update_local_splits(self) -> None:
         """
         Update the local splits with their remote versions if the versions on the Google Drive folder
@@ -76,8 +99,10 @@ class RE4DriveManager:
             raise ValueError(msg)
 
         local_splits = self.get_local_splits()
+        drive_files = self._get_drive_files()
+        known_splits = self._get_known_splits(drive_files)
 
-        for splits_file in self._get_drive_splits():
+        for splits_file in known_splits:
             splits_name = splits_file["title"]
             splits_file_name = splits_name.replace(".lss", "")
 
