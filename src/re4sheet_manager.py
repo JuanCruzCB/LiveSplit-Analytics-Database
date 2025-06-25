@@ -84,7 +84,7 @@ class RE4SheetManager:
     def copy_doorsplits_to_sheet(self, doorsplits: DataFrame) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Doors",
-            data=doorsplits.values.tolist(),
+            data=doorsplits.to_numpy().tolist(),
             range_name="B3",
         )
 
@@ -93,12 +93,12 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Chapters",
-            data=chapters.values.tolist(),
+            data=chapters.to_numpy().tolist(),
             range_name="B3",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Chapters",
-            data=chapters_by_doors.values.tolist(),
+            data=chapters_by_doors.to_numpy().tolist(),
             range_name="B25",
         )
 
@@ -110,17 +110,17 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Sections",
-            data=sections.values.tolist(),
+            data=sections.to_numpy().tolist(),
             range_name="B3",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Sections",
-            data=sections_by_chapters.values.tolist(),
+            data=sections_by_chapters.to_numpy().tolist(),
             range_name="B9",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Sections",
-            data=sections_by_doors.values.tolist(),
+            data=sections_by_doors.to_numpy().tolist(),
             range_name="B15",
         )
 
@@ -130,7 +130,7 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Paces",
-            data=paces.values.tolist(),
+            data=paces.to_numpy().tolist(),
             range_name="B3",
         )
 
@@ -140,7 +140,7 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="RNG Patterns",
-            data=rng_patterns.values.tolist(),
+            data=rng_patterns.to_numpy().tolist(),
             range_name="B4",
         )
 
@@ -150,7 +150,7 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_without_copy(
             sheet_tab_name="General",
-            data=general_stats.values.tolist(),
+            data=general_stats.to_numpy().tolist(),
             range_name="B3",
         )
 
@@ -160,7 +160,7 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_without_copy(
             sheet_tab_name="Resets",
-            data=resets.values.tolist(),
+            data=resets.to_numpy().tolist(),
             range_name="A3",
         )
 
@@ -170,7 +170,7 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_without_copy(
             sheet_tab_name="Weekday",
-            data=weekday_data.values.tolist(),
+            data=weekday_data.to_numpy().tolist(),
             range_name="C2",
         )
 
