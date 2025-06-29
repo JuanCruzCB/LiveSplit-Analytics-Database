@@ -154,8 +154,8 @@ class RE4DatabaseManager:
 
             if "splits" in split:
                 modified_script = modified_script.replace("sawken", split[7:]).replace(
-                    r"2024 LRT\1. NG Pro",
-                    rf"2024 LRT\Not mine\{split}",
+                    r"\1. NG Pro",
+                    rf"\Stats Sheet Google Drive\{split}",
                 )
                 runner_name = split[7:]
             else:

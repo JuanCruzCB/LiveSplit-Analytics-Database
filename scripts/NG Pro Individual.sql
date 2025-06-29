@@ -13,7 +13,7 @@ with your last attempts. */
 drop table if exists splits_sawken;
 create table splits_sawken (notepad_info varchar (255));
 
-copy splits_sawken from 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\2024 LRT\1. NG Pro.lss' with delimiter ','; /* Change path here + splits name */
+copy splits_sawken from 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\1. NG Pro.lss' with delimiter ','; /* Change path here + splits name */
 
 /* Creating a table with default split names */
 
@@ -340,7 +340,7 @@ values
 (0.98),
 (0.99);
 
-/* We imported the whole splits including the LiveSplit settings and stuff, now we want to only keep the part with the segments history 
+/* We imported the whole splits including the LiveSplit settings and stuff, now we want to only keep the part with the segments history
 (to get the golds, best paces, etc.)=part 1 */
 
 drop table if exists notepad_splits_sawken;
@@ -510,7 +510,7 @@ create table splits_treatment4_sawken as
 /* Now that the split names are finished (+chapter and section names added) we join that table with the table we had that has run ids and
 LRT times on the same row, now it will have the split names (+chapter and section names) on the same row too, because as explained above,
 the split name on the original file only shows once at the top and then just lists the times history without displaying the split name,
-so we need that for each row 
+so we need that for each row
 Just like we did for run ids and LRT times, we make the split name empty on the rows we don't want (there are a lot of unnecessary rows
 in the original file since all the data has 1 info per row (for example split name, LRT time and run id will show on 3 different rows on
 the original file, but since here we put everything in the same row, we only keep one row out of the 3 and the other 2 are useless,
@@ -528,14 +528,14 @@ round(hours*3600+minutes*60+seconds+milliseconds/10000000, 7) as lrt3,
 rta2, round(hours_rta*3600+minutes_rta*60+seconds_rta+milliseconds_rta/10000000, 7) as rta3
 from(
 select *,
-	
+
 /* Converting the LRT times from character (wrong format) to numbers */
-	
+
 case when lrt2='' then 0 else cast(substr(lrt2, 1, 2) as integer) end as hours,
 case when lrt2='' then 0 else cast(substr(lrt2, 4, 2) as integer) end as minutes,
 case when lrt2='' then 0 else cast(substr(lrt2, 7, 2) as integer) end as seconds,
 case when lrt2='' or length(lrt2)=8 then 0 else cast(substr(lrt2, 10, 7) as decimal) end as milliseconds,
-	
+
 case when rta2='' then 0 else cast(substr(rta2, 1, 2) as integer) end as hours_rta,
 case when rta2='' then 0 else cast(substr(rta2, 4, 2) as integer) end as minutes_rta,
 case when rta2='' then 0 else cast(substr(rta2, 7, 2) as integer) end as seconds_rta,
@@ -544,7 +544,7 @@ from splits_treatment4_sawken
 
 /* At this point we only keep the rows that have the information and we already have everything in the same row (run id,
 lrt time and split name) so we can delete all the rest */
-	
+
 where split_name2<>'');
 
 drop table if exists splits_treatment6_sawken;
@@ -735,7 +735,7 @@ order by a.id) c on a.id=c.id
 where pb=1;
 
 /* Final table that is going to be used to get the actual data (chapter golds, etc.), we combine the 2 cleaned tables after
-treatments (splits history and attempts history, so part 1 and 2) 
+treatments (splits history and attempts history, so part 1 and 2)
 Also converting the dates of the runs from part2 into date format */
 
 drop table if exists splits_cleaned_sawken_old;
@@ -838,7 +838,7 @@ drop table if exists split_name_info2;
 drop table if exists split_name_info3;
 drop table if exists pb_history;*/
 
-/* Chapter golds part 
+/* Chapter golds part
 Here we define for each chapter, how many splits we have, so we know if a run has finished a chapter or not (obviously to count the chapter
 golds, we need to count only the chapter that are finished, because a chapter that only did the first split and reset is gonna be faster
 than a full chapter */
@@ -934,16 +934,16 @@ then to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end)
 else (case when trunc(chapter_gold-trunc(chapter_gold), 3) =0
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'00'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table_sawken)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
-floor(chapter_gold / 60) || ':' || 
+floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end) end AS chapter_gold2,
 case when avg_chapter_time<60 then (case when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) =0 then
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'000'
@@ -954,16 +954,16 @@ then to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999') end)
 else (case when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) =0
-then floor(avg_chapter_time / 60) || ':' || 
+then floor(avg_chapter_time / 60) || ':' ||
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(avg_chapter_time / 60) || ':' || 
+then floor(avg_chapter_time / 60) || ':' ||
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'00'
 when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) in (select numb from decimals_table_sawken)
-then floor(avg_chapter_time / 60) || ':' || 
+then floor(avg_chapter_time / 60) || ':' ||
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'0'
 else
-floor(avg_chapter_time / 60) || ':' || 
+floor(avg_chapter_time / 60) || ':' ||
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999') end) end AS avg_chapter_time2,
 case when median_chapter_time<60 then (case when trunc(median_chapter_time-trunc(median_chapter_time), 3) =0 then
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'000'
@@ -974,16 +974,16 @@ then to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999') end)
 else (case when trunc(median_chapter_time-trunc(median_chapter_time), 3) =0
-then floor(median_chapter_time / 60) || ':' || 
+then floor(median_chapter_time / 60) || ':' ||
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(median_chapter_time-trunc(median_chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(median_chapter_time / 60) || ':' || 
+then floor(median_chapter_time / 60) || ':' ||
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'00'
 when trunc(median_chapter_time-trunc(median_chapter_time), 3) in (select numb from decimals_table_sawken)
-then floor(median_chapter_time / 60) || ':' || 
+then floor(median_chapter_time / 60) || ':' ||
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'0'
 else
-floor(median_chapter_time / 60) || ':' || 
+floor(median_chapter_time / 60) || ':' ||
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999') end) end AS median_chapter_time2
 from chapter_golds_sawken;
 
@@ -992,29 +992,29 @@ create table chapter_golds3_sawken as
 select chapter, id, date_started, final_lrt, pb, chapter_gold, chapter_gold2,
 case when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3)=0 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000'
-else floor(cumulative_chapter_gold / 60) || ':' || 
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000' end)
 when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00'
-else floor(cumulative_chapter_gold / 60) || ':' || 
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00' end)
 when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (select numb from decimals_table_sawken)
 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-          floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
+          floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0'
-else floor(cumulative_chapter_gold / 60) || ':' || 
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0' end)
 else (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
-to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')	  
-else floor(cumulative_chapter_gold / 60) || ':' || 
+	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
+to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999') end) end as cumulative_chapter_gold, cumulative_chapter_gold as cumulative_chapter_gold_num, avg_chapter_time,
 median_chapter_time, avg_chapter_time2, median_chapter_time2
 from(
@@ -1056,16 +1056,16 @@ then to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999') end)
 else (case when trunc(chapter_time-trunc(chapter_time), 3) =0
-then floor(chapter_time / 60) || ':' || 
+then floor(chapter_time / 60) || ':' ||
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_time-trunc(chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(chapter_time / 60) || ':' || 
+then floor(chapter_time / 60) || ':' ||
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'00'
 when trunc(chapter_time-trunc(chapter_time), 3) in (select numb from decimals_table_sawken)
-then floor(chapter_time / 60) || ':' || 
+then floor(chapter_time / 60) || ':' ||
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'0'
 else
-floor(chapter_time / 60) || ':' || 
+floor(chapter_time / 60) || ':' ||
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999') end) end AS chapter_time2, rank() over (partition by chapter order by chapter_time) as rank_chapter
 from chapter_history_sawken
 order by chapter, chapter_time;
@@ -1073,7 +1073,7 @@ order by chapter, chapter_time;
 drop table if exists chapter_history3_sawken;
 create table chapter_history3_sawken as
 select chapter, id, date_started, finished_run, pb, chapter_time, chapter_time2, case when chapter_time<=min or min is null then 1 else 0
-end as golded_chapter, 
+end as golded_chapter,
 case when min<60 then (case when trunc(min-trunc(min), 3) =0 then
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
 when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
@@ -1083,16 +1083,16 @@ then to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(min, 3) % 60, 'FM00.999') end)
 else (case when trunc(min-trunc(min), 3) =0
-then floor(min / 60) || ':' || 
+then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
 when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(min / 60) || ':' || 
+then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
 when trunc(min-trunc(min), 3) in (select numb from decimals_table_sawken)
-then floor(min / 60) || ':' || 
+then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
 else
-floor(min / 60) || ':' || 
+floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999') end) end as chapter_gold_at_that_time, rank_chapter, chapter_rank_at_that_time, finished_chapters, finished_chapters_at_that_time
 from (select a.rank_chapter, a.chapter, a.id, a.date_started, a.finished_run, a.pb, a.chapter_time, a.chapter_time2, min(b.chapter_time) as min,
 min(b.chapter_time2) as min2, finished_chapters, chapter_rank_at_that_time, finished_chapters_at_that_time
@@ -1185,7 +1185,7 @@ order by 1) section_med on section_golds.section=section_med.section;
 
 drop table if exists section_golds2_sawken;
 create table section_golds2_sawken as
-select *, floor(section_gold / 60) || ':' || 
+select *, floor(section_gold / 60) || ':' ||
 case when length(to_char(trunc(section_gold, 3) % 60, 'FM00.999'))=3
 then to_char(trunc(section_gold, 3) % 60, 'FM00.999')||'000'
 when length(to_char(trunc(section_gold, 3) % 60, 'FM00.999'))=4
@@ -1193,7 +1193,7 @@ then to_char(trunc(section_gold, 3) % 60, 'FM00.999')||'00'
 when length(to_char(trunc(section_gold, 3) % 60, 'FM00.999'))=5
 then to_char(trunc(section_gold, 3) % 60, 'FM00.999')||'0' else
 to_char(trunc(section_gold, 3) % 60, 'FM00.999') end AS section_gold2,
-floor(section_avg / 60) || ':' || 
+floor(section_avg / 60) || ':' ||
 case when length(to_char(trunc(section_avg, 3) % 60, 'FM00.999'))=3
 then to_char(trunc(section_avg, 3) % 60, 'FM00.999')||'000'
 when length(to_char(trunc(section_avg, 3) % 60, 'FM00.999'))=4
@@ -1201,7 +1201,7 @@ then to_char(trunc(section_avg, 3) % 60, 'FM00.999')||'00'
 when length(to_char(trunc(section_avg, 3) % 60, 'FM00.999'))=5
 then to_char(trunc(section_avg, 3) % 60, 'FM00.999')||'0' else
 to_char(trunc(section_avg, 3) % 60, 'FM00.999') end AS section_avg2,
-floor(section_median / 60) || ':' || 
+floor(section_median / 60) || ':' ||
 case when length(to_char(trunc(section_median, 3) % 60, 'FM00.999'))=3
 then to_char(trunc(section_median, 3) % 60, 'FM00.999')||'000'
 when length(to_char(trunc(section_median, 3) % 60, 'FM00.999'))=4
@@ -1216,29 +1216,29 @@ create table section_golds3_sawken as
 select section, id, date_started, final_lrt, pb, section_gold, section_gold2,
 case when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3)=0 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000'
-else floor(cumulative_chapter_gold / 60) || ':' || 
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000' end)
 when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00'
-else floor(cumulative_chapter_gold / 60) || ':' || 
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00' end)
 when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (select numb from decimals_table_sawken)
 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-          floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
+          floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0'
-else floor(cumulative_chapter_gold / 60) || ':' || 
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0' end)
 else (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
-to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')	  
-else floor(cumulative_chapter_gold / 60) || ':' || 
+	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
+to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999') end) end as cumulative_section_gold, section_avg, section_median,
 section_avg2, section_median2
 from(
@@ -1273,16 +1273,16 @@ order by 1;
 drop table if exists section_history2_sawken;
 create table section_history2_sawken as
 select *, case when trunc(section_time-trunc(section_time), 3) =0
-then floor(section_time / 60) || ':' || 
+then floor(section_time / 60) || ':' ||
 to_char(trunc(section_time, 3) % 60, 'FM00.999')||'000'
 when trunc(section_time-trunc(section_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(section_time / 60) || ':' || 
+then floor(section_time / 60) || ':' ||
 to_char(trunc(section_time, 3) % 60, 'FM00.999')||'00'
 when trunc(section_time-trunc(section_time), 3) in (select numb from decimals_table_sawken)
-then floor(section_time / 60) || ':' || 
+then floor(section_time / 60) || ':' ||
 to_char(trunc(section_time, 3) % 60, 'FM00.999')||'0'
 else
-floor(section_time / 60) || ':' || 
+floor(section_time / 60) || ':' ||
 to_char(trunc(section_time, 3) % 60, 'FM00.999') end AS section_time2, rank() over (partition by section order by section_time) as rank_section
 from section_history_sawken
 order by case when section='Village' then 1 when section='Castle' then 2 else 3 end, section_time;
@@ -1291,7 +1291,7 @@ drop table if exists section_history3_sawken;
 create table section_history3_sawken as
 select section, id, date_started, finished_run, final_lrt, pb, section_time, section_time2, case when section_time<=min or min is null
 then 1 else 0 end as golded_section,
-floor(min / 60) || ':' || 
+floor(min / 60) || ':' ||
 case when length(to_char(trunc(min, 3) % 60, 'FM00.999'))=3
 then to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
 when length(to_char(trunc(min, 3) % 60, 'FM00.999'))=4
@@ -1380,29 +1380,29 @@ create table doorsplits_golds2_sawken as
 select cle2, id, date_started, final_lrt, pb, gold, gold2, door_avg, door_median,
 case when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3)=0 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000'
-else floor(cumulative_chapter_gold / 60) || ':' || 
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000' end)
 when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00'
-else floor(cumulative_chapter_gold / 60) || ':' || 
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00' end)
 when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (select numb from decimals_table_sawken)
 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-          floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
+          floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0'
-else floor(cumulative_chapter_gold / 60) || ':' || 
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0' end)
 else (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' || 
-to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')	  
-else floor(cumulative_chapter_gold / 60) || ':' || 
+	  floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
+to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')
+else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999') end) end as cumulative_door_gold, cumulative_chapter_gold as cumulative_door_gold_num,
 case when trunc(door_avg-trunc(door_avg), 3)=0 then
 (case when door_avg<10 then to_char(trunc(door_avg, 3) % 60, 'FM0.999')||'000'
@@ -1493,105 +1493,105 @@ group by 1, 2) e on a.cle2=e.cle2 and a.id=e.id;
 drop table if exists best_paces_sawken;
 create table best_paces_sawken as
 select pace.*, best_pace, /*avg_pace, median_pace,*/
-case when trunc(pace-trunc(pace), 3)=0 then (case when pace<3600 then floor(pace / 60) || ':' || 
+case when trunc(pace-trunc(pace), 3)=0 then (case when pace<3600 then floor(pace / 60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'000'
 else floor(pace / 3600) || ':' || case when floor(pace / 60)-(floor(pace/3600)*60)<10 then '0' else '' end ||
-	  floor(pace / 60)-(floor(pace/3600)*60) || ':' || 
+	  floor(pace / 60)-(floor(pace/3600)*60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'000' end)
 when trunc(pace-trunc(pace), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then (case when pace<3600 then floor(pace / 60) || ':' || 
+then (case when pace<3600 then floor(pace / 60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'00'
 else floor(pace / 3600) || ':' || case when floor(pace / 60)-(floor(pace/3600)*60)<10 then '0' else '' end ||
-	  floor(pace / 60)-(floor(pace/3600)*60) || ':' || 
+	  floor(pace / 60)-(floor(pace/3600)*60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'00' end)
 when trunc(pace-trunc(pace), 3) in (select numb from decimals_table_sawken)
-then (case when pace<3600 then floor(pace / 60) || ':' || 
+then (case when pace<3600 then floor(pace / 60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'0'
 else floor(pace / 3600) || ':' || case when floor(pace / 60)-(floor(pace/3600)*60)<10 then '0' else '' end ||
-          floor(pace / 60)-(floor(pace/3600)*60) || ':' || 
+          floor(pace / 60)-(floor(pace/3600)*60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'0' end)
-else (case when pace<3600 then floor(pace / 60) || ':' || 
+else (case when pace<3600 then floor(pace / 60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')
 else floor(pace / 3600) || ':' || case when floor(pace / 60)-(floor(pace/3600)*60)<10 then '0' else '' end ||
-	  floor(pace / 60)-(floor(pace/3600)*60)|| ':' || 
+	  floor(pace / 60)-(floor(pace/3600)*60)|| ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999') end) end as pace2,
 case when trunc(best_pace-trunc(best_pace), 3)=0 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-	  floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+	  floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000' end)
 when trunc(best_pace-trunc(best_pace), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-	  floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+	  floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00' end)
 when trunc(best_pace-trunc(best_pace), 3) in (select numb from decimals_table_sawken)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0' end)
 else (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-	  floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
-to_char(trunc(best_pace, 3) % 60, 'FM00.999')	  
-else floor(best_pace / 60) || ':' || 
+	  floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
+to_char(trunc(best_pace, 3) % 60, 'FM00.999')
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999') end) end as best_pace2/*,
 case when trunc(avg_pace-trunc(avg_pace), 3)=0 then (case when avg_pace>=3600 then
 floor(avg_pace / 3600) || ':' || case when floor(avg_pace / 60)-(floor(avg_pace/3600)*60)<10 then '0' else '' end ||
-	  floor(avg_pace / 60)-(floor(avg_pace/3600)*60) || ':' || 
+	  floor(avg_pace / 60)-(floor(avg_pace/3600)*60) || ':' ||
 to_char(trunc(avg_pace, 3) % 60, 'FM00.999')||'000'
-else floor(avg_pace / 60) || ':' || 
+else floor(avg_pace / 60) || ':' ||
 to_char(trunc(avg_pace, 3) % 60, 'FM00.999')||'000' end)
 when trunc(avg_pace-trunc(avg_pace), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when avg_pace>=3600 then
 floor(avg_pace / 3600) || ':' || case when floor(avg_pace / 60)-(floor(avg_pace/3600)*60)<10 then '0' else '' end ||
-	  floor(avg_pace / 60)-(floor(avg_pace/3600)*60) || ':' || 
+	  floor(avg_pace / 60)-(floor(avg_pace/3600)*60) || ':' ||
 to_char(trunc(avg_pace, 3) % 60, 'FM00.999')||'00'
-else floor(avg_pace / 60) || ':' || 
+else floor(avg_pace / 60) || ':' ||
 to_char(trunc(avg_pace, 3) % 60, 'FM00.999')||'00' end)
 when trunc(avg_pace-trunc(avg_pace), 3) in (select numb from decimals_table_sawken)
 then (case when avg_pace>=3600 then
 floor(avg_pace / 3600) || ':' || case when floor(avg_pace / 60)-(floor(avg_pace/3600)*60)<10 then '0' else '' end ||
-          floor(avg_pace / 60)-(floor(avg_pace/3600)*60) || ':' || 
+          floor(avg_pace / 60)-(floor(avg_pace/3600)*60) || ':' ||
 to_char(trunc(avg_pace, 3) % 60, 'FM00.999')||'0'
-else floor(avg_pace / 60) || ':' || 
+else floor(avg_pace / 60) || ':' ||
 to_char(trunc(avg_pace, 3) % 60, 'FM00.999')||'0' end)
 else (case when avg_pace>=3600 then
 floor(avg_pace / 3600) || ':' || case when floor(avg_pace / 60)-(floor(avg_pace/3600)*60)<10 then '0' else '' end ||
-	  floor(avg_pace / 60)-(floor(avg_pace/3600)*60) || ':' || 
-to_char(trunc(avg_pace, 3) % 60, 'FM00.999')	  
-else floor(avg_pace / 60) || ':' || 
+	  floor(avg_pace / 60)-(floor(avg_pace/3600)*60) || ':' ||
+to_char(trunc(avg_pace, 3) % 60, 'FM00.999')
+else floor(avg_pace / 60) || ':' ||
 to_char(trunc(avg_pace, 3) % 60, 'FM00.999') end) end as avg_pace2,
 case when trunc(median_pace-trunc(median_pace), 3)=0 then (case when median_pace>=3600 then
 floor(median_pace / 3600) || ':' || case when floor(median_pace / 60)-(floor(median_pace/3600)*60)<10 then '0' else '' end ||
-	  floor(median_pace / 60)-(floor(median_pace/3600)*60) || ':' || 
+	  floor(median_pace / 60)-(floor(median_pace/3600)*60) || ':' ||
 to_char(trunc(median_pace, 3) % 60, 'FM00.999')||'000'
-else floor(median_pace / 60) || ':' || 
+else floor(median_pace / 60) || ':' ||
 to_char(trunc(median_pace, 3) % 60, 'FM00.999')||'000' end)
 when trunc(median_pace-trunc(median_pace), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when median_pace>=3600 then
 floor(median_pace / 3600) || ':' || case when floor(median_pace / 60)-(floor(median_pace/3600)*60)<10 then '0' else '' end ||
-	  floor(median_pace / 60)-(floor(median_pace/3600)*60) || ':' || 
+	  floor(median_pace / 60)-(floor(median_pace/3600)*60) || ':' ||
 to_char(trunc(median_pace, 3) % 60, 'FM00.999')||'00'
-else floor(median_pace / 60) || ':' || 
+else floor(median_pace / 60) || ':' ||
 to_char(trunc(median_pace, 3) % 60, 'FM00.999')||'00' end)
 when trunc(median_pace-trunc(median_pace), 3) in (select numb from decimals_table_sawken)
 then (case when median_pace>=3600 then
 floor(median_pace / 3600) || ':' || case when floor(median_pace / 60)-(floor(median_pace/3600)*60)<10 then '0' else '' end ||
-          floor(median_pace / 60)-(floor(median_pace/3600)*60) || ':' || 
+          floor(median_pace / 60)-(floor(median_pace/3600)*60) || ':' ||
 to_char(trunc(median_pace, 3) % 60, 'FM00.999')||'0'
-else floor(median_pace / 60) || ':' || 
+else floor(median_pace / 60) || ':' ||
 to_char(trunc(median_pace, 3) % 60, 'FM00.999')||'0' end)
 else (case when median_pace>=3600 then
 floor(median_pace / 3600) || ':' || case when floor(median_pace / 60)-(floor(median_pace/3600)*60)<10 then '0' else '' end ||
-	  floor(median_pace / 60)-(floor(median_pace/3600)*60) || ':' || 
-to_char(trunc(median_pace, 3) % 60, 'FM00.999')	  
-else floor(median_pace / 60) || ':' || 
+	  floor(median_pace / 60)-(floor(median_pace/3600)*60) || ':' ||
+to_char(trunc(median_pace, 3) % 60, 'FM00.999')
+else floor(median_pace / 60) || ':' ||
 to_char(trunc(median_pace, 3) % 60, 'FM00.999') end) end as median_pace2*/
 from (select aa.cle2, aa.id, aa.split, count(*) as number_of_splits, sum(bb.lrt_number) as pace
 from
@@ -1625,27 +1625,27 @@ drop table if exists best_paces_history_sawken;
 create table best_paces_history_sawken as
 select cle2, id, split, number_of_splits, pace, best_pace, pace2, best_pace2, case when pace<=min or min is null then 1 else 0
 end as was_best_pace,
-case when trunc(min-trunc(min), 3)=0 then (case when min<3600 then floor(min / 60) || ':' || 
+case when trunc(min-trunc(min), 3)=0 then (case when min<3600 then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
 else floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-	  floor(min / 60)-(floor(min/3600)*60) || ':' || 
+	  floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000' end)
 when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then (case when min<3600 then floor(min / 60) || ':' || 
+then (case when min<3600 then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
 else floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-	  floor(min / 60)-(floor(min/3600)*60) || ':' || 
+	  floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00' end)
 when trunc(min-trunc(min), 3) in (select numb from decimals_table_sawken)
-then (case when min<3600 then floor(min / 60) || ':' || 
+then (case when min<3600 then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
 else floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0' end)
-else (case when min<3600 then floor(min / 60) || ':' || 
+else (case when min<3600 then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')
 else floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-	  floor(min / 60)-(floor(min/3600)*60)|| ':' || 
+	  floor(min / 60)-(floor(min/3600)*60)|| ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999') end) end as best_pace_at_that_time, min as best_pace_at_that_time2/*,
 avg_pace, median_pace, avg_pace2, median_pace2*/, rank() over (partition by cle2 order by pace) as rank_pace
 from (select a.cle2, a.id, a.split, a.number_of_splits, a.pace, a.best_pace, a.pace2, a.best_pace2, /*a.avg_pace, a.median_pace,
@@ -1739,7 +1739,7 @@ else '' end as lago_pattern,
 case when a.cle2=65 and lrt_number<=31 then '3-a Perfect catapult'
 when a.cle2=65 and lrt_number<=33 then '3-b Stagger catapult'
 when a.cle2=65 then '3-c Boulder catapult'
-else '' end as catapult_pattern, 
+else '' end as catapult_pattern,
 case when a.cle2=26 and lrt_number<=113 then '4-a Great cabin'
 when a.cle2=26 and lrt_number<=118 then '4-b Good cabin'
 when a.cle2=26 and lrt_number<=123 then '4-c Average cabin'
@@ -2176,7 +2176,7 @@ order by lago_pattern;
 
 /* Script is finished, here we have some useful queries */
 
-/* All chapter golds with doorsplits golds combined per chapter */ 
+/* All chapter golds with doorsplits golds combined per chapter */
 
 drop table if exists chapter_golds_sheet_sawken;
 create table chapter_golds_sheet_sawken as
@@ -2190,16 +2190,16 @@ then to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999') end)
 else (case when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) =0
-then floor(cumulative_chapter_gold2 / 60) || ':' || 
+then floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000'
 when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(cumulative_chapter_gold2 / 60) || ':' || 
+then floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00'
 when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (select numb from decimals_table_sawken)
-then floor(cumulative_chapter_gold2 / 60) || ':' || 
+then floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'0'
 else
-floor(cumulative_chapter_gold2 / 60) || ':' || 
+floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999') end) end as doorsplit_combined_gold, cumulative_chapter_gold2 as doorsplit_combined_gold2, a.cumulative_chapter_gold,
 cumulative_door_gold, cumulative_door_gold_num, avg_chapter_time2, chapter_gold_at_that_time as previous_chapter_gold
 from chapter_golds3_sawken a
@@ -2207,72 +2207,72 @@ left join (select chapter, sum(gold) as cumulative_chapter_gold2
 		   from(
 select chapter, a.gold, a.gold2, a.cle2, min(cumulative_door_gold) as cumulative_door_gold
 from doorsplits_golds2_sawken a
-left join (select distinct cle2, chapter from splits_overview_sawken) b on a.cle2=b.cle2 
+left join (select distinct cle2, chapter from splits_overview_sawken) b on a.cle2=b.cle2
 			   group by chapter, a.gold, a.gold2, a.cle2 order by a.cle2) b
 		  group by chapter) bb on a.chapter=bb.chapter
 left join (select *
 		   from (select cle2, chapter, cumulative_door_gold, cumulative_door_gold_num, row_number() over(partition by chapter
 order by cle2 desc) as rang from splits_overview_sawken) a where rang=1) c on a.chapter=c.chapter
-left join (select distinct id, chapter, chapter_gold_at_that_time 
+left join (select distinct id, chapter, chapter_gold_at_that_time
 		   from splits_overview_sawken where chapter_time2=chapter_gold2) d on a.chapter=d.chapter and a.id=d.id;
 
-/* All section golds with doorsplits golds combined per section + chapter golds combined per section */ 
+/* All section golds with doorsplits golds combined per section + chapter golds combined per section */
 
 drop table if exists section_golds_sheet_sawken;
 create table section_golds_sheet_sawken as
-select a.section, a.id, a.date_started, a.final_lrt, a.pb, a.section_gold2, 
+select a.section, a.id, a.date_started, a.final_lrt, a.pb, a.section_gold2,
 case when trunc(cumulative_chapter_gold3-trunc(cumulative_chapter_gold3), 3)=0 then (case when cumulative_chapter_gold3>=3600 then
 floor(cumulative_chapter_gold3 / 3600) || ':' || case when floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'000'
-else floor(cumulative_chapter_gold3 / 60) || ':' || 
+else floor(cumulative_chapter_gold3 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'000' end)
 when trunc(cumulative_chapter_gold3-trunc(cumulative_chapter_gold3), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when cumulative_chapter_gold3>=3600 then
 floor(cumulative_chapter_gold3 / 3600) || ':' || case when floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'00'
-else floor(cumulative_chapter_gold3 / 60) || ':' || 
+else floor(cumulative_chapter_gold3 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'00' end)
 when trunc(cumulative_chapter_gold3-trunc(cumulative_chapter_gold3), 3) in (select numb from decimals_table_sawken)
 then (case when cumulative_chapter_gold3>=3600 then
 floor(cumulative_chapter_gold3 / 3600) || ':' || case when floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60)<10 then '0' else '' end ||
-          floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60) || ':' || 
+          floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'0'
-else floor(cumulative_chapter_gold3 / 60) || ':' || 
+else floor(cumulative_chapter_gold3 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'0' end)
 else (case when cumulative_chapter_gold3>=3600 then
 floor(cumulative_chapter_gold3 / 3600) || ':' || case when floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60) || ':' || 
-to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')	  
-else floor(cumulative_chapter_gold3 / 60) || ':' || 
+	  floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60) || ':' ||
+to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')
+else floor(cumulative_chapter_gold3 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999') end) end as chapter_combined_gold, cumulative_chapter_gold3 as chapter_combined_gold2,
 
 case when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3)=0 then (case when cumulative_chapter_gold2>=3600 then
 floor(cumulative_chapter_gold2 / 3600) || ':' || case when floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000'
-else floor(cumulative_chapter_gold2 / 60) || ':' || 
+else floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000' end)
 when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when cumulative_chapter_gold2>=3600 then
 floor(cumulative_chapter_gold2 / 3600) || ':' || case when floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60) || ':' || 
+	  floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00'
-else floor(cumulative_chapter_gold2 / 60) || ':' || 
+else floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00' end)
 when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (select numb from decimals_table_sawken)
 then (case when cumulative_chapter_gold2>=3600 then
 floor(cumulative_chapter_gold2 / 3600) || ':' || case when floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60)<10 then '0' else '' end ||
-          floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60) || ':' || 
+          floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'0'
-else floor(cumulative_chapter_gold2 / 60) || ':' || 
+else floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'0' end)
 else (case when cumulative_chapter_gold2>=3600 then
 floor(cumulative_chapter_gold2 / 3600) || ':' || case when floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60)<10 then '0' else '' end ||
-	  floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60) || ':' || 
-to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')	  
-else floor(cumulative_chapter_gold2 / 60) || ':' || 
+	  floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60) || ':' ||
+to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')
+else floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999') end) end as doorsplit_combined_gold, cumulative_chapter_gold2 as doorsplit_combined_gold2, a.cumulative_section_gold,
 cumulative_chapter_gold, cumulative_chapter_gold_num, cumulative_door_gold, cumulative_door_gold_num, a.section_avg2, section_gold_at_that_time as previous_section_gold
 from section_golds3_sawken a
@@ -2290,13 +2290,13 @@ left join (select section, sum(chapter_gold) as cumulative_chapter_gold3
 		   from(
 select section, a.chapter_gold, a.chapter_gold2, a.chapter, min(cumulative_chapter_gold) as cumulative_chapter_gold
 from chapter_golds3_sawken a
-left join (select distinct chapter, section from splits_overview_sawken) b on a.chapter=b.chapter 
+left join (select distinct chapter, section from splits_overview_sawken) b on a.chapter=b.chapter
 			   group by section, a.chapter_gold, a.chapter_gold2, a.chapter order by a.chapter) b
 		  group by section) d on a.section=d.section
 left join (select *
 		   from (select chapter, section, cumulative_chapter_gold, cumulative_chapter_gold_num, row_number() over(partition by section
 order by chapter desc) as rang from splits_overview_sawken) a where rang=1) e on a.section=e.section
-left join (select distinct id, section, section_gold_at_that_time 
+left join (select distinct id, section, section_gold_at_that_time
 		   from splits_overview_sawken where section_time2=section_gold2) f on a.section=f.section and a.id=f.id
 order by case when a.section='Village' then 1 when a.section='Castle' then 2 else 3 end;
 
