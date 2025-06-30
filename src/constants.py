@@ -1,16 +1,5 @@
-import os
 from enum import Enum, StrEnum
 from pathlib import Path
-
-from dotenv import load_dotenv
-
-load_dotenv()
-MY_SPLITS_FILE_STR = os.getenv("MY_SPLITS_FILE")
-OTHER_RUNNERS_SPLITS_FOLDER_STR = os.getenv("OTHER_RUNNERS_SPLITS_FOLDER")
-
-if not MY_SPLITS_FILE_STR or not OTHER_RUNNERS_SPLITS_FOLDER_STR:
-    msg = "Environment variables MY_SPLITS_FILE and OTHER_RUNNERS_SPLITS_FOLDER must be set."
-    raise ValueError(msg)
 
 PROJECT_FOLDER = Path(__file__).parent.parent
 
@@ -22,8 +11,6 @@ class Files(Enum):
     MAIN_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Individual.sql"
     GLOBAL_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Global.sql"
     LAST_UPDATES_FILE = PROJECT_FOLDER / "info" / "last_table_updates.json"
-    MY_SPLITS_FILE = Path(MY_SPLITS_FILE_STR)
-    SPLITS_OUTPUT_FOLDER = Path(OTHER_RUNNERS_SPLITS_FOLDER_STR)
 
 
 class Format(StrEnum):

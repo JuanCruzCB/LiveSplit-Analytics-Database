@@ -1,8 +1,51 @@
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
 from constants import Files
 from google_auth_manager import GoogleAuthManager
 from re4drive_manager import RE4DriveManager
 from re4query_runner import RE4QueryRunner
 from re4sheet_manager import RE4SheetManager
+
+
+def load_environment_variables():
+    load_dotenv()
+
+    my_splits_file_str = os.getenv("MY_SPLITS_FILE")
+    other_runners_splits_folder_str = os.getenv("OTHER_RUNNERS_SPLITS_FOLDER")
+    google_sheet_url = os.getenv("GOOGLE_SHEET_URL")
+    google_drive_folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+
+    if (
+        not my_splits_file_str
+        or not other_runners_splits_folder_str
+        or not google_sheet_url
+        or not google_drive_folder_id
+    ):
+        msg = "The 4 environment variables in the .env file must be set."
+        raise ValueError(msg)
+    return (
+        my_splits_file_str,
+        other_runners_splits_folder_str,
+        google_sheet_url,
+        google_drive_folder_id,
+    )
+
+
+def validate_paths(my_splits_file: str, other_runners_splits_folder: str) -> None:
+    for file in Files:
+        if not file.value.exists():
+            msg = f"The path {file.value} does not exist."
+            raise FileNotFoundError(msg)
+
+    if (
+        not Path(my_splits_file).exists()
+        or not Path(other_runners_splits_folder).exists()
+    ):
+        msg = "The paths on the environment variables don't exist."
+        raise ValueError(msg)
 
 
 def update_db_and_sheet(
@@ -45,16 +88,26 @@ def update_db_and_sheet(
 
 
 def main() -> None:
+    (
+        my_splits_file_str,
+        other_runners_splits_folder_str,
+        google_sheet_url,
+        google_drive_folder_id,
+    ) = load_environment_variables()
+
+    validate_paths(my_splits_file_str, other_runners_splits_folder_str)
+
     auth_manager = GoogleAuthManager(
         service_account_file=Files.GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE.value
     )
     drive_manager = RE4DriveManager(
+        google_drive_folder_id=google_drive_folder_id,
         google_drive=auth_manager.google_drive,
-        splits_output_folder=Files.SPLITS_OUTPUT_FOLDER.value,
-        my_splits_file=Files.MY_SPLITS_FILE.value,
+        splits_output_folder=Path(other_runners_splits_folder_str),
+        my_splits_file=Path(my_splits_file_str),
     )
     sheet_manager = RE4SheetManager(
-        gspread_client=auth_manager.gspread_client,
+        gspread_client=auth_manager.gspread_client, google_sheet_url=google_sheet_url
     )
     query_runner = RE4QueryRunner(
         main_sql_script=Files.MAIN_SQL_FILE.value,

@@ -7,7 +7,6 @@ from constants import Format
 
 
 class RE4DriveManager:
-    GOOGLE_DRIVE_FOLDER_ID = "1-OvGMbjiemrxMaie166Cmwbu3k5WvXGh"
     CURRENTLY_ALLOWED_SPLITS = (
         "splits luis.lss",
         "splits joker.lss",
@@ -22,10 +21,12 @@ class RE4DriveManager:
 
     def __init__(
         self,
+        google_drive_folder_id: str,
         google_drive: GoogleDrive,
         splits_output_folder: Path,
         my_splits_file: Path,
     ) -> None:
+        self._google_drive_folder_id = google_drive_folder_id
         self._google_drive = google_drive
         self._splits_output_folder = splits_output_folder
         self._my_splits_file = my_splits_file
@@ -36,7 +37,7 @@ class RE4DriveManager:
         the Google Drive folder.
         """
         return self._google_drive.ListFile(
-            {"q": f"'{self.GOOGLE_DRIVE_FOLDER_ID}' in parents and trashed=false"}
+            {"q": f"'{self._google_drive_folder_id}' in parents and trashed=false"}
         ).GetList()
 
     def get_local_splits(self) -> dict[str, datetime]:
