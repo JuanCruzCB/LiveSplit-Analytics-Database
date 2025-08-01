@@ -6,8 +6,17 @@ select y.*, coalesce(best, '') as best, coalesce(best_cumulative_chapters, '') a
 from(
 select *
 from (
-select a.chapter, a.chapter_gold2 as sawken, b.chapter_gold2 as luis, c.chapter_gold2 as joker, d.chapter_gold2 as mateo,
-e.chapter_gold2 as arcadan, f.chapter_gold2 as richy, g.chapter_gold2 as derek, h.chapter_gold2 as nevs, i.chapter_gold2 as otaku, j.chapter_gold2 as pocho
+select a.chapter,
+a.chapter_gold2 as sawken,
+b.chapter_gold2 as luis,
+c.chapter_gold2 as joker,
+d.chapter_gold2 as mateo,
+e.chapter_gold2 as arcadan,
+f.chapter_gold2 as richy,
+g.chapter_gold2 as derek,
+h.chapter_gold2 as nevs,
+i.chapter_gold2 as otaku,
+j.chapter_gold2 as pocho
 from chapter_golds2_sawken a
 left join chapter_golds2_luis b on a.chapter=b.chapter
 left join chapter_golds2_joker c on a.chapter=c.chapter
@@ -19,9 +28,17 @@ left join chapter_golds2_nevs h on a.chapter=h.chapter
 left join chapter_golds2_otaku i on a.chapter=i.chapter
 left join chapter_golds2_pocho j on a.chapter=j.chapter
 union
-select 'Total' as chapter, a.cumulative_chapter_gold as sawken, b.cumulative_chapter_gold as luis, c.cumulative_chapter_gold as joker,
-d.cumulative_chapter_gold as mateo, e.cumulative_chapter_gold as arcadan, f.cumulative_chapter_gold as richy,
-g.cumulative_chapter_gold as derek, h.cumulative_chapter_gold as nevs, i.cumulative_chapter_gold as otaku, j.cumulative_chapter_gold as pocho
+select 'Total' as chapter,
+a.cumulative_chapter_gold as sawken,
+b.cumulative_chapter_gold as luis,
+c.cumulative_chapter_gold as joker,
+d.cumulative_chapter_gold as mateo,
+e.cumulative_chapter_gold as arcadan,
+f.cumulative_chapter_gold as richy,
+g.cumulative_chapter_gold as derek,
+h.cumulative_chapter_gold as nevs,
+i.cumulative_chapter_gold as otaku,
+j.cumulative_chapter_gold as pocho
 from chapter_golds3_sawken a
 left join chapter_golds3_luis b on a.chapter=b.chapter
 left join chapter_golds3_joker c on a.chapter=c.chapter
@@ -125,42 +142,42 @@ then to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end)
 else (case when trunc(chapter_gold-trunc(chapter_gold), 3) =0
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'00'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
-floor(chapter_gold / 60) || ':' || 
+floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end) end AS best,
 case when trunc(best_pace-trunc(best_pace), 3)=0 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000' end)
 when trunc(best_pace-trunc(best_pace), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00' end)
 when trunc(best_pace-trunc(best_pace), 3) in (select numb from decimals_table)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0' end)
 else (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
-to_char(trunc(best_pace, 3) % 60, 'FM00.999')     
-else floor(best_pace / 60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
+to_char(trunc(best_pace, 3) % 60, 'FM00.999')
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999') end) end as best_cumulative_chapters, chapter_gold
 from
 (
@@ -206,42 +223,42 @@ then to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end)
 else (case when trunc(chapter_gold-trunc(chapter_gold), 3) =0
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'00'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
-floor(chapter_gold / 60) || ':' || 
+floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end) end as door_golds_sum,
 case when trunc(best_pace-trunc(best_pace), 3)=0 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000' end)
 when trunc(best_pace-trunc(best_pace), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00' end)
 when trunc(best_pace-trunc(best_pace), 3) in (select numb from decimals_table)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0' end)
 else (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
-to_char(trunc(best_pace, 3) % 60, 'FM00.999')     
-else floor(best_pace / 60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
+to_char(trunc(best_pace, 3) % 60, 'FM00.999')
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999') end) end as best_door_cumulative, chapter_gold
 from (
 select a.chapter, a.gold as chapter_gold, sum(b.gold) as best_pace
@@ -285,55 +302,55 @@ drop table if exists global_chapter_golds_doors;
 create table global_chapter_golds_doors as
 select a.*, case when trunc(min-trunc(min), 3)=0 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000' end)
 when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00' end)
 when trunc(min-trunc(min), 3) in (select numb from decimals_table)
 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0' end)
 else (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
-to_char(trunc(min, 3) % 60, 'FM00.999')     
-else floor(min / 60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
+to_char(trunc(min, 3) % 60, 'FM00.999')
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999') end) end as best,
 case when trunc(min2-trunc(min2), 3)=0 then (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'000'
-else floor(min2 / 60) || ':' || 
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'000' end)
 when trunc(min2-trunc(min2), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'00'
-else floor(min2 / 60) || ':' || 
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'00' end)
 when trunc(min2-trunc(min2), 3) in (select numb from decimals_table)
 then (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'0'
-else floor(min2 / 60) || ':' || 
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'0' end)
 else (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
-to_char(trunc(min2, 3) % 60, 'FM00.999')     
-else floor(min2 / 60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
+to_char(trunc(min2, 3) % 60, 'FM00.999')
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999') end) end as cumulative_best, door_golds_sum as best_of_best, best_door_cumulative as cumulative_best_of_best
 from (
 select distinct a.chapter, a.doorsplit_combined_gold as sawken, b.doorsplit_combined_gold as luis, c.doorsplit_combined_gold as joker, d.doorsplit_combined_gold as mateo, e.doorsplit_combined_gold as arcadan,
@@ -422,29 +439,29 @@ order by a.cle2) a
 left join (
 select chapter, case when trunc(min-trunc(min), 3)=0 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000' end)
 when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00' end)
 when trunc(min-trunc(min), 3) in (select numb from decimals_table)
 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0' end)
 else (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
-to_char(trunc(min, 3) % 60, 'FM00.999')     
-else floor(min / 60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
+to_char(trunc(min, 3) % 60, 'FM00.999')
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999') end) end as best
 from (
 select chapter, min(best_pace) as min
@@ -486,7 +503,7 @@ create table global_door_golds as
 select split, sawken, luis, joker, mateo, arcadan, richy, derek, nevs, otaku, pocho
 from
 (select *
-from 
+from
 (select b.split, a.gold2 as sawken, b.gold2 as luis, c.gold2 as joker, d.gold2 as mateo, e.gold2 as arcadan,
 f.gold2 as richy, g.gold2 as derek, h.gold2 as nevs, i.gold2 as otaku, j.gold2 as pocho, row_number() over (order by a.cle2) as rang
 from (select distinct cle2, split, gold2, gold from doorsplits_golds_sawken) a
@@ -568,42 +585,42 @@ then to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end)
 else (case when trunc(chapter_gold-trunc(chapter_gold), 3) =0
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'00'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
-floor(chapter_gold / 60) || ':' || 
+floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end) end AS best,
 case when trunc(best_pace-trunc(best_pace), 3)=0 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000' end)
 when trunc(best_pace-trunc(best_pace), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00' end)
 when trunc(best_pace-trunc(best_pace), 3) in (select numb from decimals_table)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0' end)
 else (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
-to_char(trunc(best_pace, 3) % 60, 'FM00.999')     
-else floor(best_pace / 60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
+to_char(trunc(best_pace, 3) % 60, 'FM00.999')
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999') end) end as best_cumulative_sections, chapter_gold
 from
 (
@@ -650,42 +667,42 @@ then to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end)
 else (case when trunc(chapter_gold-trunc(chapter_gold), 3) =0
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'00'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
-floor(chapter_gold / 60) || ':' || 
+floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end) end as door_golds_sum,
 case when trunc(best_pace-trunc(best_pace), 3)=0 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000' end)
 when trunc(best_pace-trunc(best_pace), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00' end)
 when trunc(best_pace-trunc(best_pace), 3) in (select numb from decimals_table)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0' end)
 else (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
-to_char(trunc(best_pace, 3) % 60, 'FM00.999')     
-else floor(best_pace / 60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
+to_char(trunc(best_pace, 3) % 60, 'FM00.999')
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999') end) end as best_door_cumulative, chapter_gold
 from (
 select a.section, a.gold as chapter_gold, sum(b.gold) as best_pace
@@ -733,42 +750,42 @@ then to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end)
 else (case when trunc(chapter_gold-trunc(chapter_gold), 3) =0
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'00'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table)
-then floor(chapter_gold / 60) || ':' || 
+then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
-floor(chapter_gold / 60) || ':' || 
+floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end) end as chapter_golds_sum,
 case when trunc(best_pace-trunc(best_pace), 3)=0 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'000' end)
 when trunc(best_pace-trunc(best_pace), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00' end)
 when trunc(best_pace-trunc(best_pace), 3) in (select numb from decimals_table)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0'
-else floor(best_pace / 60) || ':' || 
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'0' end)
 else (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
-          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' || 
-to_char(trunc(best_pace, 3) % 60, 'FM00.999')     
-else floor(best_pace / 60) || ':' || 
+          floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
+to_char(trunc(best_pace, 3) % 60, 'FM00.999')
+else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999') end) end as best_chapter_cumulative, chapter_gold
 from (
 select a.section, a.gold as chapter_gold, sum(b.gold) as best_pace
@@ -814,55 +831,55 @@ select *
 from (
 select a.*, case when trunc(min-trunc(min), 3)=0 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000' end)
 when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00' end)
 when trunc(min-trunc(min), 3) in (select numb from decimals_table)
 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0' end)
 else (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
-to_char(trunc(min, 3) % 60, 'FM00.999')     
-else floor(min / 60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
+to_char(trunc(min, 3) % 60, 'FM00.999')
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999') end) end as best,
 case when trunc(min2-trunc(min2), 3)=0 then (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'000'
-else floor(min2 / 60) || ':' || 
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'000' end)
 when trunc(min2-trunc(min2), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'00'
-else floor(min2 / 60) || ':' || 
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'00' end)
 when trunc(min2-trunc(min2), 3) in (select numb from decimals_table)
 then (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'0'
-else floor(min2 / 60) || ':' || 
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'0' end)
 else (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
-to_char(trunc(min2, 3) % 60, 'FM00.999')     
-else floor(min2 / 60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
+to_char(trunc(min2, 3) % 60, 'FM00.999')
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999') end) end as cumulative_best, door_golds_sum as best_of_best, best_door_cumulative as cumulative_best_of_best
 from (
 select distinct a.section, a.doorsplit_combined_gold as sawken, b.doorsplit_combined_gold as luis, c.doorsplit_combined_gold as joker, d.doorsplit_combined_gold as mateo, e.doorsplit_combined_gold as arcadan,
@@ -933,55 +950,55 @@ drop table if exists global_section_golds_chapters;
 create table global_section_golds_chapters as
 select a.*, case when trunc(min-trunc(min), 3)=0 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000' end)
 when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00' end)
 when trunc(min-trunc(min), 3) in (select numb from decimals_table)
 then (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
-else floor(min / 60) || ':' || 
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0' end)
 else (case when min>=3600 then
 floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
-          floor(min / 60)-(floor(min/3600)*60) || ':' || 
-to_char(trunc(min, 3) % 60, 'FM00.999')     
-else floor(min / 60) || ':' || 
+          floor(min / 60)-(floor(min/3600)*60) || ':' ||
+to_char(trunc(min, 3) % 60, 'FM00.999')
+else floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999') end) end as best,
 case when trunc(min2-trunc(min2), 3)=0 then (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'000'
-else floor(min2 / 60) || ':' || 
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'000' end)
 when trunc(min2-trunc(min2), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'00'
-else floor(min2 / 60) || ':' || 
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'00' end)
 when trunc(min2-trunc(min2), 3) in (select numb from decimals_table)
 then (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'0'
-else floor(min2 / 60) || ':' || 
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999')||'0' end)
 else (case when min2>=3600 then
 floor(min2 / 3600) || ':' || case when floor(min2 / 60)-(floor(min2/3600)*60)<10 then '0' else '' end ||
-          floor(min2 / 60)-(floor(min2/3600)*60) || ':' || 
-to_char(trunc(min2, 3) % 60, 'FM00.999')     
-else floor(min2 / 60) || ':' || 
+          floor(min2 / 60)-(floor(min2/3600)*60) || ':' ||
+to_char(trunc(min2, 3) % 60, 'FM00.999')
+else floor(min2 / 60) || ':' ||
 to_char(trunc(min2, 3) % 60, 'FM00.999') end) end as cumulative_best, door_golds_sum as best_of_best, best_door_cumulative as cumulative_best_of_best
 from (
 select distinct a.section, a.chapter_combined_gold as sawken, b.chapter_combined_gold as luis, c.chapter_combined_gold as joker, d.chapter_combined_gold as mateo, e.chapter_combined_gold as arcadan,
@@ -1051,7 +1068,7 @@ number of early dives in a row) */
 
 drop table if exists global_rng_patterns;
 create table global_rng_patterns as
-select z.pattern, coalesce(round(cast(a.percentage as numeric), 2), 0) as percent_sawken, 
+select z.pattern, coalesce(round(cast(a.percentage as numeric), 2), 0) as percent_sawken,
 coalesce(round(cast(b.percentage as numeric), 2), 0) as percent_luis, coalesce(round(cast(c.percentage as numeric), 2), 0) as percent_joker,
 coalesce(round(cast(d.percentage as numeric), 2), 0) as percent_mateo, coalesce(round(cast(e.percentage as numeric), 2), 0) as percent_arcadan,
 coalesce(round(cast(f.percentage as numeric), 2), 0) as percent_richy, coalesce(round(cast(g.percentage as numeric), 2), 0) as percent_derek,
