@@ -160,7 +160,7 @@ order by 1;
 drop table if exists global_best_paces_chapter;
 create table global_best_paces_chapter as
 select case when substr(b.split, 2, 3)='End' then '6-1' else substr(b.split, 2, 3) end as chapter, a.best_pace2 as sawken, b.best_pace2 as luis, c.best_pace2 as joker, d.best_pace2 as mateo,
-e.best_pace2 as arcadan, f.best_pace2 as richy, g.best_pace2 as derek, h.best_pace2 as nevs, i.best_pace2 as otaku, j.best_pace2 as pocho k.best_pace2 as missing
+e.best_pace2 as arcadan, f.best_pace2 as richy, g.best_pace2 as derek, h.best_pace2 as nevs, i.best_pace2 as otaku, j.best_pace2 as pocho, k.best_pace2 as missing
 from (select distinct cle2, split, best_pace2, best_pace from best_paces_sawken) a
 left join (select distinct cle2, split, best_pace2, best_pace from best_paces_luis) b on a.cle2=b.cle2
 left join (select distinct cle2, split, best_pace2, best_pace from best_paces_joker) c on a.cle2=c.cle2
@@ -308,7 +308,7 @@ left join section_golds_sheet_derek g on a.section=g.section
 left join section_golds_sheet_nevs h on a.section=h.section
 left join section_golds_sheet_otaku i on a.section=i.section
 left join section_golds_sheet_pocho j on a.section=j.section
-left join section_golds_sheet_missing j on a.section=j.section
+left join section_golds_sheet_missing k on a.section=j.section
 union
 select distinct 'Total' as section, a.cumulative_chapter_gold as sawken, b.cumulative_chapter_gold as luis, c.cumulative_chapter_gold as joker, d.cumulative_chapter_gold as mateo, e.cumulative_chapter_gold as arcadan,
 f.cumulative_chapter_gold as richy, g.cumulative_chapter_gold as derek, h.cumulative_chapter_gold as nevs, i.cumulative_chapter_gold as otaku, j.cumulative_chapter_gold as pocho, k.cumulative_chapter_gold as missing
