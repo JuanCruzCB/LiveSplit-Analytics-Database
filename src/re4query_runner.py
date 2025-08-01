@@ -105,9 +105,8 @@ class RE4QueryRunner:
         return doorsplit_golds.drop(columns=["split"])
 
     def query_chapter_golds(self) -> DataFrame:
-        extra_columns = ("best", "best_cumulative_chapters")
         columns = ", ".join(
-            ("chapter", *self.CURRENTLY_ALLOWED_RUNNERS, *extra_columns),
+            ("chapter", *self.CURRENTLY_ALLOWED_RUNNERS),
         )
         global_chapter_golds_query = f"""
         SELECT {columns}
@@ -119,8 +118,7 @@ class RE4QueryRunner:
         return chapter_golds.drop(columns=["chapter"])
 
     def query_chapter_golds_by_doors(self) -> DataFrame:
-        extra_columns = ("best", "cumulative_best")
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         global_chapter_golds_by_doors_query = f"""
         SELECT {columns}
         FROM global_chapter_golds_doors;
@@ -131,8 +129,7 @@ class RE4QueryRunner:
         return chapter_golds_by_doors.replace({np.nan: ""})
 
     def query_section_golds(self) -> DataFrame:
-        extra_columns = ("best", "best_cumulative_sections")
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         global_section_golds_query = f"""
         SELECT {columns}
         FROM global_section_golds;
@@ -141,8 +138,7 @@ class RE4QueryRunner:
         return section_golds.replace({np.nan: ""})
 
     def query_section_golds_by_chapters(self) -> DataFrame:
-        extra_columns = ("best", "cumulative_best")
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         global_section_golds_by_chapters_query = f"""
         SELECT {columns}
         FROM global_section_golds_chapters;
@@ -153,8 +149,7 @@ class RE4QueryRunner:
         return section_golds_by_chapters.replace({np.nan: ""})
 
     def query_section_golds_by_doors(self) -> DataFrame:
-        extra_columns = ("best", "cumulative_best")
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS + extra_columns)
+        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         global_section_golds_by_doors_query = f"""
         SELECT {columns}
         FROM global_section_golds_doors;
@@ -187,7 +182,7 @@ class RE4QueryRunner:
         general_stats = self._db.query_db(query=general_stats_query)
         general_stats = general_stats.replace({np.nan: ""})
         general_stats = general_stats.drop(columns=["chapter"])
-        general_stats.iloc[0] = general_stats.iloc[0].apply(
+        general_stats.iloc[1] = general_stats.iloc[1].apply(
             lambda date_str: datetime.strptime(
                 date_str, Format.BAD_DATE_FORMAT
             ).strftime(Format.GOOD_DATE_FORMAT),
@@ -468,6 +463,6 @@ class RE4QueryRunner:
             where extract(year from date)=extract(year from current_date)
             and date<=current_date
             group by 1
-            order by 1""",
+            order by 1""",  # noqa: S608
             excel_name=f"attempts_per_week_{self._runner}",
         )
