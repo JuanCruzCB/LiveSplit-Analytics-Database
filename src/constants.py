@@ -9,7 +9,7 @@ class Files(Enum):
         PROJECT_FOLDER / "credentials" / "service_account_secrets.json"
     )
     MAIN_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Individual.sql"
-    GLOBAL_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Global.sql"
+    GLOBAL_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Global (LIGHT).sql"
     LAST_UPDATES_FILE = PROJECT_FOLDER / "info" / "last_table_updates.json"
 
 
