@@ -72,6 +72,7 @@ class RE4QueryRunner:
         "nevs",
         "otaku",
         "pocho",
+        "missing",
     )
 
     def __init__(

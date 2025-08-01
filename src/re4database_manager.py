@@ -51,6 +51,7 @@ class RE4DatabaseManager:
             "splits nevs",
             "splits otaku",
             "splits pocho",
+            "splits missing",
         ],
         "1/1/2025 1:00:00",
     )

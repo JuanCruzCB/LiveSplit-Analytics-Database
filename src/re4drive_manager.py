@@ -17,6 +17,7 @@ class RE4DriveManager:
         "splits nevs.lss",
         "splits otaku.lss",
         "splits pocho.lss",
+        "splits missing.lss",
     )
 
     def __init__(
