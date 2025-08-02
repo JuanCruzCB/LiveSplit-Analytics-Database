@@ -114,18 +114,25 @@ class RE4QueryRunner:
         df["Cumulative best seconds"] = df["Best gold seconds"].cumsum()
         df["Cumulative best"] = df["Cumulative best seconds"].apply(format_time)
         df = df.drop(columns=["Best gold seconds", "Cumulative best seconds"])
-        df.iloc[19, 11] = ""
-        df.iloc[19, 12] = ""
+
+        best_gold_idx = df.columns.get_loc("Best gold")
+        cumulative_best_idx = df.columns.get_loc("Cumulative best")
+
+        df.iloc[df.index[-1], best_gold_idx] = ""  # type: ignore
+        df.iloc[df.index[-1], cumulative_best_idx] = ""  # type: ignore
 
         return df
 
     @staticmethod
-    def _add_best_gold_column(df: DataFrame) -> DataFrame:
+    def _add_best_gold_column(
+        df: DataFrame, remove_last_cell: bool = True
+    ) -> DataFrame:
         df["Best gold"] = df.apply(
             RE4QueryRunner._calculate_best_chapter_gold,
             axis=1,
         )
-        df.iloc[19, 11] = ""
+        if remove_last_cell:
+            df.iloc[df.index[-1], 11] = ""
 
         return df
 
@@ -144,16 +151,14 @@ class RE4QueryRunner:
         WHERE chapter like '%-%' or chapter='Total';
         """  # noqa: S608
         chapter_golds = self._db.query_db(query=global_chapter_golds_query)
+        chapter_golds = chapter_golds.drop(columns=["chapter"])
         chapter_golds = chapter_golds.replace({np.nan: ""})
 
-        print(chapter_golds)
         chapter_golds = RE4QueryRunner._add_best_gold_and_cumulative_best_columns(
             chapter_golds
         )
 
-        return chapter_golds.drop(
-            columns=["chapter"]
-        )  # TODO: I don't think dropping this column is necessary anymore?
+        return chapter_golds
 
     def query_chapter_golds_by_doors(self) -> DataFrame:
         columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
@@ -224,9 +229,12 @@ class RE4QueryRunner:
     def query_best_paces(self) -> DataFrame:
         best_paces = self._db.query_db(query=ConstantQuery.BEST_PACES_QUERY)
         best_paces = best_paces.replace({np.nan: ""})
+        best_paces = best_paces.drop(columns=["chapter"])
+        best_paces = RE4QueryRunner._add_best_gold_column(
+            best_paces, remove_last_cell=False
+        )
 
-        best_paces = RE4QueryRunner._add_best_gold_column(best_paces)
-        return best_paces.drop(columns=["chapter"])
+        return best_paces
 
     def query_rng_patterns(self) -> DataFrame:
         rng_patterns = self._db.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY)
