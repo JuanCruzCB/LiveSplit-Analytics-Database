@@ -3,6 +3,7 @@
 drop table if exists global_chapter_golds;
 create table global_chapter_golds as
 select *
+from (select *
 from (
 select a.chapter, a.chapter_gold2 as sawken, b.chapter_gold2 as luis, c.chapter_gold2 as joker, d.chapter_gold2 as mateo,
 e.chapter_gold2 as arcadan, f.chapter_gold2 as richy, g.chapter_gold2 as derek, h.chapter_gold2 as nevs, i.chapter_gold2 as otaku, j.chapter_gold2 as pocho, k.chapter_gold2 as missing
@@ -31,7 +32,7 @@ left join chapter_golds3_derek g on a.chapter=g.chapter
 left join chapter_golds3_nevs h on a.chapter=h.chapter
 left join chapter_golds3_otaku i on a.chapter=i.chapter
 left join chapter_golds3_pocho j on a.chapter=j.chapter
-left join chapter_golds3_pocho k on a.chapter=k.chapter
+left join chapter_golds3_missing k on a.chapter=k.chapter
 where a.chapter='6-1'
 union
 select 'Last update' as chapter, *
@@ -118,7 +119,9 @@ cross join (select cast(sum(playtime) as varchar) as derek from attempts_treatme
 cross join (select cast(sum(playtime) as varchar) as nevs from attempts_treatment3_nevs)
 cross join (select cast(sum(playtime) as varchar) as otaku from attempts_treatment3_otaku)
 cross join (select cast(sum(playtime) as varchar) as pocho from attempts_treatment3_pocho)
-cross join (select cast(sum(playtime) as varchar) as missing from attempts_treatment3_missing));
+cross join (select cast(sum(playtime) as varchar) as missing from attempts_treatment3_missing))) z
+order by case when chapter not in ('Last update', 'Total', 'PB', 'Attempts', 'Total playtime') then 1 when chapter='Total' then 2 when chapter='Last update' then 3 when chapter='PB' then 4
+when chapter='Attempts' then 5 else 6 end, chapter;
 
 /* Chapter golds by door golds */
 
@@ -308,7 +311,7 @@ left join section_golds_sheet_derek g on a.section=g.section
 left join section_golds_sheet_nevs h on a.section=h.section
 left join section_golds_sheet_otaku i on a.section=i.section
 left join section_golds_sheet_pocho j on a.section=j.section
-left join section_golds_sheet_missing k on a.section=j.section
+left join section_golds_sheet_missing k on a.section=k.section
 union
 select distinct 'Total' as section, a.cumulative_chapter_gold as sawken, b.cumulative_chapter_gold as luis, c.cumulative_chapter_gold as joker, d.cumulative_chapter_gold as mateo, e.cumulative_chapter_gold as arcadan,
 f.cumulative_chapter_gold as richy, g.cumulative_chapter_gold as derek, h.cumulative_chapter_gold as nevs, i.cumulative_chapter_gold as otaku, j.cumulative_chapter_gold as pocho, k.cumulative_chapter_gold as missing
