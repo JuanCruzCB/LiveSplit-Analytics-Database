@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
@@ -100,35 +100,40 @@ class RE4QueryRunner:
         return self._db
 
     @staticmethod
-    def _calculate_best_chapter_gold(chapter_golds: list[str]) -> str:
-        chapter_golds_decimal = [parse_time(cg) for cg in chapter_golds]
-        return format_time(min(chapter_golds_decimal))
+    def _calculate_best_time(times: list[str]) -> str:
+        """
+        Receives a list of times in [H]:MM:SS.mmm format and
+        returns the minimum time among all of them.
+        """
+        times_decimal = [parse_time(cg) for cg in times]
+        return format_time(min(times_decimal))
 
     @staticmethod
-    def _add_best_gold_and_cumulative_best_columns(df: DataFrame) -> DataFrame:
-        df["Best gold"] = df.apply(
-            RE4QueryRunner._calculate_best_chapter_gold,
+    def _add_best_and_cumulative_best_columns(golds: DataFrame) -> DataFrame:
+        golds["Best gold"] = golds.apply(
+            RE4QueryRunner._calculate_best_time,
             axis=1,
         )
-        df["Best gold seconds"] = df["Best gold"].map(parse_time)
-        df["Cumulative best seconds"] = df["Best gold seconds"].cumsum()
-        df["Cumulative best"] = df["Cumulative best seconds"].apply(format_time)
-        df = df.drop(columns=["Best gold seconds", "Cumulative best seconds"])
+        golds["Best gold seconds"] = golds["Best gold"].map(parse_time)
+        golds["Cumulative best seconds"] = golds["Best gold seconds"].cumsum()
+        golds["Cumulative best"] = golds["Cumulative best seconds"].apply(format_time)
+        golds = golds.drop(columns=["Best gold seconds", "Cumulative best seconds"])
 
-        best_gold_idx = df.columns.get_loc("Best gold")
-        cumulative_best_idx = df.columns.get_loc("Cumulative best")
+        best_gold_idx = golds.columns.get_loc("Best gold")
+        cumulative_best_idx = golds.columns.get_loc("Cumulative best")
 
-        df.iloc[df.index[-1], best_gold_idx] = ""  # type: ignore
-        df.iloc[df.index[-1], cumulative_best_idx] = ""  # type: ignore
+        golds.iloc[golds.index[-1], best_gold_idx] = ""  # type: ignore  # noqa: PGH003
+        golds.iloc[golds.index[-1], cumulative_best_idx] = ""  # type: ignore  # noqa: PGH003
 
-        return df
+        return golds
 
     @staticmethod
     def _add_best_gold_column(
-        df: DataFrame, remove_last_cell: bool = True
+        df: DataFrame,
+        remove_last_cell: bool = True,  # noqa: FBT001, FBT002
     ) -> DataFrame:
         df["Best gold"] = df.apply(
-            RE4QueryRunner._calculate_best_chapter_gold,
+            RE4QueryRunner._calculate_best_time,
             axis=1,
         )
         if remove_last_cell:
@@ -154,7 +159,7 @@ class RE4QueryRunner:
         chapter_golds = chapter_golds.drop(columns=["chapter"])
         chapter_golds = chapter_golds.replace({np.nan: ""})
 
-        chapter_golds = RE4QueryRunner._add_best_gold_and_cumulative_best_columns(
+        chapter_golds = RE4QueryRunner._add_best_and_cumulative_best_columns(
             chapter_golds
         )
 
@@ -170,10 +175,8 @@ class RE4QueryRunner:
             query=global_chapter_golds_by_doors_query
         )
 
-        chapter_golds_by_doors = (
-            RE4QueryRunner._add_best_gold_and_cumulative_best_columns(
-                chapter_golds_by_doors
-            )
+        chapter_golds_by_doors = RE4QueryRunner._add_best_and_cumulative_best_columns(
+            chapter_golds_by_doors
         )
 
         return chapter_golds_by_doors.replace({np.nan: ""})
@@ -186,7 +189,7 @@ class RE4QueryRunner:
         """  # noqa: S608
         section_golds = self._db.query_db(query=global_section_golds_query)
 
-        section_golds = RE4QueryRunner._add_best_gold_and_cumulative_best_columns(
+        section_golds = RE4QueryRunner._add_best_and_cumulative_best_columns(
             section_golds
         )
 
@@ -203,7 +206,7 @@ class RE4QueryRunner:
         )
 
         section_golds_by_chapters = (
-            RE4QueryRunner._add_best_gold_and_cumulative_best_columns(
+            RE4QueryRunner._add_best_and_cumulative_best_columns(
                 section_golds_by_chapters
             )
         )
@@ -219,10 +222,8 @@ class RE4QueryRunner:
             query=global_section_golds_by_doors_query
         )
 
-        section_golds_by_doors = (
-            RE4QueryRunner._add_best_gold_and_cumulative_best_columns(
-                section_golds_by_doors
-            )
+        section_golds_by_doors = RE4QueryRunner._add_best_and_cumulative_best_columns(
+            section_golds_by_doors
         )
         return section_golds_by_doors.replace({np.nan: ""})
 
@@ -255,9 +256,9 @@ class RE4QueryRunner:
         general_stats = general_stats.replace({np.nan: ""})
         general_stats = general_stats.drop(columns=["chapter"])
         general_stats.iloc[0] = general_stats.iloc[0].apply(
-            lambda date_str: datetime.strptime(
-                date_str, Format.BAD_DATE_FORMAT
-            ).strftime(Format.GOOD_DATE_FORMAT),
+            lambda date_str: datetime.strptime(date_str, Format.BAD_DATE_FORMAT)
+            .replace(tzinfo=UTC)
+            .strftime(Format.GOOD_DATE_FORMAT),
         )
         general_stats.iloc[3] = general_stats.iloc[3].apply(
             lambda playtime: get_days_hours_str(playtime)
@@ -326,7 +327,7 @@ class RE4QueryRunner:
         with Path(relevant_tables_path).open("w") as f:
             f.write("\n".join(relevant_table_names))
 
-    def doorsplit_golds(self, version: int = 2, ties: bool = False) -> DataFrame:
+    def doorsplit_golds(self, version: int = 2, ties: bool = False) -> DataFrame:  # noqa: FBT001, FBT002
         """
         Get all doorsplit golds (version 1 or 2).
         """
@@ -494,7 +495,7 @@ class RE4QueryRunner:
         self,
         split_name: str,
         order_by: StrEnum = OrderColumns.LRT_NUMBER,
-        desc: bool = True,
+        desc: bool = True,  # noqa: FBT001, FBT002
     ) -> DataFrame:
         """
         Get history of a specific split.

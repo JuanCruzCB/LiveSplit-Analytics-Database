@@ -42,7 +42,7 @@ def get_days_hours_str(seconds: str) -> str:
         days = secs // 86400
         remaining_seconds = secs % 86400
         hours = remaining_seconds // 3600
-    except Exception:
+    except ValueError:
         return ""
 
     if days == 0:
@@ -92,7 +92,7 @@ def parse_time(time: str) -> Decimal:
     """
     time = str(time)
 
-    if time.count(":") == 2:
+    if time.count(":") == 2:  # noqa: PLR2004
         hours, minutes, seconds = time.split(":")
         return (int(hours) * 60 * 60) + (int(minutes) * 60) + Decimal(seconds)
 
