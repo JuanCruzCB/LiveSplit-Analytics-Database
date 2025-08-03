@@ -148,7 +148,7 @@ class RE4DatabaseManager:
 
             if db_last_modified > file_last_modified:
                 print(
-                    f"Not updating the tables for file {split} since they are already up to date.",
+                    f"Not updating the tables for file '{split}' since they are already up to date.",
                 )
                 continue
 

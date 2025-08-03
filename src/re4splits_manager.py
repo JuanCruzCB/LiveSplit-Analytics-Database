@@ -60,7 +60,7 @@ class RE4SplitsManager:
 
         for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
             splits_are_invalid = False
-            print(f"Checking {splits_file.name}...", end="")
+            print(f"Checking '{splits_file.name}'...", end="")
             splits_file_tree = parse(splits_file)
             root = splits_file_tree.getroot()
 

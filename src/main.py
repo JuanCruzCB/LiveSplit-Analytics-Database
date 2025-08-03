@@ -91,7 +91,7 @@ def main() -> None:
 
     print("Getting splits")
     print("=" * 100)
-    drive_manager.update_local_splits()
+    drive_manager.sync_local_splits()
     print("=" * 100 + "\n")
 
     print("Checking splits")
