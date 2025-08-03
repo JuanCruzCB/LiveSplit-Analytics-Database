@@ -207,7 +207,7 @@ class RE4DatabaseManager:
                 original_exception=e,
             ) from e
 
-    def query_db(self, query: str, params: tuple | None = None) -> DataFrame:
+    def query(self, query: str, params: tuple | None = None) -> DataFrame:
         """
         Return a DataFrame with the results of running the specified query
         on the db.
