@@ -2,6 +2,10 @@ from decimal import Decimal
 
 
 def get_hours_minutes_str(seconds: str) -> str:
+    """
+    Given an amount of seconds, returns a string representation of it
+    either in 'X min[s]' format or in 'Y hr[s] and Z min[s]' format.
+    """
     try:
         secs = int(seconds)
         hours = secs // 3600
@@ -16,7 +20,7 @@ def get_hours_minutes_str(seconds: str) -> str:
     elif hours == 1:
         hours_str = "1 hr"
     else:
-        hours_str = f"{hours} hs"
+        hours_str = f"{hours} hrs"
 
     # Format minutes string
     if minutes == 0:
@@ -37,6 +41,10 @@ def get_hours_minutes_str(seconds: str) -> str:
 
 
 def get_days_hours_str(seconds: str) -> str:
+    """
+    Given an amount of seconds, returns a string representation of it
+    either in 'X hour[s]' format or in 'Y day[s] and Z hour[s]' format.
+    """
     try:
         secs = int(seconds)
         days = secs // 86400
