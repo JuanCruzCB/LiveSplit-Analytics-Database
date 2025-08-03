@@ -98,7 +98,7 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Chapters",
-            data=chapter_golds.drop(columns=["chapter"]),
+            data=chapter_golds,
             starting_cell="B3",
         )
         self._update_sheet_without_copy(
@@ -135,7 +135,7 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Paces",
-            data=best_paces.drop(columns=["chapter"]),
+            data=best_paces,
             starting_cell="B3",
         )
 

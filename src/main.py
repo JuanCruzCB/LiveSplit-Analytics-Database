@@ -89,7 +89,7 @@ def main() -> None:
     print("=" * 100)
     drive_manager.update_local_splits()
     splits = drive_manager.get_local_splits()
-    print("=" * 50 + "\n")
+    print("=" * 100 + "\n")
 
     print("Updating the database")
     print("=" * 100)
