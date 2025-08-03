@@ -49,7 +49,7 @@ def update_db_and_sheet(
         section_golds_by_chapters,
         section_golds_by_doors,
     )
-    sheet_manager.copy_paces_to_sheet(best_paces)
+    sheet_manager.copy_best_paces_to_sheet(best_paces)
     sheet_manager.copy_resets_to_sheet(resets)
     sheet_manager.copy_rng_patterns_to_sheet(rng_patterns)
     sheet_manager.copy_weekday_data_to_sheet(weekday_data)

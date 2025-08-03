@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 
@@ -7,7 +5,7 @@ import pandas as pd
 from pandas import DataFrame
 
 from re4database_manager import RE4DatabaseManager
-from utils import format_time, get_days_hours_str, get_hours_minutes_str, parse_time
+from utils import format_time, parse_time
 
 
 class ConstantQuery(StrEnum):
@@ -60,7 +58,6 @@ class OrderColumns(StrEnum):
 
 class RE4QueryRunner:
     GOOD_DATE_FORMAT = "%d/%m/%Y"
-    BAD_DATE_FORMAT = "%Y-%m-%d"
     CURRENTLY_ALLOWED_RUNNERS = (
         "sawken",
         "luis",
@@ -147,8 +144,7 @@ class RE4QueryRunner:
         and each column contains all the doorsplit golds of that runner.
         The last row contains the doorsplits sum of best of that runner.
         """
-        doorsplit_golds = self._db.query(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY)
-        return doorsplit_golds.drop(columns=["split"])
+        return self._db.query(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY)
 
     def get_chapter_golds(self) -> DataFrame:
         """
@@ -166,7 +162,6 @@ class RE4QueryRunner:
         WHERE chapter like '%-%' or chapter='Total';
         """  # noqa: S608
         chapter_golds = self._db.query(query=global_chapter_golds_query)
-        chapter_golds = chapter_golds.drop(columns=["chapter"])
         chapter_golds = RE4QueryRunner._add_best_and_cumulative_best_columns(
             chapter_golds
         )
@@ -272,7 +267,6 @@ class RE4QueryRunner:
         chapter.
         """
         best_paces = self._db.query(query=ConstantQuery.BEST_PACES_QUERY)
-        best_paces = best_paces.drop(columns=["chapter"])
         best_paces = RE4QueryRunner._add_best_column(best_paces, remove_last_cell=False)
         return best_paces
 
@@ -282,11 +276,7 @@ class RE4QueryRunner:
         percentage of different RNG patterns that runner has gotten overall
         and also the maximum amount of times in a row they've gotten each pattern.
         """
-        rng_patterns = self._db.query(query=ConstantQuery.RNG_PATTERNS_QUERY)
-        rng_patterns = rng_patterns.map(
-            lambda x: float(x) if isinstance(x, Decimal) else x
-        )  # TODO: This needs to be moved into SheetManager
-        return rng_patterns.drop(columns=["pattern"])
+        return self._db.query(query=ConstantQuery.RNG_PATTERNS_QUERY)
 
     def get_general_stats(self) -> DataFrame:
         """
@@ -302,19 +292,7 @@ class RE4QueryRunner:
         FROM global_chapter_golds
         WHERE chapter NOT LIKE '%-%' AND chapter <> 'Total';
         """  # noqa: S608
-        general_stats = self._db.query(query=general_stats_query)
-        general_stats = general_stats.drop(
-            columns=["chapter"]
-        )  # TODO: This needs to be moved into SheetManager
-        general_stats.iloc[0] = general_stats.iloc[0].apply(
-            lambda date_str: datetime.strptime(date_str, self.BAD_DATE_FORMAT)
-            .replace(tzinfo=UTC)
-            .strftime(self.GOOD_DATE_FORMAT),
-        )  # TODO: This needs to be moved into SheetManager
-        general_stats.iloc[3] = general_stats.iloc[3].apply(
-            lambda playtime: get_days_hours_str(playtime)
-        )  # TODO: This needs to be moved into SheetManager
-        return general_stats
+        return self._db.query(query=general_stats_query)
 
     def get_resets(self) -> DataFrame:
         """
@@ -331,30 +309,14 @@ class RE4QueryRunner:
         {columns}
         FROM global_resets;
         """  # noqa: S608
-        resets = self._db.query(query=resets_query)
-        resets = resets.map(
-            lambda x: float(x) if isinstance(x, Decimal) else x
-        )  # TODO: This needs to be moved into SheetManager
-        return resets
+        return self._db.query(query=resets_query)
 
     def get_weekday_data(self) -> DataFrame:
         """
         Returns a DataFrame with many different stats related to how
         the runner performs on different days of the week.
         """
-        weekday = self._db.query(query=ConstantQuery.WEEKDAY_DATA_QUERY)
-
-        ranges_to_process = [
-            range(7, 14),
-            range(21, 28),
-            range(35, 42),
-            range(49, 56),
-            range(63, 70),
-        ]  # TODO: This needs to be moved into SheetManager
-        for r in ranges_to_process:
-            for i in r:  # TODO: This needs to be moved into SheetManager
-                weekday.iloc[i] = weekday.iloc[i].apply(get_hours_minutes_str)
-        return weekday  # .drop(columns=["day", "col"])
+        return self._db.query(query=ConstantQuery.WEEKDAY_DATA_QUERY)
 
     """
     SECONDARY QUERIES

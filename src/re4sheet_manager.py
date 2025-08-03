@@ -1,13 +1,18 @@
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, datetime, timedelta, timezone
+from decimal import Decimal
 
+import numpy as np
 from gspread import Client
 from gspread.exceptions import APIError, WorksheetNotFound
 from pandas import DataFrame
 
+from utils import get_days_hours_str, get_hours_minutes_str
+
 
 class RE4SheetManager:
     DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
+    GOOD_DATE_FORMAT = "%d/%m/%Y"
+    BAD_DATE_FORMAT = "%Y-%m-%d"
 
     def __init__(self, gspread_client: Client, google_sheet_url: str):
         self._spreadsheet = gspread_client.open_by_url(url=google_sheet_url)
@@ -15,7 +20,7 @@ class RE4SheetManager:
     def _update_sheet_with_copy(
         self,
         sheet_tab_name: str,
-        data: list[list[Any]],
+        data: DataFrame,
         starting_cell: str,
     ):
         """
@@ -24,6 +29,7 @@ class RE4SheetManager:
         Then updates the tab 'sheet_tab_name' starting from 'starting_cell'
         inside the Google Sheet with the 'data' that was sent.
         """
+        data_list = data.replace({np.nan: ""}).to_numpy().tolist()
         try:
             old_sheet_tab_name = f"{sheet_tab_name} old"
             old_sheet = self._spreadsheet.worksheet(title=old_sheet_tab_name)
@@ -37,7 +43,7 @@ class RE4SheetManager:
 
             original_sheet.update(
                 range_name=starting_cell,
-                values=data,
+                values=data_list,
             )
             print(f"Sheet '{sheet_tab_name}' updated successfully!")
 
@@ -54,18 +60,19 @@ class RE4SheetManager:
     def _update_sheet_without_copy(
         self,
         sheet_tab_name: str,
-        data: list[list[Any]],
+        data: DataFrame,
         starting_cell: str,
     ):
         """
         Updates the tab 'sheet_tab_name' starting from 'starting_cell'
         inside the Google Sheet with the 'data' that was sent.
         """
+        data_list = data.replace({np.nan: ""}).to_numpy().tolist()
         try:
             original_sheet = self._spreadsheet.worksheet(title=sheet_tab_name)
             original_sheet.update(
                 range_name=starting_cell,
-                values=data,
+                values=data_list,
             )
             print(f"Sheet '{sheet_tab_name}' updated successfully!")
 
@@ -82,7 +89,7 @@ class RE4SheetManager:
     def copy_doorsplits_to_sheet(self, doorsplit_golds: DataFrame) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Doors",
-            data=doorsplit_golds.to_numpy().tolist(),
+            data=doorsplit_golds.drop(columns=["split"]),
             starting_cell="B3",
         )
 
@@ -91,12 +98,12 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Chapters",
-            data=chapter_golds.to_numpy().tolist(),
+            data=chapter_golds.drop(columns=["chapter"]),
             starting_cell="B3",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Chapters",
-            data=chapter_golds_by_doors.to_numpy().tolist(),
+            data=chapter_golds_by_doors,
             starting_cell="B25",
         )
 
@@ -108,27 +115,27 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Sections",
-            data=section_golds.to_numpy().tolist(),
+            data=section_golds,
             starting_cell="B3",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Sections",
-            data=section_golds_by_chapters.to_numpy().tolist(),
+            data=section_golds_by_chapters,
             starting_cell="B9",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Sections",
-            data=section_golds_by_doors.to_numpy().tolist(),
+            data=section_golds_by_doors,
             starting_cell="B15",
         )
 
-    def copy_paces_to_sheet(
+    def copy_best_paces_to_sheet(
         self,
         best_paces: DataFrame,
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Paces",
-            data=best_paces.to_numpy().tolist(),
+            data=best_paces.drop(columns=["chapter"]),
             starting_cell="B3",
         )
 
@@ -136,9 +143,13 @@ class RE4SheetManager:
         self,
         rng_patterns: DataFrame,
     ) -> None:
+        rng_patterns = rng_patterns.map(
+            lambda x: float(x) if isinstance(x, Decimal) else x
+        ).drop(columns=["pattern"])
+
         self._update_sheet_with_copy(
             sheet_tab_name="RNG Patterns",
-            data=rng_patterns.to_numpy().tolist(),
+            data=rng_patterns,
             starting_cell="B4",
         )
 
@@ -146,9 +157,18 @@ class RE4SheetManager:
         self,
         general_stats: DataFrame,
     ) -> None:
+        general_stats = general_stats.drop(columns=["chapter"])
+        general_stats.iloc[0] = general_stats.iloc[0].apply(
+            lambda date_str: datetime.strptime(date_str, self.BAD_DATE_FORMAT)
+            .replace(tzinfo=UTC)
+            .strftime(self.GOOD_DATE_FORMAT),
+        )
+        general_stats.iloc[3] = general_stats.iloc[3].apply(
+            lambda playtime: get_days_hours_str(playtime)
+        )
         self._update_sheet_without_copy(
             sheet_tab_name="General",
-            data=general_stats.to_numpy().tolist(),
+            data=general_stats,
             starting_cell="B3",
         )
 
@@ -158,7 +178,7 @@ class RE4SheetManager:
     ) -> None:
         self._update_sheet_without_copy(
             sheet_tab_name="Resets",
-            data=resets.to_numpy().tolist(),
+            data=resets.map(lambda x: float(x) if isinstance(x, Decimal) else x),
             starting_cell="A3",
         )
 
@@ -166,9 +186,19 @@ class RE4SheetManager:
         self,
         weekday_data: DataFrame,
     ) -> None:
+        ranges_to_process = [
+            range(7, 14),
+            range(21, 28),
+            range(35, 42),
+            range(49, 56),
+            range(63, 70),
+        ]
+        for r in ranges_to_process:
+            for i in r:
+                weekday_data.iloc[i] = weekday_data.iloc[i].apply(get_hours_minutes_str)
         self._update_sheet_without_copy(
             sheet_tab_name="Weekday",
-            data=weekday_data.to_numpy().tolist(),
+            data=weekday_data.drop(columns=["day", "col"]),
             starting_cell="C2",
         )
 
