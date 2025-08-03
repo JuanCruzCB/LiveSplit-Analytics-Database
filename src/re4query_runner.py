@@ -3,7 +3,6 @@ from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
@@ -129,11 +128,11 @@ class RE4QueryRunner:
         return golds
 
     @staticmethod
-    def _add_best_gold_column(
+    def _add_best_column(
         df: DataFrame,
         remove_last_cell: bool = True,  # noqa: FBT001, FBT002
     ) -> DataFrame:
-        df["Best gold"] = df.apply(
+        df["Best"] = df.apply(
             RE4QueryRunner._calculate_best_time,
             axis=1,
         )
@@ -142,131 +141,187 @@ class RE4QueryRunner:
 
         return df
 
-    def query_doorsplit_golds(self) -> DataFrame:
-        doorsplit_golds = self._db.query_db(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY)
-        doorsplit_golds = doorsplit_golds.replace({np.nan: ""})
+    def get_doorsplit_golds(self) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains all the doorsplit golds of that runner.
+        The last row contains the doorsplits sum of best of that runner.
+        """
+        doorsplit_golds = self._db.query(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY)
         return doorsplit_golds.drop(columns=["split"])
 
-    def query_chapter_golds(self) -> DataFrame:
-        columns = ", ".join(
-            ("chapter", *self.CURRENTLY_ALLOWED_RUNNERS),
-        )
+    def get_chapter_golds(self) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains all the chapter golds of that runner.
+        The last row contains the chapter sum of best of that runner.
+
+        In addition, there's a column with the best chapter gold for each
+        chapter, and a column with the cumulative best chapters.
+        """
+        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         global_chapter_golds_query = f"""
-        SELECT {columns}
+        SELECT chapter, {runners}
         FROM global_chapter_golds
         WHERE chapter like '%-%' or chapter='Total';
         """  # noqa: S608
-        chapter_golds = self._db.query_db(query=global_chapter_golds_query)
+        chapter_golds = self._db.query(query=global_chapter_golds_query)
         chapter_golds = chapter_golds.drop(columns=["chapter"])
-        chapter_golds = chapter_golds.replace({np.nan: ""})
-
         chapter_golds = RE4QueryRunner._add_best_and_cumulative_best_columns(
             chapter_golds
         )
-
         return chapter_golds
 
-    def query_chapter_golds_by_doors(self) -> DataFrame:
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+    def get_chapter_golds_by_doors(self) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains all the chapter golds by adding up all
+        the doorsplit golds of that chapter of that runner.
+        The last row contains the doorsplits sum of best of that runner.
+
+        In addition, there's a column with the best chapter gold for each
+        chapter, and a column with the cumulative best chapters.
+        """
+        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         global_chapter_golds_by_doors_query = f"""
-        SELECT {columns}
+        SELECT {runners}
         FROM global_chapter_golds_doors;
         """  # noqa: S608
-        chapter_golds_by_doors = self._db.query_db(
+        chapter_golds_by_doors = self._db.query(
             query=global_chapter_golds_by_doors_query
         )
-
         chapter_golds_by_doors = RE4QueryRunner._add_best_and_cumulative_best_columns(
             chapter_golds_by_doors
         )
+        return chapter_golds_by_doors
 
-        return chapter_golds_by_doors.replace({np.nan: ""})
+    def get_section_golds(self) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains all the section golds of that runner.
+        The last row contains the section sum of best of that runner.
 
-    def query_section_golds(self) -> DataFrame:
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+        In addition, there's a column with the best section gold for each
+        section, and a column with the cumulative best sections.
+        """
+        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         global_section_golds_query = f"""
-        SELECT {columns}
+        SELECT {runners}
         FROM global_section_golds;
         """  # noqa: S608
-        section_golds = self._db.query_db(query=global_section_golds_query)
-
+        section_golds = self._db.query(query=global_section_golds_query)
         section_golds = RE4QueryRunner._add_best_and_cumulative_best_columns(
             section_golds
         )
+        return section_golds
 
-        return section_golds.replace({np.nan: ""})
+    def get_section_golds_by_chapters(self) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains all the section golds by adding up all
+        the chapter golds of that section of that runner.
+        The last row contains the chapter sum of best of that runner.
 
-    def query_section_golds_by_chapters(self) -> DataFrame:
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+        In addition, there's a column with the best section gold for each
+        section, and a column with the cumulative best sections.
+        """
+        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         global_section_golds_by_chapters_query = f"""
-        SELECT {columns}
+        SELECT {runners}
         FROM global_section_golds_chapters;
         """  # noqa: S608
-        section_golds_by_chapters = self._db.query_db(
+        section_golds_by_chapters = self._db.query(
             query=global_section_golds_by_chapters_query
         )
-
         section_golds_by_chapters = (
             RE4QueryRunner._add_best_and_cumulative_best_columns(
                 section_golds_by_chapters
             )
         )
-        return section_golds_by_chapters.replace({np.nan: ""})
+        return section_golds_by_chapters
 
-    def query_section_golds_by_doors(self) -> DataFrame:
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+    def get_section_golds_by_doors(self) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains all the section golds by adding up all
+        the doorsplit golds of that section of that runner.
+        The last row contains the doorsplits sum of best of that runner.
+
+        In addition, there's a column with the best section gold for each
+        section, and a column with the cumulative best sections.
+        """
+        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         global_section_golds_by_doors_query = f"""
-        SELECT {columns}
+        SELECT {runners}
         FROM global_section_golds_doors;
         """  # noqa: S608
-        section_golds_by_doors = self._db.query_db(
+        section_golds_by_doors = self._db.query(
             query=global_section_golds_by_doors_query
         )
-
         section_golds_by_doors = RE4QueryRunner._add_best_and_cumulative_best_columns(
             section_golds_by_doors
         )
-        return section_golds_by_doors.replace({np.nan: ""})
+        return section_golds_by_doors
 
-    def query_best_paces(self) -> DataFrame:
-        best_paces = self._db.query_db(query=ConstantQuery.BEST_PACES_QUERY)
-        best_paces = best_paces.replace({np.nan: ""})
+    def get_best_paces(self) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains all the best paces of that runner per chapter.
+
+        In addition, there's a column with the overall best pace for each
+        chapter.
+        """
+        best_paces = self._db.query(query=ConstantQuery.BEST_PACES_QUERY)
         best_paces = best_paces.drop(columns=["chapter"])
-        best_paces = RE4QueryRunner._add_best_gold_column(
-            best_paces, remove_last_cell=False
-        )
-
+        best_paces = RE4QueryRunner._add_best_column(best_paces, remove_last_cell=False)
         return best_paces
 
-    def query_rng_patterns(self) -> DataFrame:
-        rng_patterns = self._db.query_db(query=ConstantQuery.RNG_PATTERNS_QUERY)
-        rng_patterns = rng_patterns.replace({np.nan: ""})
+    def get_rng_patterns(self) -> DataFrame:
+        """
+        Returns a DataFrame where, for each runner, contains the
+        percentage of different RNG patterns that runner has gotten overall
+        and also the maximum amount of times in a row they've gotten each pattern.
+        """
+        rng_patterns = self._db.query(query=ConstantQuery.RNG_PATTERNS_QUERY)
         rng_patterns = rng_patterns.map(
             lambda x: float(x) if isinstance(x, Decimal) else x
-        )
+        )  # TODO: This needs to be moved into SheetManager
         return rng_patterns.drop(columns=["pattern"])
 
-    def query_general_stats(self) -> DataFrame:
-        columns = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+    def get_general_stats(self) -> DataFrame:
+        """
+        Returns a DataFrame with simple stats for each runner:
+        1) The last time they've updated their splits (as in, ran the game).
+        2) Their PB.
+        3) Their total number of attempts or resets.
+        4) Their total playtime, in days and hours.
+        """
+        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
         general_stats_query = f"""
-        SELECT chapter, {columns}
+        SELECT chapter, {runners}
         FROM global_chapter_golds
         WHERE chapter NOT LIKE '%-%' AND chapter <> 'Total';
         """  # noqa: S608
-        general_stats = self._db.query_db(query=general_stats_query)
-        general_stats = general_stats.replace({np.nan: ""})
-        general_stats = general_stats.drop(columns=["chapter"])
+        general_stats = self._db.query(query=general_stats_query)
+        general_stats = general_stats.drop(
+            columns=["chapter"]
+        )  # TODO: This needs to be moved into SheetManager
         general_stats.iloc[0] = general_stats.iloc[0].apply(
             lambda date_str: datetime.strptime(date_str, self.BAD_DATE_FORMAT)
             .replace(tzinfo=UTC)
             .strftime(self.GOOD_DATE_FORMAT),
-        )
+        )  # TODO: This needs to be moved into SheetManager
         general_stats.iloc[3] = general_stats.iloc[3].apply(
             lambda playtime: get_days_hours_str(playtime)
-        )
+        )  # TODO: This needs to be moved into SheetManager
         return general_stats
 
-    def query_resets(self) -> DataFrame:
+    def get_resets(self) -> DataFrame:
+        """
+        Returns a DataFrame with the percentage of resets for each runner, for
+        all doorsplits. As in, what percentage of the runs that get to that split
+        end up with the runner resetting on that split.
+        """
         columns = ",\n".join(
             f"case when percent_{name} < 0 then 0 else percent_{name} end as percent_{name}"
             for name in self.CURRENTLY_ALLOWED_RUNNERS
@@ -276,13 +331,18 @@ class RE4QueryRunner:
         {columns}
         FROM global_resets;
         """  # noqa: S608
-        resets = self._db.query_db(query=resets_query)
-        resets = resets.map(lambda x: float(x) if isinstance(x, Decimal) else x)
-        return resets.replace({np.nan: ""})
+        resets = self._db.query(query=resets_query)
+        resets = resets.map(
+            lambda x: float(x) if isinstance(x, Decimal) else x
+        )  # TODO: This needs to be moved into SheetManager
+        return resets
 
-    def query_weekday_data(self) -> DataFrame:
-        weekday = self._db.query_db(query=ConstantQuery.WEEKDAY_DATA_QUERY)
-        weekday = weekday.replace({np.nan: ""})
+    def get_weekday_data(self) -> DataFrame:
+        """
+        Returns a DataFrame with many different stats related to how
+        the runner performs on different days of the week.
+        """
+        weekday = self._db.query(query=ConstantQuery.WEEKDAY_DATA_QUERY)
 
         ranges_to_process = [
             range(7, 14),
@@ -290,11 +350,11 @@ class RE4QueryRunner:
             range(35, 42),
             range(49, 56),
             range(63, 70),
-        ]
+        ]  # TODO: This needs to be moved into SheetManager
         for r in ranges_to_process:
-            for i in r:
+            for i in r:  # TODO: This needs to be moved into SheetManager
                 weekday.iloc[i] = weekday.iloc[i].apply(get_hours_minutes_str)
-        return weekday.drop(columns=["day", "col"])
+        return weekday  # .drop(columns=["day", "col"])
 
     """
     SECONDARY QUERIES
@@ -304,7 +364,7 @@ class RE4QueryRunner:
         """
         Execute query and optionally save to Excel.
         """
-        result = self._db.query_db(query)
+        result = self._db.query(query)
         if "date_started" in result.columns:
             result["date_started"] = pd.to_datetime(
                 result["date_started"],
@@ -315,7 +375,7 @@ class RE4QueryRunner:
         return result
 
     def export_table_names(self):
-        table_names = self._db.query_db(ConstantQuery.ALL_TABLE_NAMES.value)
+        table_names = self._db.query(ConstantQuery.ALL_TABLE_NAMES.value)
         relevant_table_names = [
             t
             for t in table_names["table_name"]
