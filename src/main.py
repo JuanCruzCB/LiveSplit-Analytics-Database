@@ -4,6 +4,7 @@ from google_auth_manager import GoogleAuthManager
 from re4drive_manager import RE4DriveManager
 from re4query_runner import RE4QueryRunner
 from re4sheet_manager import RE4SheetManager
+from re4splits_manager import RE4SplitsManager
 from setup import (
     GLOBAL_SQL_FILE,
     GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE,
@@ -70,11 +71,14 @@ def main() -> None:
     auth_manager = GoogleAuthManager(
         service_account_file=GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE
     )
+    splits_manager = RE4SplitsManager(
+        splits_output_folder=Path(other_runners_splits_folder_str),
+        my_splits_file=Path(my_splits_file_str),
+    )
     drive_manager = RE4DriveManager(
         google_drive_folder_id=google_drive_folder_id,
         google_drive=auth_manager.google_drive,
-        splits_output_folder=Path(other_runners_splits_folder_str),
-        my_splits_file=Path(my_splits_file_str),
+        splits_manager=splits_manager,
     )
     sheet_manager = RE4SheetManager(
         gspread_client=auth_manager.gspread_client, google_sheet_url=google_sheet_url
@@ -88,7 +92,12 @@ def main() -> None:
     print("Getting splits")
     print("=" * 100)
     drive_manager.update_local_splits()
-    splits = drive_manager.get_local_splits()
+    print("=" * 100 + "\n")
+
+    print("Checking splits")
+    print("=" * 100)
+    splits_manager.clean_splits()
+    splits = splits_manager.get_splits_names()
     print("=" * 100 + "\n")
 
     print("Updating the database")

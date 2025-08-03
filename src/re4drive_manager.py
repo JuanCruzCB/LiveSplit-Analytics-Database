@@ -1,35 +1,22 @@
 from datetime import UTC, datetime
-from pathlib import Path
 
 from pydrive2.drive import GoogleDrive
+
+from re4splits_manager import RE4SplitsManager
 
 
 class RE4DriveManager:
     GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-    CURRENTLY_ALLOWED_SPLITS = (
-        "splits luis.lss",
-        "splits joker.lss",
-        "splits mateo.lss",
-        "splits arcadan.lss",
-        "splits richy.lss",
-        "splits derek.lss",
-        "splits nevs.lss",
-        "splits otaku.lss",
-        "splits pocho.lss",
-        "splits missing.lss",
-    )
 
     def __init__(
         self,
         google_drive_folder_id: str,
         google_drive: GoogleDrive,
-        splits_output_folder: Path,
-        my_splits_file: Path,
+        splits_manager: RE4SplitsManager,
     ) -> None:
         self._google_drive_folder_id = google_drive_folder_id
         self._google_drive = google_drive
-        self._splits_output_folder = splits_output_folder
-        self._my_splits_file = my_splits_file
+        self._splits_manager = splits_manager
 
     def _get_drive_files(self) -> list:
         """
@@ -39,29 +26,6 @@ class RE4DriveManager:
         return self._google_drive.ListFile(
             {"q": f"'{self._google_drive_folder_id}' in parents and trashed=false"}
         ).GetList()
-
-    def get_local_splits(self) -> dict[str, datetime]:
-        """
-        Checks the local folder containing the splits of the runners and
-        returns a dict where each key is the splits file name and the value is
-        that splits last modification time.
-        """
-        if not self._splits_output_folder.exists():
-            msg = "The output folder for the splits of other runners does not exist."
-            raise FileNotFoundError(msg)
-
-        local_splits = {
-            splits_file.stem: datetime.fromtimestamp(
-                splits_file.stat().st_mtime, tz=UTC
-            )
-            for splits_file in self._splits_output_folder.glob(pattern="*.lss")
-        }
-
-        local_splits[self._my_splits_file.stem] = datetime.fromtimestamp(
-            self._my_splits_file.stat().st_mtime, tz=UTC
-        )
-
-        return local_splits
 
     def _get_allowed_splits_drive(self) -> list:
         """
@@ -77,7 +41,7 @@ class RE4DriveManager:
             if "splits" not in title:
                 continue
 
-            if title in self.CURRENTLY_ALLOWED_SPLITS:
+            if title in self._splits_manager.CURRENTLY_ALLOWED_SPLITS:
                 allowed_splits.append(file)
             else:
                 print(
@@ -98,7 +62,7 @@ class RE4DriveManager:
             msg = "We are not connected to Google Drive."
             raise ValueError(msg)
 
-        local_splits = self.get_local_splits()
+        local_splits = self._splits_manager.get_splits_names()
         allowed_splits_drive = self._get_allowed_splits_drive()
 
         for splits_file in allowed_splits_drive:
@@ -106,7 +70,9 @@ class RE4DriveManager:
 
             if (splits_filename.replace(".lss", "")) not in local_splits:
                 print(f"Downloading {splits_filename} for the first time...")
-                splits_file.GetContentFile(self._splits_output_folder / splits_filename)
+                splits_file.GetContentFile(
+                    self._splits_manager.splits_output_folder / splits_filename
+                )
                 continue
 
             last_modified_datetime_local = local_splits[
@@ -119,7 +85,9 @@ class RE4DriveManager:
 
             if last_modified_datetime_remote > last_modified_datetime_local:
                 print(f"Downloading {splits_filename}...")
-                splits_file.GetContentFile(self._splits_output_folder / splits_filename)
+                splits_file.GetContentFile(
+                    self._splits_manager.splits_output_folder / splits_filename
+                )
             else:
                 print(
                     f"{splits_filename} is already up to date locally, so there's no need to download it."
