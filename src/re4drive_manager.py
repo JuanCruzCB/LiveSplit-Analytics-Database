@@ -63,7 +63,7 @@ class RE4DriveManager:
 
         return local_splits
 
-    def _get_known_splits(self, drive_files: list) -> list:
+    def _get_allowed_splits_drive(self) -> list:
         """
         Filter the list of splits files from the Google Drive folder
         to only include the ones that are currently allowed.
@@ -72,7 +72,7 @@ class RE4DriveManager:
         indicating that it was not downloaded.
         """
         allowed_splits = []
-        for file in drive_files:
+        for file in self._get_drive_files():
             title = file["title"]
             if "splits" not in title:
                 continue
@@ -88,19 +88,26 @@ class RE4DriveManager:
 
     def update_local_splits(self) -> None:
         """
-        Update the local splits with their remote versions if the versions on the Google Drive folder
-        are newer than the local ones.
+        Update the local splits with their remote versions if the versions
+        on the Google Drive folder are newer than the local ones.
+
+        Additionally, also download splits file that are allowed but don't
+        yet exist locally because they haven't been downloaded yet.
         """
         if self._google_drive is None:
             msg = "We are not connected to Google Drive."
             raise ValueError(msg)
 
         local_splits = self.get_local_splits()
-        drive_files = self._get_drive_files()
-        known_splits = self._get_known_splits(drive_files)
+        allowed_splits_drive = self._get_allowed_splits_drive()
 
-        for splits_file in known_splits:
+        for splits_file in allowed_splits_drive:
             splits_filename = splits_file["title"]
+
+            if (splits_filename.replace(".lss", "")) not in local_splits:
+                print(f"Downloading {splits_filename} for the first time...")
+                splits_file.GetContentFile(self._splits_output_folder / splits_filename)
+                continue
 
             last_modified_datetime_local = local_splits[
                 splits_filename.replace(".lss", "")
