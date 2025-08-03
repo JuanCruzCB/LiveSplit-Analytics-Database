@@ -162,6 +162,7 @@ class RE4QueryRunner:
         WHERE chapter like '%-%' or chapter='Total';
         """  # noqa: S608
         chapter_golds = self._db.query(query=global_chapter_golds_query)
+        chapter_golds = chapter_golds.drop(columns=["chapter"])
         chapter_golds = RE4QueryRunner._add_best_and_cumulative_best_columns(
             chapter_golds
         )
@@ -267,6 +268,7 @@ class RE4QueryRunner:
         chapter.
         """
         best_paces = self._db.query(query=ConstantQuery.BEST_PACES_QUERY)
+        best_paces = best_paces.drop(columns=["chapter"])
         best_paces = RE4QueryRunner._add_best_column(best_paces, remove_last_cell=False)
         return best_paces
 
