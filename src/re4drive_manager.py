@@ -3,10 +3,9 @@ from pathlib import Path
 
 from pydrive2.drive import GoogleDrive
 
-from constants import Format
-
 
 class RE4DriveManager:
+    GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
     CURRENTLY_ALLOWED_SPLITS = (
         "splits luis.lss",
         "splits joker.lss",
@@ -108,7 +107,7 @@ class RE4DriveManager:
             ]
             last_modified_datetime_remote = datetime.strptime(
                 splits_file["modifiedDate"],
-                Format.GOOGLE_DRIVE_DATE_TIME_FORMAT,
+                self.GOOGLE_DRIVE_DATE_TIME_FORMAT,
             ).replace(tzinfo=UTC)
 
             if last_modified_datetime_remote > last_modified_datetime_local:

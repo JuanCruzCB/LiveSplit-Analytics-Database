@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
-from constants import Format
 from re4database_manager import RE4DatabaseManager
 from utils import format_time, get_days_hours_str, get_hours_minutes_str, parse_time
 
@@ -61,6 +60,8 @@ class OrderColumns(StrEnum):
 
 
 class RE4QueryRunner:
+    GOOD_DATE_FORMAT = "%d/%m/%Y"
+    BAD_DATE_FORMAT = "%Y-%m-%d"
     CURRENTLY_ALLOWED_RUNNERS = (
         "sawken",
         "luis",
@@ -256,9 +257,9 @@ class RE4QueryRunner:
         general_stats = general_stats.replace({np.nan: ""})
         general_stats = general_stats.drop(columns=["chapter"])
         general_stats.iloc[0] = general_stats.iloc[0].apply(
-            lambda date_str: datetime.strptime(date_str, Format.BAD_DATE_FORMAT)
+            lambda date_str: datetime.strptime(date_str, self.BAD_DATE_FORMAT)
             .replace(tzinfo=UTC)
-            .strftime(Format.GOOD_DATE_FORMAT),
+            .strftime(self.GOOD_DATE_FORMAT),
         )
         general_stats.iloc[3] = general_stats.iloc[3].apply(
             lambda playtime: get_days_hours_str(playtime)
@@ -308,7 +309,7 @@ class RE4QueryRunner:
             result["date_started"] = pd.to_datetime(
                 result["date_started"],
                 errors="coerce",
-            ).dt.strftime(Format.GOOD_DATE_FORMAT.value)
+            ).dt.strftime(self.GOOD_DATE_FORMAT)
         if excel_name:
             result.to_excel(self._excel_dir / f"{excel_name}.xlsx", index=False)
         return result

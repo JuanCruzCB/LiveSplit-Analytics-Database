@@ -7,8 +7,6 @@ from typing import Any, ClassVar
 import psycopg2
 from pandas import DataFrame
 
-from constants import Format
-
 
 class DatabaseError(Exception):
     """
@@ -32,6 +30,7 @@ class DatabaseError(Exception):
 
 
 class RE4DatabaseManager:
+    DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
     DB_CONFIG: ClassVar[dict[str, Any]] = {
         "dbname": "postgres",
         "user": "postgres",
@@ -144,7 +143,7 @@ class RE4DatabaseManager:
             modified_script = sql_script
             db_last_modified = datetime.strptime(
                 last_table_updates[split],
-                Format.DATE_TIME_FORMAT,
+                self.DATE_TIME_FORMAT,
             ).astimezone(UTC)
 
             if db_last_modified > file_last_modified:
@@ -173,7 +172,7 @@ class RE4DatabaseManager:
                     original_exception=e,
                 ) from e
 
-            last_table_updates[split] = datetime.now().strftime(Format.DATE_TIME_FORMAT)  # noqa: DTZ005
+            last_table_updates[split] = datetime.now().strftime(self.DATE_TIME_FORMAT)  # noqa: DTZ005
             print(
                 f"Updated the database tables for {runner_name} successfully in {end - start:.3f} seconds!",
             )

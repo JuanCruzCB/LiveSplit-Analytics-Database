@@ -1,88 +1,58 @@
-import os
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-from constants import Files
 from google_auth_manager import GoogleAuthManager
 from re4drive_manager import RE4DriveManager
 from re4query_runner import RE4QueryRunner
 from re4sheet_manager import RE4SheetManager
-
-
-def load_environment_variables():
-    load_dotenv()
-
-    my_splits_file_str = os.getenv("MY_SPLITS_FILE")
-    other_runners_splits_folder_str = os.getenv("OTHER_RUNNERS_SPLITS_FOLDER")
-    google_sheet_url = os.getenv("GOOGLE_SHEET_URL")
-    google_drive_folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
-
-    if (
-        not my_splits_file_str
-        or not other_runners_splits_folder_str
-        or not google_sheet_url
-        or not google_drive_folder_id
-    ):
-        msg = "The 4 environment variables in the .env file must be set."
-        raise ValueError(msg)
-    return (
-        my_splits_file_str,
-        other_runners_splits_folder_str,
-        google_sheet_url,
-        google_drive_folder_id,
-    )
-
-
-def validate_paths(my_splits_file: str, other_runners_splits_folder: str) -> None:
-    for file in Files:
-        if not file.value.exists():
-            msg = f"The path {file.value} does not exist."
-            raise FileNotFoundError(msg)
-
-    if (
-        not Path(my_splits_file).exists()
-        or not Path(other_runners_splits_folder).exists()
-    ):
-        msg = "The paths on the environment variables don't exist."
-        raise ValueError(msg)
+from setup import (
+    GLOBAL_SQL_FILE,
+    GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE,
+    LAST_UPDATES_FILE,
+    MAIN_SQL_FILE,
+    load_environment_variables,
+    validate_paths,
+)
 
 
 def update_db_and_sheet(
     query_runner: RE4QueryRunner, sheet_manager: RE4SheetManager
 ) -> None:
+    """
+    Obtain all the dataframes with the required data by querying the database
+    and export their data onto the Google Sheet.
+    """
     print("Querying the database")
     print("=" * 100)
-    df_doorsplit_golds = query_runner.query_doorsplit_golds()
-    df_chapter_golds = query_runner.query_chapter_golds()
-    df_chapter_golds_by_doors = query_runner.query_chapter_golds_by_doors()
-    df_section_golds = query_runner.query_section_golds()
-    df_section_golds_by_chapters = query_runner.query_section_golds_by_chapters()
-    df_section_golds_by_doors = query_runner.query_section_golds_by_doors()
-    df_best_paces = query_runner.query_best_paces()
-    df_rng_patterns = query_runner.query_rng_patterns()
-    df_general_stats = query_runner.query_general_stats()
-    df_resets = query_runner.query_resets()
-    df_weekday_data = query_runner.query_weekday_data()
+    doorsplit_golds = query_runner.query_doorsplit_golds()
+    chapter_golds = query_runner.query_chapter_golds()
+    chapter_golds_by_doors = query_runner.query_chapter_golds_by_doors()
+    section_golds = query_runner.query_section_golds()
+    section_golds_by_chapters = query_runner.query_section_golds_by_chapters()
+    section_golds_by_doors = query_runner.query_section_golds_by_doors()
+    best_paces = query_runner.query_best_paces()
+    rng_patterns = query_runner.query_rng_patterns()
+    general_stats = query_runner.query_general_stats()
+    resets = query_runner.query_resets()
+    weekday_data = query_runner.query_weekday_data()
     print("=" * 100 + "\n")
 
     print("Updating the Google Sheet")
     print("=" * 100)
-    sheet_manager.copy_doorsplits_to_sheet(doorsplits=df_doorsplit_golds)
+    sheet_manager.copy_general_stats_to_sheet(general_stats)
+    sheet_manager.copy_doorsplits_to_sheet(doorsplit_golds)
     sheet_manager.copy_chapters_to_sheet(
-        chapters=df_chapter_golds,
-        chapters_by_doors=df_chapter_golds_by_doors,
+        chapter_golds,
+        chapter_golds_by_doors,
     )
     sheet_manager.copy_sections_to_sheet(
-        sections=df_section_golds,
-        sections_by_chapters=df_section_golds_by_chapters,
-        sections_by_doors=df_section_golds_by_doors,
+        section_golds,
+        section_golds_by_chapters,
+        section_golds_by_doors,
     )
-    sheet_manager.copy_paces_to_sheet(paces=df_best_paces)
-    sheet_manager.copy_rng_patterns_to_sheet(rng_patterns=df_rng_patterns)
-    sheet_manager.copy_general_stats_to_sheet(general_stats=df_general_stats)
-    sheet_manager.copy_resets_to_sheet(resets=df_resets)
-    sheet_manager.copy_weekday_data_to_sheet(weekday_data=df_weekday_data)
+    sheet_manager.copy_paces_to_sheet(best_paces)
+    sheet_manager.copy_resets_to_sheet(resets)
+    sheet_manager.copy_rng_patterns_to_sheet(rng_patterns)
+    sheet_manager.copy_weekday_data_to_sheet(weekday_data)
     sheet_manager.post_last_update()
     print("=" * 100 + "\n")
 
@@ -98,7 +68,7 @@ def main() -> None:
     validate_paths(my_splits_file_str, other_runners_splits_folder_str)
 
     auth_manager = GoogleAuthManager(
-        service_account_file=Files.GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE.value
+        service_account_file=GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE
     )
     drive_manager = RE4DriveManager(
         google_drive_folder_id=google_drive_folder_id,
@@ -110,9 +80,9 @@ def main() -> None:
         gspread_client=auth_manager.gspread_client, google_sheet_url=google_sheet_url
     )
     query_runner = RE4QueryRunner(
-        main_sql_script=Files.MAIN_SQL_FILE.value,
-        global_sql_script=Files.GLOBAL_SQL_FILE.value,
-        last_updates_file=Files.LAST_UPDATES_FILE.value,
+        main_sql_script=MAIN_SQL_FILE,
+        global_sql_script=GLOBAL_SQL_FILE,
+        last_updates_file=LAST_UPDATES_FILE,
     )
 
     print("Getting splits")

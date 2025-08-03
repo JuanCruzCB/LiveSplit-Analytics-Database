@@ -5,10 +5,10 @@ from gspread import Client
 from gspread.exceptions import APIError, WorksheetNotFound
 from pandas import DataFrame
 
-from constants import Format
-
 
 class RE4SheetManager:
+    DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
+
     def __init__(self, gspread_client: Client, google_sheet_url: str):
         self._spreadsheet = gspread_client.open_by_url(url=google_sheet_url)
 
@@ -16,12 +16,12 @@ class RE4SheetManager:
         self,
         sheet_tab_name: str,
         data: list[list[Any]],
-        range_name: str,
+        starting_cell: str,
     ):
         """
         Copies the current contents of the tab 'sheet_tab_name' and
         pastes them onto 'sheet_tab_name old'.
-        Then updates the tab 'sheet_tab_name' within 'range_name'
+        Then updates the tab 'sheet_tab_name' starting from 'starting_cell'
         inside the Google Sheet with the 'data' that was sent.
         """
         try:
@@ -36,7 +36,7 @@ class RE4SheetManager:
                 print(f"Backup '{old_sheet_tab_name}' overwritten successfully!")
 
             original_sheet.update(
-                range_name=range_name,
+                range_name=starting_cell,
                 values=data,
             )
             print(f"Sheet '{sheet_tab_name}' updated successfully!")
@@ -55,16 +55,16 @@ class RE4SheetManager:
         self,
         sheet_tab_name: str,
         data: list[list[Any]],
-        range_name: str,
+        starting_cell: str,
     ):
         """
-        Updates the tab 'sheet_tab_name' within 'range_name'
+        Updates the tab 'sheet_tab_name' starting from 'starting_cell'
         inside the Google Sheet with the 'data' that was sent.
         """
         try:
             original_sheet = self._spreadsheet.worksheet(title=sheet_tab_name)
             original_sheet.update(
-                range_name=range_name,
+                range_name=starting_cell,
                 values=data,
             )
             print(f"Sheet '{sheet_tab_name}' updated successfully!")
@@ -79,57 +79,57 @@ class RE4SheetManager:
             msg = f"Unexpected error while updating '{sheet_tab_name}': {e!s}"
             raise RuntimeError(msg) from e
 
-    def copy_doorsplits_to_sheet(self, doorsplits: DataFrame) -> None:
+    def copy_doorsplits_to_sheet(self, doorsplit_golds: DataFrame) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Doors",
-            data=doorsplits.to_numpy().tolist(),
-            range_name="B3",
+            data=doorsplit_golds.to_numpy().tolist(),
+            starting_cell="B3",
         )
 
     def copy_chapters_to_sheet(
-        self, chapters: DataFrame, chapters_by_doors: DataFrame
+        self, chapter_golds: DataFrame, chapter_golds_by_doors: DataFrame
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Chapters",
-            data=chapters.to_numpy().tolist(),
-            range_name="B3",
+            data=chapter_golds.to_numpy().tolist(),
+            starting_cell="B3",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Chapters",
-            data=chapters_by_doors.to_numpy().tolist(),
-            range_name="B25",
+            data=chapter_golds_by_doors.to_numpy().tolist(),
+            starting_cell="B25",
         )
 
     def copy_sections_to_sheet(
         self,
-        sections: DataFrame,
-        sections_by_chapters: DataFrame,
-        sections_by_doors: DataFrame,
+        section_golds: DataFrame,
+        section_golds_by_chapters: DataFrame,
+        section_golds_by_doors: DataFrame,
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Sections",
-            data=sections.to_numpy().tolist(),
-            range_name="B3",
+            data=section_golds.to_numpy().tolist(),
+            starting_cell="B3",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Sections",
-            data=sections_by_chapters.to_numpy().tolist(),
-            range_name="B9",
+            data=section_golds_by_chapters.to_numpy().tolist(),
+            starting_cell="B9",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Sections",
-            data=sections_by_doors.to_numpy().tolist(),
-            range_name="B15",
+            data=section_golds_by_doors.to_numpy().tolist(),
+            starting_cell="B15",
         )
 
     def copy_paces_to_sheet(
         self,
-        paces: DataFrame,
+        best_paces: DataFrame,
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Paces",
-            data=paces.to_numpy().tolist(),
-            range_name="B3",
+            data=best_paces.to_numpy().tolist(),
+            starting_cell="B3",
         )
 
     def copy_rng_patterns_to_sheet(
@@ -139,7 +139,7 @@ class RE4SheetManager:
         self._update_sheet_with_copy(
             sheet_tab_name="RNG Patterns",
             data=rng_patterns.to_numpy().tolist(),
-            range_name="B4",
+            starting_cell="B4",
         )
 
     def copy_general_stats_to_sheet(
@@ -149,7 +149,7 @@ class RE4SheetManager:
         self._update_sheet_without_copy(
             sheet_tab_name="General",
             data=general_stats.to_numpy().tolist(),
-            range_name="B3",
+            starting_cell="B3",
         )
 
     def copy_resets_to_sheet(
@@ -159,7 +159,7 @@ class RE4SheetManager:
         self._update_sheet_without_copy(
             sheet_tab_name="Resets",
             data=resets.to_numpy().tolist(),
-            range_name="A3",
+            starting_cell="A3",
         )
 
     def copy_weekday_data_to_sheet(
@@ -169,7 +169,7 @@ class RE4SheetManager:
         self._update_sheet_without_copy(
             sheet_tab_name="Weekday",
             data=weekday_data.to_numpy().tolist(),
-            range_name="C2",
+            starting_cell="C2",
         )
 
     def post_last_update(self) -> None:
@@ -177,9 +177,7 @@ class RE4SheetManager:
             sheet = self._spreadsheet.worksheet(title="Title")
 
             utc_minus_3 = timezone(timedelta(hours=-3))
-            current_time = datetime.now(tz=utc_minus_3).strftime(
-                Format.DATE_TIME_FORMAT
-            )
+            current_time = datetime.now(tz=utc_minus_3).strftime(self.DATE_TIME_FORMAT)
             sheet.update_acell(
                 "A2",
                 f"Last updated on: {current_time} (UTC-3)",
