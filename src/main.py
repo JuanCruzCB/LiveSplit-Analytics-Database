@@ -1,4 +1,10 @@
-from config import load_config
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+
+from pandas import DataFrame
+
+from config import Config, load_config
 from google_auth_manager import GoogleAuthManager
 from re4database_manager import LastUpdatesTracker, RE4DatabaseManager
 from re4drive_manager import RE4DriveManager
@@ -7,113 +13,154 @@ from re4sheet_manager import RE4SheetManager
 from re4splits_manager import RE4SplitsManager
 
 
-def update_db_and_sheet(
-    query_runner: RE4QueryRunner, sheet_manager: RE4SheetManager
-) -> None:
-    """
-    Obtain all the dataframes with the required data by querying the database
-    and export their data onto the Google Sheet.
-    """
-    print("Querying the database")
-    print("=" * 100)
-    doorsplit_golds = query_runner.get_doorsplit_golds()
-    chapter_golds = query_runner.get_chapter_golds()
-    chapter_golds_by_doors = query_runner.get_chapter_golds_by_doors()
-    section_golds = query_runner.get_section_golds()
-    section_golds_by_chapters = query_runner.get_section_golds_by_chapters()
-    section_golds_by_doors = query_runner.get_section_golds_by_doors()
-    best_paces = query_runner.get_best_paces()
-    rng_patterns = query_runner.get_rng_patterns()
-    general_stats = query_runner.get_general_stats()
-    resets = query_runner.get_resets()
-    weekday_data = query_runner.get_weekday_data()
-    print("=" * 100 + "\n")
+@dataclass
+class Services:
+    auth_manager: GoogleAuthManager
+    splits_manager: RE4SplitsManager
+    drive_manager: RE4DriveManager
+    sheet_manager: RE4SheetManager
+    last_updates_tracker: LastUpdatesTracker
+    db_manager: RE4DatabaseManager
+    query_runner: RE4QueryRunner
 
-    print("Updating the Google Sheet")
+
+def initialize_services(config: Config) -> Services:
+    auth_manager = GoogleAuthManager(
+        service_account_secrets_file=config.service_account_secrets_file
+    )
+
+    splits_manager = RE4SplitsManager(
+        splits_output_folder=config.other_runners_splits_folder,
+        main_runner_splits_file=config.main_runner_splits_file,
+        allowed_runners=config.allowed_runners,
+    )
+
+    drive_manager = RE4DriveManager(
+        google_drive_folder_id=config.google_drive_folder_id,
+        google_drive=auth_manager.google_drive,
+        splits_manager=splits_manager,
+    )
+
+    sheet_manager = RE4SheetManager(
+        gspread_client=auth_manager.gspread_client,
+        google_sheet_url=config.google_sheet_url,
+    )
+
+    last_updates_tracker = LastUpdatesTracker(
+        storage_file=config.last_updates_file,
+        default_files=[
+            config.main_runner_splits_file,
+            *list(config.other_runners_splits_folder.glob("*.lss")),
+        ],
+    )
+
+    db_manager = RE4DatabaseManager(
+        individual_sql_script=config.individual_sql_file,
+        global_sql_script=config.global_sql_file,
+        db_config=config.db_config,
+        main_runner_name=config.allowed_runners[0],
+        last_updates_tracker=last_updates_tracker,
+    )
+
+    query_runner = RE4QueryRunner(
+        db_manager=db_manager, allowed_runners=config.allowed_runners
+    )
+
+    return Services(
+        auth_manager=auth_manager,
+        splits_manager=splits_manager,
+        drive_manager=drive_manager,
+        sheet_manager=sheet_manager,
+        last_updates_tracker=last_updates_tracker,
+        db_manager=db_manager,
+        query_runner=query_runner,
+    )
+
+
+def sync_and_clean_splits(
+    drive_manager: RE4DriveManager, splits_manager: RE4SplitsManager
+) -> dict[Path, datetime]:
+    print("Syncing and cleaning splits data")
     print("=" * 100)
-    sheet_manager.copy_general_stats_to_sheet(general_stats)
-    sheet_manager.copy_doorsplits_to_sheet(doorsplit_golds)
+    drive_manager.sync_local_splits()
+    splits_manager.clean_splits()
+    print("=" * 100 + "\n")
+    return splits_manager.get_splits_last_modtime()
+
+
+def update_database(
+    query_runner: RE4QueryRunner, splits_data: dict[Path, datetime]
+) -> bool:
+    print("Updating database tables")
+    print("=" * 100)
+    query_runner.open_db_connection()
+    has_new_data = query_runner.update_runners_tables(splits=splits_data)
+    if has_new_data:
+        query_runner.update_global_tables()
+    print("=" * 100 + "\n")
+    return has_new_data
+
+
+def get_all_database_data(query_runner: RE4QueryRunner) -> dict[str, DataFrame]:
+    print("Querying database for all required data")
+    print("=" * 100)
+    data = {
+        "doorsplit_golds": query_runner.get_doorsplit_golds(),
+        "chapter_golds": query_runner.get_chapter_golds(),
+        "chapter_golds_by_doors": query_runner.get_chapter_golds_by_doors(),
+        "section_golds": query_runner.get_section_golds(),
+        "section_golds_by_chapters": query_runner.get_section_golds_by_chapters(),
+        "section_golds_by_doors": query_runner.get_section_golds_by_doors(),
+        "best_paces": query_runner.get_best_paces(),
+        "rng_patterns": query_runner.get_rng_patterns(),
+        "general_stats": query_runner.get_general_stats(),
+        "resets": query_runner.get_resets(),
+        "weekday_data": query_runner.get_weekday_data(),
+    }
+    print("=" * 100 + "\n")
+    return data
+
+
+def update_google_sheet(
+    sheet_manager: RE4SheetManager, data: dict[str, DataFrame]
+) -> None:
+    print("Updating Google Sheet with latest data")
+    print("=" * 100)
+
+    sheet_manager.copy_general_stats_to_sheet(data["general_stats"])
+    sheet_manager.copy_doorsplits_to_sheet(data["doorsplit_golds"])
     sheet_manager.copy_chapters_to_sheet(
-        chapter_golds,
-        chapter_golds_by_doors,
+        data["chapter_golds"],
+        data["chapter_golds_by_doors"],
     )
     sheet_manager.copy_sections_to_sheet(
-        section_golds,
-        section_golds_by_chapters,
-        section_golds_by_doors,
+        data["section_golds"],
+        data["section_golds_by_chapters"],
+        data["section_golds_by_doors"],
     )
-    sheet_manager.copy_best_paces_to_sheet(best_paces)
-    sheet_manager.copy_resets_to_sheet(resets)
-    sheet_manager.copy_rng_patterns_to_sheet(rng_patterns)
-    sheet_manager.copy_weekday_data_to_sheet(weekday_data)
+    sheet_manager.copy_best_paces_to_sheet(data["best_paces"])
+    sheet_manager.copy_resets_to_sheet(data["resets"])
+    sheet_manager.copy_rng_patterns_to_sheet(data["rng_patterns"])
+    sheet_manager.copy_weekday_data_to_sheet(data["weekday_data"])
     sheet_manager.post_last_update()
     print("=" * 100 + "\n")
 
 
 def main() -> None:
-    cfg = load_config()
+    config = load_config()
+    services = initialize_services(config)
 
-    auth_manager = GoogleAuthManager(
-        service_account_secrets_file=cfg.service_account_secrets_file
-    )
-    splits_manager = RE4SplitsManager(
-        splits_output_folder=cfg.other_runners_splits_folder,
-        main_runner_splits_file=cfg.main_runner_splits_file,
-        allowed_runners=cfg.allowed_runners,
-    )
-    drive_manager = RE4DriveManager(
-        google_drive_folder_id=cfg.google_drive_folder_id,
-        google_drive=auth_manager.google_drive,
-        splits_manager=splits_manager,
-    )
-    sheet_manager = RE4SheetManager(
-        gspread_client=auth_manager.gspread_client,
-        google_sheet_url=cfg.google_sheet_url,
-    )
-    last_updates_tracker = LastUpdatesTracker(
-        storage_file=cfg.last_updates_file,
-        default_files=[
-            cfg.main_runner_splits_file,
-            *list(cfg.other_runners_splits_folder.glob("*.lss")),
-        ],
-    )
-    db_manager = RE4DatabaseManager(
-        individual_sql_script=cfg.individual_sql_file,
-        global_sql_script=cfg.global_sql_file,
-        db_config=cfg.db_config,
-        main_runner_name=cfg.allowed_runners[0],
-        last_updates_tracker=last_updates_tracker,
-    )
-    query_runner = RE4QueryRunner(
-        db_manager=db_manager, allowed_runners=cfg.allowed_runners
-    )
-
-    print("Getting splits")
-    print("=" * 100)
-    drive_manager.sync_local_splits()
-    print("=" * 100 + "\n")
-
-    print("Checking splits")
-    print("=" * 100)
-    splits_manager.clean_splits()
-    splits = splits_manager.get_splits_last_modtime()
-    print("=" * 100 + "\n")
-
-    print("Updating the database")
-    print("=" * 100)
-    query_runner.open_db_connection()
-    new_updates = query_runner.update_runners_tables(splits=splits)
-    query_runner.update_global_tables()
-    print("=" * 100 + "\n")
-
-    if new_updates:
-        update_db_and_sheet(query_runner=query_runner, sheet_manager=sheet_manager)
-    else:
-        print(
-            "Not querying the database nor updating the sheet since there's no new data."
+    try:
+        splits_data = sync_and_clean_splits(
+            services.drive_manager, services.splits_manager
         )
-
-    query_runner.close_db_connection()
+        if update_database(services.query_runner, splits_data):
+            all_data = get_all_database_data(services.query_runner)
+            update_google_sheet(services.sheet_manager, all_data)
+        else:
+            print("No new data - not updating the sheet.")
+    finally:
+        services.query_runner.close_db_connection()
 
 
 if __name__ == "__main__":

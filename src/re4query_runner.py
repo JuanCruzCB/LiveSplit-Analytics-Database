@@ -82,8 +82,8 @@ class RE4QueryRunner:
     def close_db_connection(self) -> None:
         self._db.close_connection()
 
-    def update_runners_tables(self, splits: dict[Path, datetime]) -> None:
-        self._db.update_runners_tables(splits=splits)
+    def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
+        return self._db.update_runners_tables(splits=splits)
 
     def update_global_tables(self) -> None:
         self._db.update_global_tables()
