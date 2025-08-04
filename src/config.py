@@ -4,7 +4,7 @@ import yaml
 
 PROJECT_FOLDER = Path(__file__).parent.parent
 
-MAIN_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Individual.sql"
+INDIVIDUAL_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Individual.sql"
 GLOBAL_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Global (LIGHT).sql"
 LAST_UPDATES_FILE = PROJECT_FOLDER / "config" / "last_table_updates.json"
 
@@ -48,7 +48,7 @@ def validate_paths(
     Validates that all files the project needs actually exist.
     """
     for path in [
-        MAIN_SQL_FILE,
+        INDIVIDUAL_SQL_FILE,
         GLOBAL_SQL_FILE,
         Path(my_splits_file),
         Path(other_runners_splits_folder),

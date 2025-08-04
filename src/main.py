@@ -2,12 +2,13 @@ from pathlib import Path
 
 from config import (
     GLOBAL_SQL_FILE,
+    INDIVIDUAL_SQL_FILE,
     LAST_UPDATES_FILE,
-    MAIN_SQL_FILE,
     load_config,
     validate_paths,
 )
 from google_auth_manager import GoogleAuthManager
+from re4database_manager import LastUpdatesTracker, RE4DatabaseManager
 from re4drive_manager import RE4DriveManager
 from re4query_runner import RE4QueryRunner
 from re4sheet_manager import RE4SheetManager
@@ -88,13 +89,19 @@ def main() -> None:
     sheet_manager = RE4SheetManager(
         gspread_client=auth_manager.gspread_client, google_sheet_url=google_sheet_url
     )
-    query_runner = RE4QueryRunner(
-        main_sql_script=MAIN_SQL_FILE,
+    last_updates_tracker = LastUpdatesTracker(
+        storage_file=LAST_UPDATES_FILE,
+        default_files=list(splits_manager.get_splits_last_modtime().keys()),
+    )
+    database_manager = RE4DatabaseManager(
+        individual_sql_script=INDIVIDUAL_SQL_FILE,
         global_sql_script=GLOBAL_SQL_FILE,
-        last_updates_file=LAST_UPDATES_FILE,
         db_config=db_config,
-        allowed_runners=allowed_runners,
-        splits_files=list(splits_manager.get_splits_last_modtime().keys()),
+        main_runner_name=allowed_runners[0],
+        last_updates_tracker=last_updates_tracker,
+    )
+    query_runner = RE4QueryRunner(
+        db_manager=database_manager, allowed_runners=allowed_runners
     )
 
     print("Getting splits")
