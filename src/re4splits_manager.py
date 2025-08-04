@@ -37,16 +37,15 @@ class RE4SplitsManager:
         """
         self._check_splits_folder_existence()
 
-        local_splits = {
-            splits_file.stem: datetime.fromtimestamp(
-                splits_file.stat().st_mtime, tz=UTC
-            )
-            for splits_file in self._splits_output_folder.glob(pattern="*.lss")
-        }
+        local_splits = {}
 
         local_splits[self._my_splits_file.stem] = datetime.fromtimestamp(
             self._my_splits_file.stat().st_mtime, tz=UTC
         )
+        for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
+            local_splits[splits_file.stem] = datetime.fromtimestamp(
+                splits_file.stat().st_mtime, tz=UTC
+            )
 
         return local_splits
 
