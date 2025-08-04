@@ -7,6 +7,81 @@ import psycopg2
 from pandas import DataFrame
 
 
+class LastUpdatesTracker:
+    """
+    Tracks the last time each file has been updated from a predefined set of files.
+    The tracking is loaded to and from a JSON file.
+    """
+
+    DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
+    DEFAULT_TIMESTAMP = "1/1/2025 00:00:00"
+
+    def __init__(self, storage_file: Path, default_files: list[Path]) -> None:
+        self._storage_file = storage_file
+        self._default_data = dict.fromkeys(
+            default_files,
+            datetime.strptime(self.DEFAULT_TIMESTAMP, self.DATE_TIME_FORMAT).astimezone(
+                UTC
+            ),
+        )
+
+    def is_first_file_equal_to(self, file: Path) -> bool:
+        """
+        Checks whether the given file is the same as the first
+        file on the JSON file.
+        """
+        last_updates = self.load_last_updates()
+        first_file = next(iter(last_updates))
+        return first_file == file
+
+    def set_timestamp_now(self, file: Path) -> None:
+        """
+        Set the current UTC timestamp for a given file
+        and save the update to the JSON file.
+        """
+        last_updates = self.load_last_updates()
+        last_updates[file] = datetime.now().astimezone(UTC)
+        self.save_last_updates(last_updates)
+
+    def get_timestamp(self, file: Path) -> datetime:
+        """
+        Get the last update timestamp for a given file.
+        """
+        return self.load_last_updates()[file]
+
+    def load_last_updates(self) -> dict[Path, datetime]:
+        """
+        Load the last update timestamps from the storage file.
+
+        - If the storage file does not exist, it will be created with default timestamps.
+        - If the storage file exists, it will be read and parsed.
+        - In either case, a dictionary with the data is returned.
+        """
+        if not self._storage_file.exists():
+            self.save_last_updates(self._default_data)
+            return self._default_data
+
+        with self._storage_file.open(mode="r") as json_file:
+            raw_data = json.load(fp=json_file)
+            return {
+                Path(file): datetime.strptime(
+                    modtime, self.DATE_TIME_FORMAT
+                ).astimezone(UTC)
+                for file, modtime in raw_data.items()
+            }
+
+    def save_last_updates(self, updates: dict[Path, datetime]) -> None:
+        """
+        Save the given update timestamps to the JSON file.
+        """
+        serializable_dict = {
+            str(file): modtime.strftime(self.DATE_TIME_FORMAT)
+            for file, modtime in updates.items()
+        }
+        with self._storage_file.open(mode="w") as json_file:
+            json.dump(obj=serializable_dict, fp=json_file, indent=4)
+
+
 class DatabaseError(Exception):
     """
     Custom exception for database connection failures.
@@ -14,10 +89,10 @@ class DatabaseError(Exception):
 
     def __init__(
         self,
-        message: str,
+        message: str = "There's no current connection to the local Postgres Database.",
         db_config: dict | None = None,
         original_exception: Exception | None = None,
-    ):
+    ) -> None:
         self.message = message
         self.db_config = db_config
         self.original_exception = original_exception
@@ -29,26 +104,19 @@ class DatabaseError(Exception):
 
 
 class RE4DatabaseManager:
-    DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
-
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
-        main_sql_script: Path,
+        individual_sql_script: Path,
         global_sql_script: Path,
-        last_updates_file: Path,
         db_config: dict,
-        allowed_runners: list[str],
-        splits_files: list[Path],
+        main_runner_name: str,
+        last_updates_tracker: LastUpdatesTracker,
     ) -> None:
-        self._main_sql_script = main_sql_script
+        self._individual_sql_script = individual_sql_script
         self._global_sql_script = global_sql_script
-        self._last_updates_file = last_updates_file
         self._db_config = db_config
-        self._main_runner_name = allowed_runners[0]
-        self._default_updates = dict.fromkeys(
-            splits_files,
-            "1/1/2025 00:00:00",
-        )
+        self._main_runner_name = main_runner_name
+        self._last_updates_tracker = last_updates_tracker
 
         self._connection = None
         self._cursor = None
@@ -82,20 +150,14 @@ class RE4DatabaseManager:
         If there's currently a connection, run the main SQL script.
         """
         if not self._connection or not self._cursor:
-            raise DatabaseError(
-                message="There's no current connection to the local Postgres Database."
-            )
+            raise DatabaseError
 
-        last_table_updates = self._load_last_updates()
-        sql_script = self._read_main_sql_script()
+        sql_script = self._individual_sql_script.read_text()
         new_updates = False
 
         for split, file_last_modified in splits.items():
             modified_script = sql_script
-            db_last_modified = datetime.strptime(
-                last_table_updates[split],
-                self.DATE_TIME_FORMAT,
-            ).astimezone(UTC)
+            db_last_modified = self._last_updates_tracker.get_timestamp(file=split)
 
             if db_last_modified > file_last_modified:
                 print(
@@ -105,7 +167,7 @@ class RE4DatabaseManager:
 
             runner_name = (
                 self._main_runner_name
-                if split == next(iter(last_table_updates))
+                if self._last_updates_tracker.is_first_file_equal_to(file=split)
                 else split.stem[7:]
             )
             modified_script = modified_script.replace("runner", runner_name)
@@ -122,10 +184,8 @@ class RE4DatabaseManager:
                     original_exception=e,
                 ) from e
 
-            last_table_updates[split] = datetime.now().strftime(self.DATE_TIME_FORMAT)  # noqa: DTZ005
+            self._last_updates_tracker.set_timestamp_now(file=split)
             new_updates = True
-
-        self._save_last_updates(updates=last_table_updates)
 
         return new_updates
 
@@ -134,13 +194,11 @@ class RE4DatabaseManager:
         Run the global SQL script that updates the global tables.
         """
         if not self._connection or not self._cursor:
-            raise DatabaseError(
-                message="There's no current connection to the local Postgres Database."
-            )
+            raise DatabaseError
 
         try:
             self._execute_sql_script(
-                sql_script=self._read_global_sql_script(),
+                sql_script=self._global_sql_script.read_text(),
                 message="Updated the database global tables successfully",
             )
 
@@ -156,9 +214,7 @@ class RE4DatabaseManager:
         on the db.
         """
         if not self._connection or not self._cursor:
-            raise DatabaseError(
-                message="There's no current connection to the local Postgres Database."
-            )
+            raise DatabaseError
 
         try:
             self._cursor.execute(query, params)
@@ -171,47 +227,6 @@ class RE4DatabaseManager:
                 message=f"There was an SQL error while running the query {query}.",
                 original_exception=e,
             ) from e
-
-    def _read_main_sql_script(self) -> str:
-        """
-        Return the content of the main SQL script.
-        """
-        with Path(self._main_sql_script).open("r") as file:
-            return file.read()
-
-    def _read_global_sql_script(self) -> str:
-        """
-        Return the content of the global SQL script.
-        """
-        with Path(self._global_sql_script).open("r") as file:
-            return file.read()
-
-    def _load_last_updates(self) -> dict[Path, str]:
-        """
-        Create the last updates json file if it doesn't exist.
-        Return its contents if it exists.
-        """
-        if not self._last_updates_file.exists():
-            with Path(self._last_updates_file).open(mode="w") as json_file:
-                default_updates = {
-                    str(file): modtime
-                    for file, modtime in self._default_updates.items()
-                }
-                json.dump(obj=default_updates, fp=json_file, indent=4)
-            return self._default_updates
-
-        with Path(self._last_updates_file).open(mode="r") as json_file:
-            raw_data = json.load(fp=json_file)
-            formatted_data = {Path(file): modtime for file, modtime in raw_data.items()}
-            return formatted_data
-
-    def _save_last_updates(self, updates: dict[Path, str]) -> None:
-        """
-        Update the last updates json file with new data.
-        """
-        with Path(self._last_updates_file).open(mode="w") as json_file:
-            default_updates = {str(file): modtime for file, modtime in updates.items()}
-            json.dump(obj=default_updates, fp=json_file, indent=4)
 
     def _execute_sql_script(self, sql_script: str, message: str):
         start = time.time()
