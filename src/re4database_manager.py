@@ -77,6 +77,101 @@ class RE4DatabaseManager:
         if self._connection:
             self._connection.close()
 
+    def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
+        """
+        If there's currently a connection, run the main SQL script.
+        """
+        if not self._connection or not self._cursor:
+            raise DatabaseError(
+                message="There's no current connection to the local Postgres Database."
+            )
+
+        last_table_updates = self._load_last_updates()
+        sql_script = self._read_main_sql_script()
+        new_updates = False
+
+        for split, file_last_modified in splits.items():
+            modified_script = sql_script
+            db_last_modified = datetime.strptime(
+                last_table_updates[split],
+                self.DATE_TIME_FORMAT,
+            ).astimezone(UTC)
+
+            if db_last_modified > file_last_modified:
+                print(
+                    f"Not updating the tables for file '{split}' since they are already up to date.",
+                )
+                continue
+
+            runner_name = (
+                self._main_runner_name
+                if split == next(iter(last_table_updates))
+                else split.stem[7:]
+            )
+            modified_script = modified_script.replace("runner", runner_name)
+            modified_script = modified_script.replace("path", f"{split!s}")
+
+            try:
+                self._execute_sql_script(
+                    modified_script,
+                    message=f"Updated the database tables for {runner_name} successfully",
+                )
+            except psycopg2.Error as e:
+                raise DatabaseError(
+                    message=f"There was an SQL error while updating the individual tables for {runner_name}",
+                    original_exception=e,
+                ) from e
+
+            last_table_updates[split] = datetime.now().strftime(self.DATE_TIME_FORMAT)  # noqa: DTZ005
+            new_updates = True
+
+        self._save_last_updates(updates=last_table_updates)
+
+        return new_updates
+
+    def update_global_tables(self) -> None:
+        """
+        Run the global SQL script that updates the global tables.
+        """
+        if not self._connection or not self._cursor:
+            raise DatabaseError(
+                message="There's no current connection to the local Postgres Database."
+            )
+
+        try:
+            self._execute_sql_script(
+                sql_script=self._read_global_sql_script(),
+                message="Updated the database global tables successfully",
+            )
+
+        except psycopg2.Error as e:
+            raise DatabaseError(
+                message="There was an SQL error while updating the global tables.",
+                original_exception=e,
+            ) from e
+
+    def query(self, query: str, params: tuple | None = None) -> DataFrame:
+        """
+        Return a DataFrame with the results of running the specified query
+        on the db.
+        """
+        if not self._connection or not self._cursor:
+            raise DatabaseError(
+                message="There's no current connection to the local Postgres Database."
+            )
+
+        try:
+            self._cursor.execute(query, params)
+            return DataFrame(
+                data=self._cursor.fetchall(),
+                columns=[desc[0] for desc in self._cursor.description],
+            )
+        except psycopg2.Error as e:
+            raise DatabaseError(
+                message=f"There was an SQL error while running the query {query}.",
+                original_exception=e,
+            ) from e
+
     def _read_main_sql_script(self) -> str:
         """
         Return the content of the main SQL script.
@@ -118,103 +213,12 @@ class RE4DatabaseManager:
             default_updates = {str(file): modtime for file, modtime in updates.items()}
             json.dump(obj=default_updates, fp=json_file, indent=4)
 
-    def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
-        """
-        If there's currently a connection, run the main SQL script.
-        """
-        if not self._connection or not self._cursor:
-            raise DatabaseError(
-                message="There's no current connection to the local Postgres Database."
-            )
-
-        last_table_updates = self._load_last_updates()
-        sql_script = self._read_main_sql_script()
-        new_updates = False
-
-        for i, (split, file_last_modified) in enumerate(splits.items()):
-            modified_script = sql_script
-            db_last_modified = datetime.strptime(
-                last_table_updates[split],
-                self.DATE_TIME_FORMAT,
-            ).astimezone(UTC)
-
-            if db_last_modified > file_last_modified:
-                print(
-                    f"Not updating the tables for file '{split}' since they are already up to date.",
-                )
-                continue
-
-            runner_name = self._main_runner_name if i == 0 else split.stem[7:]
-            modified_script = modified_script.replace("runner", runner_name)
-            modified_script = modified_script.replace("path", f"{split!s}")
-
-            try:
-                start = time.time()
-                self._cursor.execute(modified_script)
-                self._connection.commit()
-                end = time.time()
-            except psycopg2.Error as e:
-                raise DatabaseError(
-                    message=f"There was an SQL error while updating the individual tables for {runner_name}",
-                    original_exception=e,
-                ) from e
-
-            last_table_updates[split] = datetime.now().strftime(self.DATE_TIME_FORMAT)  # noqa: DTZ005
-            print(
-                f"Updated the database tables for {runner_name} successfully in {end - start:.3f} seconds!",
-            )
-            new_updates = True
-
-        self._save_last_updates(updates=last_table_updates)
-
-        return new_updates
-
-    def update_global_tables(self) -> None:
-        """
-        Run the global SQL script that updates the global tables.
-        """
-        if not self._connection or not self._cursor:
-            raise DatabaseError(
-                message="There's no current connection to the local Postgres Database."
-            )
-
-        try:
-            sql_script = self._read_global_sql_script()
-            start = time.time()
-            self._cursor.execute(sql_script)
-            self._connection.commit()
-            end = time.time()
-            print(
-                f"Updated the database global tables successfully in {end - start:.3f} seconds!",
-            )
-
-        except psycopg2.Error as e:
-            raise DatabaseError(
-                message="There was an SQL error while updating the global tables.",
-                original_exception=e,
-            ) from e
-
-    def query(self, query: str, params: tuple | None = None) -> DataFrame:
-        """
-        Return a DataFrame with the results of running the specified query
-        on the db.
-        """
-        if not self._connection or not self._cursor:
-            raise DatabaseError(
-                message="There's no current connection to the local Postgres Database."
-            )
-
-        try:
-            self._cursor.execute(query, params)
-            return DataFrame(
-                data=self._cursor.fetchall(),
-                columns=[desc[0] for desc in self._cursor.description],
-            )
-        except psycopg2.Error as e:
-            raise DatabaseError(
-                message=f"There was an SQL error while running the query {query}.",
-                original_exception=e,
-            ) from e
+    def _execute_sql_script(self, sql_script: str, message: str):
+        start = time.time()
+        self._cursor.execute(sql_script)
+        self._connection.commit()
+        end = time.time()
+        print(f"{message} in {end - start:.3f} seconds!")
 
     def __del__(self) -> None:
         self.close_connection()
