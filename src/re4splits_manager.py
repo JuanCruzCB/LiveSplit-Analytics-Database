@@ -49,6 +49,26 @@ class RE4SplitsManager:
 
         return local_splits
 
+    def get_splits_stem_last_modtime(self) -> dict[str, datetime]:
+        """
+        Checks the local folder containing the splits of the runners and
+        returns a dict where each key is the splits file name and the value is
+        that splits last modification time.
+        """
+        self._check_splits_folder_existence()
+
+        local_splits = {}
+
+        local_splits[self._main_runner_splits_file.stem] = datetime.fromtimestamp(
+            self._main_runner_splits_file.stat().st_mtime, tz=UTC
+        )
+        for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
+            local_splits[splits_file.stem] = datetime.fromtimestamp(
+                splits_file.stat().st_mtime, tz=UTC
+            )
+
+        return local_splits
+
     def clean_splits(self) -> None:
         """
         Go through each of the splits files and clean them to

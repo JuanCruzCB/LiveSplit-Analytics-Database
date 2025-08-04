@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from pydrive2.drive import GoogleDrive
@@ -28,7 +27,7 @@ class RE4DriveManager:
         Additionally, also download splits files that are allowed but don't
         yet exist locally because they haven't been downloaded yet.
         """
-        local_splits = self._splits_manager.get_splits_last_modtime()
+        local_splits = self._splits_manager.get_splits_stem_last_modtime()
         query = {"q": f"'{self._google_drive_folder_id}' in parents and trashed=false"}
         all_remote_files = self._google_drive.ListFile(query).GetList()
 
@@ -36,7 +35,7 @@ class RE4DriveManager:
             self._process_remote_file(remote_file, local_splits)
 
     def _process_remote_file(
-        self, remote_file: Any, local_splits: dict[Path, datetime]
+        self, remote_file: Any, local_splits: dict[str, datetime]
     ) -> None:
         """
         Checks a remote file of the Google Drive folder.
