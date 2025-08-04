@@ -50,7 +50,6 @@ def validate_paths(
     for path in [
         MAIN_SQL_FILE,
         GLOBAL_SQL_FILE,
-        LAST_UPDATES_FILE,
         Path(my_splits_file),
         Path(other_runners_splits_folder),
         Path(service_account_secrets_file),
