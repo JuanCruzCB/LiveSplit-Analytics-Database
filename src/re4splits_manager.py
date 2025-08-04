@@ -12,11 +12,11 @@ class RE4SplitsManager:
     def __init__(
         self,
         splits_output_folder: Path,
-        my_splits_file: Path,
+        main_runner_splits_file: Path,
         allowed_runners: list[str],
     ) -> None:
         self._splits_output_folder = splits_output_folder
-        self._my_splits_file = my_splits_file
+        self._main_runner_splits_file = main_runner_splits_file
         self._currently_allowed_splits = [
             f"splits {runner}.lss" for runner in allowed_runners[1:]
         ]
@@ -39,8 +39,8 @@ class RE4SplitsManager:
 
         local_splits = {}
 
-        local_splits[self._my_splits_file] = datetime.fromtimestamp(
-            self._my_splits_file.stat().st_mtime, tz=UTC
+        local_splits[self._main_runner_splits_file] = datetime.fromtimestamp(
+            self._main_runner_splits_file.stat().st_mtime, tz=UTC
         )
         for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
             local_splits[splits_file] = datetime.fromtimestamp(

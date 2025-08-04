@@ -8,11 +8,12 @@ from pydrive2.drive import GoogleDrive
 
 class GoogleAuthManager:
     """
-    Authenticate with Google Drive and Google Sheets using a service account.
+    Authenticate with Google Drive and Google Sheets using a service account, by
+    using the credentials inside a service_account_secrets.json file.
     """
 
-    def __init__(self, service_account_file: Path):
-        self._service_account_file = service_account_file
+    def __init__(self, service_account_secrets_file: Path):
+        self._service_account_secrets_file = service_account_secrets_file
         try:
             self._google_drive = self._auth_google_drive()
             self._gspread_client = self._auth_google_sheets()
@@ -40,7 +41,7 @@ class GoogleAuthManager:
             settings={
                 "client_config_backend": "service",
                 "service_config": {
-                    "client_json_file_path": str(self._service_account_file),
+                    "client_json_file_path": str(self._service_account_secrets_file),
                     "client_user_email": "",
                 },
                 "oauth_scope": [
@@ -58,7 +59,7 @@ class GoogleAuthManager:
         """
         return authorize(
             credentials=Credentials.from_service_account_file(
-                filename=self._service_account_file,
+                filename=str(self._service_account_secrets_file),
                 scopes=[
                     "https://www.googleapis.com/auth/spreadsheets",
                     "https://www.googleapis.com/auth/drive",

@@ -1,16 +1,16 @@
 main:
-  other_runners_splits_folder: 'C:\Path\To\Other runners splits'
-  my_splits_file: 'C:\Path\To\my splits.lss'
-  service_account_secrets_file: 'C:\Path\To\My\service_account_secrets.json'
-  google_sheet_url: https://docs.google.com/spreadsheets/d/my-google-sheet-id
-  google_drive_folder_id: my-google-drive-folder-id
+    other_runners_splits_folder: 'C:\Path\To\Other runners splits'
+    main_runner_splits_file: 'C:\Path\To\my splits.lss'
+    service_account_secrets_file: 'C:\Path\To\My\service_account_secrets.json'
+    google_sheet_url: https://docs.google.com/spreadsheets/d/my-google-sheet-id
+    google_drive_folder_id: my-google-drive-folder-id
 database:
-  dbname: postgres
-  user: postgres
-  host: localhost
-  password: 123
-  port: 5432
+    dbname: postgres
+    user: postgres
+    host: localhost
+    password: 123
+    port: 5432
 runners:
-  - runner1
-  - runner2
-  - runner3
+    - runner1
+    - runner2
+    - runner3

@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 
@@ -75,9 +76,17 @@ class RE4QueryRunner:
     MAIN QUERIES
     """
 
-    @property
-    def db(self):
-        return self._db
+    def open_db_connection(self) -> None:
+        self._db.open_connection()
+
+    def close_db_connection(self) -> None:
+        self._db.close_connection()
+
+    def update_runners_tables(self, splits: dict[Path, datetime]) -> None:
+        self._db.update_runners_tables(splits=splits)
+
+    def update_global_tables(self) -> None:
+        self._db.update_global_tables()
 
     @staticmethod
     def _calculate_best_time(times: list[str]) -> str:

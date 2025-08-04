@@ -1,12 +1,4 @@
-from pathlib import Path
-
-from config import (
-    GLOBAL_SQL_FILE,
-    INDIVIDUAL_SQL_FILE,
-    LAST_UPDATES_FILE,
-    load_config,
-    validate_paths,
-)
+from config import load_config
 from google_auth_manager import GoogleAuthManager
 from re4database_manager import LastUpdatesTracker, RE4DatabaseManager
 from re4drive_manager import RE4DriveManager
@@ -59,49 +51,41 @@ def update_db_and_sheet(
 
 
 def main() -> None:
-    (
-        other_runners_splits_folder,
-        my_splits_file,
-        service_account_secrets_file,
-        google_sheet_url,
-        google_drive_folder_id,
-        db_config,
-        allowed_runners,
-    ) = load_config()
-
-    validate_paths(
-        other_runners_splits_folder, my_splits_file, service_account_secrets_file
-    )
+    cfg = load_config()
 
     auth_manager = GoogleAuthManager(
-        service_account_file=Path(service_account_secrets_file)
+        service_account_secrets_file=cfg.service_account_secrets_file
     )
     splits_manager = RE4SplitsManager(
-        splits_output_folder=Path(other_runners_splits_folder),
-        my_splits_file=Path(my_splits_file),
-        allowed_runners=allowed_runners,
+        splits_output_folder=cfg.other_runners_splits_folder,
+        main_runner_splits_file=cfg.main_runner_splits_file,
+        allowed_runners=cfg.allowed_runners,
     )
     drive_manager = RE4DriveManager(
-        google_drive_folder_id=google_drive_folder_id,
+        google_drive_folder_id=cfg.google_drive_folder_id,
         google_drive=auth_manager.google_drive,
         splits_manager=splits_manager,
     )
     sheet_manager = RE4SheetManager(
-        gspread_client=auth_manager.gspread_client, google_sheet_url=google_sheet_url
+        gspread_client=auth_manager.gspread_client,
+        google_sheet_url=cfg.google_sheet_url,
     )
     last_updates_tracker = LastUpdatesTracker(
-        storage_file=LAST_UPDATES_FILE,
-        default_files=list(splits_manager.get_splits_last_modtime().keys()),
+        storage_file=cfg.last_updates_file,
+        default_files=[
+            cfg.main_runner_splits_file,
+            *list(cfg.other_runners_splits_folder.glob("*.lss")),
+        ],
     )
-    database_manager = RE4DatabaseManager(
-        individual_sql_script=INDIVIDUAL_SQL_FILE,
-        global_sql_script=GLOBAL_SQL_FILE,
-        db_config=db_config,
-        main_runner_name=allowed_runners[0],
+    db_manager = RE4DatabaseManager(
+        individual_sql_script=cfg.individual_sql_file,
+        global_sql_script=cfg.global_sql_file,
+        db_config=cfg.db_config,
+        main_runner_name=cfg.allowed_runners[0],
         last_updates_tracker=last_updates_tracker,
     )
     query_runner = RE4QueryRunner(
-        db_manager=database_manager, allowed_runners=allowed_runners
+        db_manager=db_manager, allowed_runners=cfg.allowed_runners
     )
 
     print("Getting splits")
@@ -117,9 +101,9 @@ def main() -> None:
 
     print("Updating the database")
     print("=" * 100)
-    query_runner.db.open_connection()
-    new_updates = query_runner.db.update_runners_tables(splits=splits)
-    query_runner.db.update_global_tables()
+    query_runner.open_db_connection()
+    new_updates = query_runner.update_runners_tables(splits=splits)
+    query_runner.update_global_tables()
     print("=" * 100 + "\n")
 
     if new_updates:
@@ -129,7 +113,7 @@ def main() -> None:
             "Not querying the database nor updating the sheet since there's no new data."
         )
 
-    query_runner.db.close_connection()
+    query_runner.close_db_connection()
 
 
 if __name__ == "__main__":
