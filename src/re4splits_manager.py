@@ -18,8 +18,8 @@ class RE4SplitsManager:
         self._splits_output_folder = splits_output_folder
         self._my_splits_file = my_splits_file
         self._currently_allowed_splits = [
-            f"splits {runner}.lss" for runner in currently_allowed_runners
-        ] + [my_splits_file.stem]
+            f"splits {runner}.lss" for runner in currently_allowed_runners[1:]
+        ]
 
     @property
     def splits_output_folder(self) -> Path:
