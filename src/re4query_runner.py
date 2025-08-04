@@ -65,8 +65,8 @@ class RE4QueryRunner:
         global_sql_script: Path,
         last_updates_file: Path,
         db_config: dict[str, str],
-        my_splits_file: Path,
-        currently_allowed_runners: list[str],
+        allowed_runners: list[str],
+        splits_files: list[Path],
         runner: str = "sawken",
     ):
         self._runner = runner
@@ -75,10 +75,10 @@ class RE4QueryRunner:
             global_sql_script=global_sql_script,
             last_updates_file=last_updates_file,
             db_config=db_config,
-            my_splits_file=my_splits_file,
-            currently_allowed_runners=currently_allowed_runners,
+            allowed_runners=allowed_runners,
+            splits_files=splits_files,
         )
-        self._currently_allowed_runners = currently_allowed_runners
+        self._currently_allowed_runners = allowed_runners
         self._excel_dir = Path(__file__).parent.parent / "excels"
         self._excel_dir.mkdir(exist_ok=True)
 

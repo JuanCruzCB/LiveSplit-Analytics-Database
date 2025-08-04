@@ -13,12 +13,12 @@ class RE4SplitsManager:
         self,
         splits_output_folder: Path,
         my_splits_file: Path,
-        currently_allowed_runners: list[str],
+        allowed_runners: list[str],
     ) -> None:
         self._splits_output_folder = splits_output_folder
         self._my_splits_file = my_splits_file
         self._currently_allowed_splits = [
-            f"splits {runner}.lss" for runner in currently_allowed_runners[1:]
+            f"splits {runner}.lss" for runner in allowed_runners[1:]
         ]
 
     @property
@@ -29,7 +29,7 @@ class RE4SplitsManager:
     def currently_allowed_splits(self) -> list[str]:
         return self._currently_allowed_splits
 
-    def get_splits_names(self) -> dict[str, datetime]:
+    def get_splits_last_modtime(self) -> dict[Path, datetime]:
         """
         Checks the local folder containing the splits of the runners and
         returns a dict where each key is the splits file name and the value is
@@ -39,11 +39,11 @@ class RE4SplitsManager:
 
         local_splits = {}
 
-        local_splits[self._my_splits_file.stem] = datetime.fromtimestamp(
+        local_splits[self._my_splits_file] = datetime.fromtimestamp(
             self._my_splits_file.stat().st_mtime, tz=UTC
         )
         for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
-            local_splits[splits_file.stem] = datetime.fromtimestamp(
+            local_splits[splits_file] = datetime.fromtimestamp(
                 splits_file.stat().st_mtime, tz=UTC
             )
 

@@ -65,7 +65,7 @@ def main() -> None:
         google_sheet_url,
         google_drive_folder_id,
         db_config,
-        runners,
+        allowed_runners,
     ) = load_config()
 
     validate_paths(
@@ -78,7 +78,7 @@ def main() -> None:
     splits_manager = RE4SplitsManager(
         splits_output_folder=Path(other_runners_splits_folder),
         my_splits_file=Path(my_splits_file),
-        currently_allowed_runners=runners,
+        allowed_runners=allowed_runners,
     )
     drive_manager = RE4DriveManager(
         google_drive_folder_id=google_drive_folder_id,
@@ -93,8 +93,8 @@ def main() -> None:
         global_sql_script=GLOBAL_SQL_FILE,
         last_updates_file=LAST_UPDATES_FILE,
         db_config=db_config,
-        my_splits_file=Path(my_splits_file),
-        currently_allowed_runners=runners,
+        allowed_runners=allowed_runners,
+        splits_files=list(splits_manager.get_splits_last_modtime().keys()),
     )
 
     print("Getting splits")
@@ -105,7 +105,7 @@ def main() -> None:
     print("Checking splits")
     print("=" * 100)
     splits_manager.clean_splits()
-    splits = splits_manager.get_splits_names()
+    splits = splits_manager.get_splits_last_modtime()
     print("=" * 100 + "\n")
 
     print("Updating the database")

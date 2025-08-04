@@ -37,20 +37,17 @@ class RE4DatabaseManager:
         global_sql_script: Path,
         last_updates_file: Path,
         db_config: dict,
-        my_splits_file: Path,
-        currently_allowed_runners: list[str],
+        allowed_runners: list[str],
+        splits_files: list[Path],
     ) -> None:
         self._main_sql_script = main_sql_script
         self._global_sql_script = global_sql_script
         self._last_updates_file = last_updates_file
         self._db_config = db_config
-
-        all_splits_names = [my_splits_file.stem] + [
-            f"splits {runner}" for runner in currently_allowed_runners
-        ]
+        self._main_runner_name = allowed_runners[0]
         self._default_updates = dict.fromkeys(
-            all_splits_names,
-            "1/1/2025 1:00:00",
+            splits_files,
+            "1/1/2025 00:00:00",
         )
 
         self._connection = None
@@ -94,27 +91,34 @@ class RE4DatabaseManager:
         with Path(self._global_sql_script).open("r") as file:
             return file.read()
 
-    def _load_last_updates(self) -> dict[str, str]:
+    def _load_last_updates(self) -> dict[Path, str]:
         """
         Create the last updates json file if it doesn't exist.
         Return its contents if it exists.
         """
         if not self._last_updates_file.exists():
             with Path(self._last_updates_file).open(mode="w") as json_file:
-                json.dump(obj=self._default_updates, fp=json_file, indent=4)
+                default_updates = {
+                    str(file): modtime
+                    for file, modtime in self._default_updates.items()
+                }
+                json.dump(obj=default_updates, fp=json_file, indent=4)
             return self._default_updates
 
         with Path(self._last_updates_file).open(mode="r") as json_file:
-            return json.load(fp=json_file)
+            raw_data = json.load(fp=json_file)
+            formatted_data = {Path(file): modtime for file, modtime in raw_data.items()}
+            return formatted_data
 
-    def _save_last_updates(self, updates: dict[str, str]) -> None:
+    def _save_last_updates(self, updates: dict[Path, str]) -> None:
         """
         Update the last updates json file with new data.
         """
         with Path(self._last_updates_file).open(mode="w") as json_file:
-            json.dump(obj=updates, fp=json_file, indent=4)
+            default_updates = {str(file): modtime for file, modtime in updates.items()}
+            json.dump(obj=default_updates, fp=json_file, indent=4)
 
-    def update_runners_tables(self, splits: dict[str, datetime]) -> bool:
+    def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
         """
         If there's currently a connection, run the main SQL script.
         """
@@ -127,7 +131,7 @@ class RE4DatabaseManager:
         sql_script = self._read_main_sql_script()
         new_updates = False
 
-        for split, file_last_modified in splits.items():
+        for i, (split, file_last_modified) in enumerate(splits.items()):
             modified_script = sql_script
             db_last_modified = datetime.strptime(
                 last_table_updates[split],
@@ -140,14 +144,9 @@ class RE4DatabaseManager:
                 )
                 continue
 
-            if "splits" in split:
-                modified_script = modified_script.replace("sawken", split[7:]).replace(
-                    r"\1. NG Pro",
-                    rf"\Stats Sheet Google Drive\{split}",
-                )
-                runner_name = split[7:]
-            else:
-                runner_name = "sawken"
+            runner_name = self._main_runner_name if i == 0 else split.stem[7:]
+            modified_script = modified_script.replace("runner", runner_name)
+            modified_script = modified_script.replace("path", f"{split!s}")
 
             try:
                 start = time.time()
