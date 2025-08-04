@@ -10,17 +10,17 @@ with your last attempts. */
 
 /* Importing the original splits file */
 
-drop table if exists splits_sawken;
-create table splits_sawken (notepad_info varchar (255));
+drop table if exists splits_runner;
+create table splits_runner (notepad_info varchar (255));
 
-copy splits_sawken from 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\1. NG Pro.lss' with delimiter ','; /* Change path here + splits name */
+copy splits_runner from 'path' with delimiter ','; /* Change path here + splits name */
 
 /* Creating a table with default split names */
 
-drop table if exists default_split_names_sawken;
-create table default_split_names_sawken (split varchar(255), cle2 integer);
+drop table if exists default_split_names_runner;
+create table default_split_names_runner (split varchar(255), cle2 integer);
 
-insert into default_split_names_sawken (split, cle2)
+insert into default_split_names_runner (split, cle2)
 values
 ('-Start', 1),
 ('-Village', 2),
@@ -235,10 +235,10 @@ values
 
 /* Creating a table with all the decimals (2 digits) from 0 to 1 */
 
-drop table if exists decimals_table_sawken;
-create table decimals_table_sawken (numb decimal);
+drop table if exists decimals_table_runner;
+create table decimals_table_runner (numb decimal);
 
-insert into decimals_table_sawken (numb)
+insert into decimals_table_runner (numb)
 values
 (0.01),
 (0.02),
@@ -343,42 +343,42 @@ values
 /* We imported the whole splits including the LiveSplit settings and stuff, now we want to only keep the part with the segments history
 (to get the golds, best paces, etc.)=part 1 */
 
-drop table if exists notepad_splits_sawken;
-create table notepad_splits_sawken as
+drop table if exists notepad_splits_runner;
+create table notepad_splits_runner as
 select ltrim(notepad_info, ' ') as notepad_info
 from (select *, row_number() over () as cle
-from splits_sawken) a
+from splits_runner) a
 where cle >
 (select cle
 from (select *, row_number() over ()+1 as cle
-from splits_sawken) a
+from splits_runner) a
 where notepad_info like '%</AttemptHistory>%')
 and cle<
 (select cle
 from (select *, row_number() over () as cle
-from splits_sawken) a
+from splits_runner) a
 where notepad_info like '%<AutoSplitterSettings%');
 
 /* We do the same for the attempts (to get the date of the run, if the run was finished, if it was a PB, etc.)=part 2*/
 
-drop table if exists notepad_attempts_sawken;
-create table notepad_attempts_sawken as
-select ltrim(notepad_info, ' ') as notepad_info, 'sawken' as runner_name
+drop table if exists notepad_attempts_runner;
+create table notepad_attempts_runner as
+select ltrim(notepad_info, ' ') as notepad_info, 'runner' as runner_name
 from (select *, row_number() over () as cle
-from splits_sawken) a
+from splits_runner) a
 where cle >
 (select cle
 from (select *, row_number() over () as cle
-from splits_sawken) a
+from splits_runner) a
 where notepad_info like '%<AttemptHistory>%')
 and cle<
 (select cle
 from (select *, row_number() over () as cle
-from splits_sawken) a
+from splits_runner) a
 where notepad_info like '%</AttemptHistory>%');
 
-drop table if exists splits_treatment_sawken;
-create table splits_treatment_sawken as
+drop table if exists splits_treatment_runner;
+create table splits_treatment_runner as
 select
 
 /* Retrieving the run id from the notepad info, it's only present where the row contains <Time id="4">, this means it's the
@@ -408,10 +408,10 @@ else substr(substr(notepad_info, 11, length(notepad_info)-10), 1, length(notepad
 case when notepad_info not like '%<RealTime>%' then ''
 else substr(substr(notepad_info, 11, length(notepad_info)-10), 1, length(notepad_info)-21) end as rta_split,
 notepad_info as info, row_number() over () as cle /* This row_number can be useful to have a unique key for each row */
-from notepad_splits_sawken;
+from notepad_splits_runner;
 
-drop table if exists splits_treatment2_sawken;
-create table splits_treatment2_sawken as
+drop table if exists splits_treatment2_runner;
+create table splits_treatment2_runner as
 select *,
 
 /* Converting the run id as an integer, sometimes (rare) there are some run ids with no time for a specific split (because it
@@ -429,34 +429,34 @@ showing (negative runs) and it just has the LRT available, so in that case we ju
 lead(lrt) over(order by cle) as lead,
 lead(lrt, 2) over (order by cle) as lead2,
 lead(rta_split) over(order by cle) as lead_rta
-from splits_treatment_sawken;
+from splits_treatment_runner;
 
 /* Now putting back the LRT times that are 2 rows below the row we want (or 1 row below if no RTA time) in the same row as the other info
 (run id, etc.) and removing the other intermediate unnecessary columns */
 
-drop table if exists splits_treatment3_sawken;
-create table splits_treatment3_sawken as
+drop table if exists splits_treatment3_runner;
+create table splits_treatment3_runner as
 select split_name, info, cle, run_id2,
 case when run_id2=0 then '' when run_id2<0 then lead else lead2 end as lrt2,
 case when run_id2<=0 then '' else lead_rta end as rta2
-from splits_treatment2_sawken;
+from splits_treatment2_runner;
 
 /* Now that we have the run ids and the LRT times in the same row, we just need to get the split names on the same row too,
 for that we select the minimum row number for each split (using the "cle" variable we created with the row_number function) which tells
 us at which row starts the new split (so the previous split ends 1 row before that) */
 
-drop table if exists split_name_info_sawken;
-create table split_name_info_sawken as
+drop table if exists split_name_info_runner;
+create table split_name_info_runner as
 select distinct split_name, rang, min(cle) as min
 from(
 select distinct split_name, row_number() over (partition by split_name order by cle) as rang, cle
-from splits_treatment3_sawken
+from splits_treatment3_runner
 where split_name<>'') a
 group by 1, 2
 order by 3;
 
-drop table if exists split_name_info2_sawken;
-create table split_name_info2_sawken as
+drop table if exists split_name_info2_runner;
+create table split_name_info2_runner as
 select *,
 
 /* Now that we have the min row for each split name, it's easy to get the max, it's just the min of the next split-1,
@@ -464,10 +464,10 @@ we also create a second "cle" variable "cle2" which also uses a row_number funct
 splits (and not the whole LiveSplit history rows), this will be useful to create the chapters and sections */
 
 lead(min) over(order by min)-1 as max, row_number() over() as cle2
-from split_name_info_sawken;
+from split_name_info_runner;
 
-drop table if exists split_name_info3_sawken;
-create table split_name_info3_sawken as
+drop table if exists split_name_info3_runner;
+create table split_name_info3_runner as
 select *,
 
 /* Getting the chapter and section for each split using the "cle2" variable created just above, we know that 1-1 has only 4 splits if cle2
@@ -502,10 +502,10 @@ else '6-1' end as chapter,
 case when cle2<=32 then 'Village'
 when cle2<=82 then 'Castle'
 else 'Island' end as section
-from split_name_info2_sawken;
+from split_name_info2_runner;
 
-drop table if exists splits_treatment4_sawken;
-create table splits_treatment4_sawken as
+drop table if exists splits_treatment4_runner;
+create table splits_treatment4_runner as
 
 /* Now that the split names are finished (+chapter and section names added) we join that table with the table we had that has run ids and
 LRT times on the same row, now it will have the split names (+chapter and section names) on the same row too, because as explained above,
@@ -517,12 +517,12 @@ the original file, but since here we put everything in the same row, we only kee
 so we delete them, it also makes the file a bit lighter since we now have much less rows to work with */
 
 select info, cle, run_id2, lrt2, case when lrt2='' then '' else b.split_name end as split_name2, chapter, section, cle2, rta2
-from splits_treatment3_sawken a
-left join split_name_info3_sawken b on a.cle>=b.min and a.cle<=case when b.max is null then 10000000 else b.max end
+from splits_treatment3_runner a
+left join split_name_info3_runner b on a.cle>=b.min and a.cle<=case when b.max is null then 10000000 else b.max end
 order by cle;
 
-drop table if exists splits_treatment5_sawken;
-create table splits_treatment5_sawken as
+drop table if exists splits_treatment5_runner;
+create table splits_treatment5_runner as
 select info, cle, run_id2, lrt2, split_name2, chapter, section, cle2,
 round(hours*3600+minutes*60+seconds+milliseconds/10000000, 7) as lrt3,
 rta2, round(hours_rta*3600+minutes_rta*60+seconds_rta+milliseconds_rta/10000000, 7) as rta3
@@ -540,15 +540,15 @@ case when rta2='' then 0 else cast(substr(rta2, 1, 2) as integer) end as hours_r
 case when rta2='' then 0 else cast(substr(rta2, 4, 2) as integer) end as minutes_rta,
 case when rta2='' then 0 else cast(substr(rta2, 7, 2) as integer) end as seconds_rta,
 case when rta2='' or length(rta2)=8 then 0 else cast(substr(rta2, 10, 7) as decimal) end as milliseconds_rta
-from splits_treatment4_sawken
+from splits_treatment4_runner
 
 /* At this point we only keep the rows that have the information and we already have everything in the same row (run id,
 lrt time and split name) so we can delete all the rest */
 
 where split_name2<>'');
 
-drop table if exists splits_treatment6_sawken;
-create table splits_treatment6_sawken as
+drop table if exists splits_treatment6_runner;
+create table splits_treatment6_runner as
 select *,
 
 /* Also adding the LRT time with the same format as in LiveSplit, not used for calculations (for that we use the number format create in
@@ -579,12 +579,12 @@ when rta3<600 then substr(rta2, 5, 8)
 when rta3<3600 then substr(rta2, 4, 9)
 when rta3<36000 then rta2
 else '' end) end as rta4
-from splits_treatment5_sawken;
+from splits_treatment5_runner;
 
 /* Treatment of part 1 (segments history) is done, now we need to work on part 2 (attempts history) with the run ids and the dates */
 
-drop table if exists attempts_treatment_sawken;
-create table attempts_treatment_sawken as
+drop table if exists attempts_treatment_runner;
+create table attempts_treatment_runner as
 select *,
 
 /* Retrieving the run id */
@@ -610,21 +610,21 @@ case when substr(notepad_info, length(notepad_info)-1, 2)='">' then 1 else 0 end
 
 case when substr(notepad_info, 1, 2)='<G' then substr(notepad_info, 11, 8) else '' end as lrt,
 case when substr(notepad_info, 1, 2)='<R' then substr(notepad_info, 11, 8) else '' end as rta
-from notepad_attempts_sawken;
+from notepad_attempts_runner;
 
 /* The finished runs will have their LRT time 2 rows after the run id, so need to put everything in the same row as done
 earlier */
 
-drop table if exists attempts_treatment2_sawken_old;
-create table attempts_treatment2_sawken_old as
+drop table if exists attempts_treatment2_runner_old;
+create table attempts_treatment2_runner_old as
 select run_id as id, date as date_started, finished_run, lead(rta, 1) over () as final_rta, lead(lrt, 2) over () as final_lrt,
 date_end, time_start, time_end, runner_name
-from attempts_treatment_sawken;
+from attempts_treatment_runner;
 
-drop table if exists attempts_treatment2_sawken;
-create table attempts_treatment2_sawken as
+drop table if exists attempts_treatment2_runner;
+create table attempts_treatment2_runner as
 select *
-from attempts_treatment2_sawken_old
+from attempts_treatment2_runner_old
 where id<>''
 and cast(id as numeric)>=case when runner_name like '%ota%' and runner_name like '%ku%' then 4780 when runner_name like '%ri%' and runner_name like '%chy%' then 3913
 when runner_name like '%saw%' and runner_name like '%ken%' then 85 else 0 end;
@@ -632,15 +632,15 @@ when runner_name like '%saw%' and runner_name like '%ken%' then 85 else 0 end;
 /* Getting the list of all finished runs and for each finished run, was it a PB when it was done or not? (which also means getting the LRT
 PB at that time too) */
 
-drop table if exists pb_history_sawken_old;
-create table pb_history_sawken_old as
+drop table if exists pb_history_runner_old;
+create table pb_history_runner_old as
 select finished_runs.id, finished_runs.final_lrt, min(pbs.final_lrt) as lrt_pb,
 case when finished_runs.final_lrt=min(pbs.final_lrt) then 1 else 0 end as pb
 from (select *
-from attempts_treatment2_sawken
+from attempts_treatment2_runner
 where final_lrt<>'') finished_runs
 join (select *
-from attempts_treatment2_sawken
+from attempts_treatment2_runner
 where final_lrt<>'') pbs on cast(finished_runs.id as integer)>=cast(pbs.id as integer)
 group by finished_runs.id, finished_runs.final_lrt
 order by cast(finished_runs.id as integer);
@@ -650,8 +650,8 @@ to have everything in the same table.
 As earlier, only keeping the good rows and deleting the rest (since we put everything in the same row, a lot of rows are now useless.
 Treatment of part2 is now done */
 
-drop table if exists attempts_treatment3_old_sawken;
-create table attempts_treatment3_old_sawken as
+drop table if exists attempts_treatment3_old_runner;
+create table attempts_treatment3_old_runner as
 select cast(a.id as integer) as id, finished_run, a.final_lrt, pb, final_rta,
 case when final_rta='' or final_rta is null then 0 else
 cast(substr(final_rta, 1, 2) as integer)*3600+cast(substr(final_rta, 4, 2) as integer)*60+
@@ -669,13 +669,13 @@ cast(substr(time_end, 7, 2) as integer)-(cast(substr(time_start, 1, 2) as intege
 cast(substr(time_start, 7, 2) as integer)) else
 cast(substr(time_end, 1, 2) as integer)*3600+cast(substr(time_end, 4, 2) as integer)*60+
 cast(substr(time_end, 7, 2) as integer)-(cast(substr(time_start, 1, 2) as integer)*3600+cast(substr(time_start, 4, 2) as integer)*60+
-cast(substr(time_start, 7, 2) as integer)) end as playtime, 'sawken' as runner_name
-from attempts_treatment2_sawken a
-left join pb_history_sawken_old b on a.id=b.id
+cast(substr(time_start, 7, 2) as integer)) end as playtime, 'runner' as runner_name
+from attempts_treatment2_runner a
+left join pb_history_runner_old b on a.id=b.id
 where a.id<>'';
 
-drop table if exists attempts_treatment3_sawken;
-create table attempts_treatment3_sawken as
+drop table if exists attempts_treatment3_runner;
+create table attempts_treatment3_runner as
 select a.*,
 case when utc>0 and cast(substr(time_start_livesplit, 1, 2) as numeric)<utc then date_started_livesplit-1 when utc<0 and cast(substr(time_start_livesplit, 1, 2) as numeric)>=24+utc then date_started_livesplit+1
 else date_started_livesplit end as date_started,
@@ -697,13 +697,13 @@ then '0'||cast(substr(time_end_livesplit, 1, 2)as numeric)-24-utc||substr(time_e
 when utc<0 and cast(substr(time_end_livesplit, 1, 2) as numeric)<10+utc
 then '0'||cast(substr(time_end_livesplit, 1, 2)as numeric)-utc||substr(time_end_livesplit, 3, 6)
 when utc<0 then cast(substr(time_end_livesplit, 1, 2)as numeric)-utc||substr(time_end_livesplit, 3, 6) else time_end_livesplit end as time_end
-from attempts_treatment3_old_sawken a
+from attempts_treatment3_old_runner a
 left join time_zone_runners2 b on a.runner_name=b.runner_name;
 
 /* Getting the list of all PBs, also converting the PBs into number format, can be used for calculations (or graphs, etc.) */
 
-drop table if exists pb_history_sawken;
-create table pb_history_sawken as
+drop table if exists pb_history_runner;
+create table pb_history_runner as
 select a.*, cast(substr(lrt_pb, 1, 2) as integer)*3600+cast(substr(lrt_pb, 4, 2) as integer)*60+
 cast(substr(lrt_pb, 7, 2) as integer) as pb_lrt, date_started-coalesce(lag(date_started) over(order by cast(a.id as integer)), date_started)
 as days_it_took, cast(a.id as integer)-coalesce(lag(cast(a.id as integer)) over(order by cast(a.id as integer)),0) attempts_it_took,
@@ -713,23 +713,23 @@ from(
 select finished_runs.id, finished_runs.final_lrt, finished_runs.date_started, min(pbs.final_lrt) as lrt_pb,
 case when finished_runs.final_lrt=min(pbs.final_lrt) then 1 else 0 end as pb
 from (select *
-from attempts_treatment3_sawken
+from attempts_treatment3_runner
 where final_lrt<>''
 and date_started>='2024-10-14') finished_runs
 join (select *
-from attempts_treatment3_sawken
+from attempts_treatment3_runner
 where final_lrt<>''
 and date_started>='2024-10-14') pbs on cast(finished_runs.id as integer)>=cast(pbs.id as integer)
 group by finished_runs.id, finished_runs.final_lrt, finished_runs.date_started
 order by cast(finished_runs.id as integer)) a
 left join (select a.id, a.playtime, sum(b.playtime) as total_playtime
-from attempts_treatment3_sawken a
-left join attempts_treatment3_sawken b on a.id>=b.id
+from attempts_treatment3_runner a
+left join attempts_treatment3_runner b on a.id>=b.id
 group by a.id, a.playtime
 order by a.id) b on a.id=b.id
 left join (select a.id, count(distinct b.date_started)-1 as days_attempts
-from attempts_treatment3_sawken a
-left join attempts_treatment3_sawken b on a.id>=b.id
+from attempts_treatment3_runner a
+left join attempts_treatment3_runner b on a.id>=b.id
 group by a.id
 order by a.id) c on a.id=c.id
 where pb=1;
@@ -738,34 +738,34 @@ where pb=1;
 treatments (splits history and attempts history, so part 1 and 2)
 Also converting the dates of the runs from part2 into date format */
 
-drop table if exists splits_cleaned_sawken_old;
-create table splits_cleaned_sawken_old as
+drop table if exists splits_cleaned_runner_old;
+create table splits_cleaned_runner_old as
 select run_id2 as id, split_name2 as split, chapter, section, lrt3 as lrt_number, lrt4 as lrt_split,
 date_started_livesplit, finished_run, final_lrt, pb, cle2, final_rta, date_end_livesplit, time_start_livesplit, time_end_livesplit, playtime,
 date_started, time_start, date_end,
 time_end, rta3 as rta_numeric, rta4 as rta_split
-from splits_treatment6_sawken a
-left join attempts_treatment3_sawken b on a.run_id2=b.id;
+from splits_treatment6_runner a
+left join attempts_treatment3_runner b on a.run_id2=b.id;
 
-drop table if exists rta_cumulative_sawken;
-create table rta_cumulative_sawken as
+drop table if exists rta_cumulative_runner;
+create table rta_cumulative_runner as
 select a.id, a.cle2, sum(b.rta_numeric) as cumulative_rta
-from splits_cleaned_sawken_old a
-left join (select distinct id, cle2, rta_numeric from splits_cleaned_sawken_old) b on a.cle2>=b.cle2 and a.id=b.id
+from splits_cleaned_runner_old a
+left join (select distinct id, cle2, rta_numeric from splits_cleaned_runner_old) b on a.cle2>=b.cle2 and a.id=b.id
 group by 1, 2
 order by 1, 2;
 
-drop table if exists splits_cleaned_sawken_old2;
-create table splits_cleaned_sawken_old2 as
+drop table if exists splits_cleaned_runner_old2;
+create table splits_cleaned_runner_old2 as
 select a.*, cumulative_rta, lag(cumulative_rta) over(partition by a.id order by a.cle2) as lag_rta, cast(substr(time_start, 1, 2) as numeric)*3600
 +cast(substr(time_start, 4, 2) as numeric)*60+cast(substr(time_start, 7, 2) as numeric) as time_start_numeric,
 cast(substr(time_end, 1, 2) as numeric)*3600
-+cast(substr(time_end, 4, 2) as numeric)*60+cast(substr(time_end, 7, 2) as numeric) as time_end_numeric, 'sawken' as runner_name
-from splits_cleaned_sawken_old a
-left join rta_cumulative_sawken b on a.id=b.id and a.cle2=b.cle2;
++cast(substr(time_end, 4, 2) as numeric)*60+cast(substr(time_end, 7, 2) as numeric) as time_end_numeric, 'runner' as runner_name
+from splits_cleaned_runner_old a
+left join rta_cumulative_runner b on a.id=b.id and a.cle2=b.cle2;
 
-drop table if exists splits_cleaned_sawken;
-create table splits_cleaned_sawken as
+drop table if exists splits_cleaned_runner;
+create table splits_cleaned_runner as
 select id, default_split as split, chapter, section, lrt_number, lrt_split, date_started_livesplit, finished_run, final_lrt, pb, cle2,
 final_rta, date_end_livesplit, time_start_livesplit, time_end_livesplit, playtime, date_started, time_start, date_end, time_end,
 rta_numeric, rta_split, cumulative_rta, lag_rta, time_start_numeric, time_end_numeric, time_start_numeric2, time_end_numeric2,
@@ -821,8 +821,8 @@ from(
 select a.*, b.split as default_split, case when a.cle2=1 then time_start_numeric when time_start_numeric<86400 and time_start_numeric+lag_rta>=86400 then time_start_numeric+lag_rta-86400
 else time_start_numeric+lag_rta end as time_start_numeric2, case when time_start_numeric<86400 and time_start_numeric+cumulative_rta>=86400 then time_start_numeric+cumulative_rta-86400
 else time_start_numeric+cumulative_rta end as time_end_numeric2
-from splits_cleaned_sawken_old2 a
-left join default_split_names_sawken b on a.cle2=b.cle2);
+from splits_cleaned_runner_old2 a
+left join default_split_names_runner b on a.cle2=b.cle2);
 
 /*drop table if exists splits_treatment;
 drop table if exists splits_treatment2;
@@ -843,10 +843,10 @@ Here we define for each chapter, how many splits we have, so we know if a run ha
 golds, we need to count only the chapter that are finished, because a chapter that only did the first split and reset is gonna be faster
 than a full chapter */
 
-drop table if exists chapter_splits_sawken;
-create table chapter_splits_sawken (chapter varchar(255), number_of_splits integer);
+drop table if exists chapter_splits_runner;
+create table chapter_splits_runner (chapter varchar(255), number_of_splits integer);
 
-insert into chapter_splits_sawken (chapter, number_of_splits)
+insert into chapter_splits_runner (chapter, number_of_splits)
 values
 ('1-1', 4),
 ('1-2', 3),
@@ -870,8 +870,8 @@ values
 
 /* Getting the chapter golds and chapter averages */
 
-drop table if exists chapter_golds_sawken;
-create table chapter_golds_sawken as
+drop table if exists chapter_golds_runner;
+create table chapter_golds_runner as
 select ch_golds.*, avg_chapter_time, cast(median_chapter_time as numeric) as median_chapter_time
 from (
 select aa.*, bb.id, date_started, finished_run, final_lrt, pb
@@ -881,10 +881,10 @@ from(
 select a.*
 from(
 select chapter, id, sum(lrt_number) as chapter_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by chapter, id
 order by 1) a
-join chapter_splits_sawken b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)
+join chapter_splits_runner b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)
 group by 1
 order by 1) aa
 left join (
@@ -893,19 +893,19 @@ from(
 select a.*
 from(
 select chapter, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as chapter_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by chapter, id, date_started, finished_run, final_lrt, pb
 order by 1) a
-join chapter_splits_sawken b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)) bb
+join chapter_splits_runner b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)) bb
 on aa.chapter_gold=bb.chapter_time) ch_golds
 left join (select chapter, avg(chapter_time) as avg_chapter_time
 from(
 select a.*
 from(
 select chapter, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as chapter_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by chapter, id, date_started, finished_run, final_lrt, pb) a
-join chapter_splits_sawken b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)
+join chapter_splits_runner b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)
 /*where id>=10500*/
 group by 1
 order by 1) ch_avg on ch_golds.chapter=ch_avg.chapter
@@ -914,22 +914,22 @@ from(
 select a.*
 from(
 select chapter, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as chapter_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by chapter, id, date_started, finished_run, final_lrt, pb) a
-join chapter_splits_sawken b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)
+join chapter_splits_runner b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)
 /*where id>=10500*/
 group by 1
 order by 1) ch_med on ch_golds.chapter=ch_med.chapter;
 
 /* Putting the chapter golds and averages in LiveSplit format (previously numbers) */
 
-drop table if exists chapter_golds2_sawken;
-create table chapter_golds2_sawken as
+drop table if exists chapter_golds2_runner;
+create table chapter_golds2_runner as
 select *, case when chapter_gold<60 then (case when trunc(chapter_gold-trunc(chapter_gold), 3) =0 then
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'00'
-when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table_sawken)
+when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table_runner)
 then to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999') end)
@@ -939,7 +939,7 @@ to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'00'
-when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table_sawken)
+when trunc(chapter_gold-trunc(chapter_gold), 3) in (select numb from decimals_table_runner)
 then floor(chapter_gold / 60) || ':' ||
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'0'
 else
@@ -949,7 +949,7 @@ case when avg_chapter_time<60 then (case when trunc(avg_chapter_time-trunc(avg_c
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'00'
-when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) in (select numb from decimals_table_sawken)
+when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) in (select numb from decimals_table_runner)
 then to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999') end)
@@ -959,7 +959,7 @@ to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then floor(avg_chapter_time / 60) || ':' ||
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'00'
-when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) in (select numb from decimals_table_sawken)
+when trunc(avg_chapter_time-trunc(avg_chapter_time), 3) in (select numb from decimals_table_runner)
 then floor(avg_chapter_time / 60) || ':' ||
 to_char(trunc(avg_chapter_time, 3) % 60, 'FM00.999')||'0'
 else
@@ -969,7 +969,7 @@ case when median_chapter_time<60 then (case when trunc(median_chapter_time-trunc
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(median_chapter_time-trunc(median_chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'00'
-when trunc(median_chapter_time-trunc(median_chapter_time), 3) in (select numb from decimals_table_sawken)
+when trunc(median_chapter_time-trunc(median_chapter_time), 3) in (select numb from decimals_table_runner)
 then to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999') end)
@@ -979,16 +979,16 @@ to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(median_chapter_time-trunc(median_chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then floor(median_chapter_time / 60) || ':' ||
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'00'
-when trunc(median_chapter_time-trunc(median_chapter_time), 3) in (select numb from decimals_table_sawken)
+when trunc(median_chapter_time-trunc(median_chapter_time), 3) in (select numb from decimals_table_runner)
 then floor(median_chapter_time / 60) || ':' ||
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999')||'0'
 else
 floor(median_chapter_time / 60) || ':' ||
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999') end) end AS median_chapter_time2
-from chapter_golds_sawken;
+from chapter_golds_runner;
 
-drop table if exists chapter_golds3_sawken;
-create table chapter_golds3_sawken as
+drop table if exists chapter_golds3_runner;
+create table chapter_golds3_runner as
 select chapter, id, date_started, final_lrt, pb, chapter_gold, chapter_gold2,
 case when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3)=0 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
@@ -1003,7 +1003,7 @@ floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapt
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00'
 else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00' end)
-when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (select numb from decimals_table_sawken)
+when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (select numb from decimals_table_runner)
 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
           floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
@@ -1020,8 +1020,8 @@ median_chapter_time, avg_chapter_time2, median_chapter_time2
 from(
 select a.chapter, a.chapter_gold, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.avg_chapter_time, a.chapter_gold2,
 a.median_chapter_time, a.avg_chapter_time2, a.median_chapter_time2, sum(b.chapter_gold) as cumulative_chapter_gold
-from chapter_golds2_sawken a
-left join (select distinct chapter, chapter_gold from chapter_golds2_sawken) b on a.chapter>=b.chapter
+from chapter_golds2_runner a
+left join (select distinct chapter, chapter_gold from chapter_golds2_runner) b on a.chapter>=b.chapter
 group by a.chapter, a.chapter_gold, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.avg_chapter_time, a.chapter_gold2,
 a.median_chapter_time, a.avg_chapter_time2, a.median_chapter_time2) a
 order by chapter;
@@ -1030,28 +1030,28 @@ order by chapter;
 
 /* Chapter times of all the attempts */
 
-drop table if exists chapter_history_sawken;
-create table chapter_history_sawken as
+drop table if exists chapter_history_runner;
+create table chapter_history_runner as
 select chapter, id, date_started, finished_run, final_lrt, pb, sum(chapter_time) as chapter_time
 from(
 select a.*
 from(
 select chapter, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as chapter_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by chapter, id, date_started, finished_run, final_lrt, pb) a
-join chapter_splits_sawken b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)
+join chapter_splits_runner b on a.chapter=b.chapter and a.number_of_splits=b.number_of_splits)
 group by 1, 2, date_started, finished_run, final_lrt, pb
 order by 1;
 
 /* Putting the chapter golds in LiveSplit format (previously numbers) */
 
-drop table if exists chapter_history2_sawken;
-create table chapter_history2_sawken as
+drop table if exists chapter_history2_runner;
+create table chapter_history2_runner as
 select *, case when chapter_time<60 then (case when trunc(chapter_time-trunc(chapter_time), 3) =0 then
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_time-trunc(chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'00'
-when trunc(chapter_time-trunc(chapter_time), 3) in (select numb from decimals_table_sawken)
+when trunc(chapter_time-trunc(chapter_time), 3) in (select numb from decimals_table_runner)
 then to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999') end)
@@ -1061,24 +1061,24 @@ to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_time-trunc(chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then floor(chapter_time / 60) || ':' ||
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'00'
-when trunc(chapter_time-trunc(chapter_time), 3) in (select numb from decimals_table_sawken)
+when trunc(chapter_time-trunc(chapter_time), 3) in (select numb from decimals_table_runner)
 then floor(chapter_time / 60) || ':' ||
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'0'
 else
 floor(chapter_time / 60) || ':' ||
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999') end) end AS chapter_time2, rank() over (partition by chapter order by chapter_time) as rank_chapter
-from chapter_history_sawken
+from chapter_history_runner
 order by chapter, chapter_time;
 
-drop table if exists chapter_history3_sawken;
-create table chapter_history3_sawken as
+drop table if exists chapter_history3_runner;
+create table chapter_history3_runner as
 select chapter, id, date_started, finished_run, pb, chapter_time, chapter_time2, case when chapter_time<=min or min is null then 1 else 0
 end as golded_chapter,
 case when min<60 then (case when trunc(min-trunc(min), 3) =0 then
 to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
 when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
-when trunc(min-trunc(min), 3) in (select numb from decimals_table_sawken)
+when trunc(min-trunc(min), 3) in (select numb from decimals_table_runner)
 then to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(min, 3) % 60, 'FM00.999') end)
@@ -1088,7 +1088,7 @@ to_char(trunc(min, 3) % 60, 'FM00.999')||'000'
 when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
-when trunc(min-trunc(min), 3) in (select numb from decimals_table_sawken)
+when trunc(min-trunc(min), 3) in (select numb from decimals_table_runner)
 then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
 else
@@ -1096,33 +1096,33 @@ floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999') end) end as chapter_gold_at_that_time, rank_chapter, chapter_rank_at_that_time, finished_chapters, finished_chapters_at_that_time
 from (select a.rank_chapter, a.chapter, a.id, a.date_started, a.finished_run, a.pb, a.chapter_time, a.chapter_time2, min(b.chapter_time) as min,
 min(b.chapter_time2) as min2, finished_chapters, chapter_rank_at_that_time, finished_chapters_at_that_time
-from chapter_history2_sawken a
-left join chapter_history2_sawken b on a.chapter=b.chapter and a.id>b.id
-left join (select chapter, count(*) as finished_chapters from chapter_history2_sawken group by 1) c on a.chapter=c.chapter
+from chapter_history2_runner a
+left join chapter_history2_runner b on a.chapter=b.chapter and a.id>b.id
+left join (select chapter, count(*) as finished_chapters from chapter_history2_runner group by 1) c on a.chapter=c.chapter
 left join (select *
 from (select a.*, b.chapter_time as chapter_time3, b.id as id2,
 rank() over (partition by a.chapter, a.id order by b.chapter_time) as chapter_rank_at_that_time
-from chapter_history2_sawken a
-join chapter_history2_sawken b on a.chapter=b.chapter and a.id>=b.id) a
+from chapter_history2_runner a
+join chapter_history2_runner b on a.chapter=b.chapter and a.id>=b.id) a
 where id=id2) d on a.chapter=d.chapter and a.id=d.id
 
 left join (
 
 select a.chapter, a.id, count(*) as finished_chapters_at_that_time
-from chapter_history2_sawken a
-join chapter_history2_sawken b on a.chapter=b.chapter and a.id>=b.id
+from chapter_history2_runner a
+join chapter_history2_runner b on a.chapter=b.chapter and a.id>=b.id
 group by 1, 2) e on a.chapter=e.chapter and a.id=e.id
 group by finished_chapters_at_that_time, chapter_rank_at_that_time, finished_chapters, a.rank_chapter, a.chapter, a.id, a.date_started, a.finished_run, a.pb, a.chapter_time, a.chapter_time2) a;
 
 /*drop table if exists chapter_history;
-drop table if exists chapter_splits_sawken;*/
+drop table if exists chapter_splits_runner;*/
 
 /* Section golds, same as chapters, we count the number of splits per section to only count finished sections */
 
-drop table if exists section_splits_sawken;
-create table section_splits_sawken (section varchar(255), number_of_splits integer, sort integer);
+drop table if exists section_splits_runner;
+create table section_splits_runner (section varchar(255), number_of_splits integer, sort integer);
 
-insert into section_splits_sawken (section, number_of_splits, sort)
+insert into section_splits_runner (section, number_of_splits, sort)
 values
 ('Village', 32, 1),
 ('Castle', 50, 2),
@@ -1130,8 +1130,8 @@ values
 
 /* Sections golds and averages */
 
-drop table if exists section_golds_sawken;
-create table section_golds_sawken as
+drop table if exists section_golds_runner;
+create table section_golds_runner as
 select section_golds.*, section_avg, cast(section_median as numeric) as section_median
 from(
 select aa.*, bb.id, date_started, finished_run, final_lrt, pb
@@ -1141,10 +1141,10 @@ from(
 select a.*
 from(
 select section, id, sum(lrt_number) as section_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by section, id
 order by 1) a
-join section_splits_sawken b on a.section=b.section and a.number_of_splits=b.number_of_splits)
+join section_splits_runner b on a.section=b.section and a.number_of_splits=b.number_of_splits)
 group by 1) aa
 left join (
 select *
@@ -1152,10 +1152,10 @@ from(
 select a.*
 from(
 select section, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as section_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by section, id, date_started, finished_run, final_lrt, pb
 order by 1) a
-join section_splits_sawken b on a.section=b.section and a.number_of_splits=b.number_of_splits)) bb
+join section_splits_runner b on a.section=b.section and a.number_of_splits=b.number_of_splits)) bb
 on aa.section_gold=bb.section_time
 order by case when aa.section='Village' then 1 when aa.section='Castle' then 2 else 3 end) section_golds
 left join (select section, avg(section_time) as section_avg
@@ -1163,9 +1163,9 @@ from(
 select a.*
 from(
 select section, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as section_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by section, id, date_started, finished_run, final_lrt, pb) a
-join section_splits_sawken b on a.section=b.section and a.number_of_splits=b.number_of_splits)
+join section_splits_runner b on a.section=b.section and a.number_of_splits=b.number_of_splits)
 --where id>=10500
 group by 1
 order by 1) section_avg on section_golds.section=section_avg.section
@@ -1174,17 +1174,17 @@ from(
 select a.*
 from(
 select section, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as section_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by section, id, date_started, finished_run, final_lrt, pb) a
-join section_splits_sawken b on a.section=b.section and a.number_of_splits=b.number_of_splits)
+join section_splits_runner b on a.section=b.section and a.number_of_splits=b.number_of_splits)
 --where id>=10500
 group by 1
 order by 1) section_med on section_golds.section=section_med.section;
 
 /* Putting the section golds and averages in LiveSplit format (previously numbers) */
 
-drop table if exists section_golds2_sawken;
-create table section_golds2_sawken as
+drop table if exists section_golds2_runner;
+create table section_golds2_runner as
 select *, floor(section_gold / 60) || ':' ||
 case when length(to_char(trunc(section_gold, 3) % 60, 'FM00.999'))=3
 then to_char(trunc(section_gold, 3) % 60, 'FM00.999')||'000'
@@ -1209,10 +1209,10 @@ then to_char(trunc(section_median, 3) % 60, 'FM00.999')||'00'
 when length(to_char(trunc(section_median, 3) % 60, 'FM00.999'))=5
 then to_char(trunc(section_median, 3) % 60, 'FM00.999')||'0' else
 to_char(trunc(section_median, 3) % 60, 'FM00.999') end AS section_median2
-from section_golds_sawken;
+from section_golds_runner;
 
-drop table if exists section_golds3_sawken;
-create table section_golds3_sawken as
+drop table if exists section_golds3_runner;
+create table section_golds3_runner as
 select section, id, date_started, final_lrt, pb, section_gold, section_gold2,
 case when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3)=0 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
@@ -1227,7 +1227,7 @@ floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapt
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00'
 else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00' end)
-when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (select numb from decimals_table_sawken)
+when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (select numb from decimals_table_runner)
 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
           floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
@@ -1244,8 +1244,8 @@ section_avg2, section_median2
 from(
 select a.section, a.section_gold, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.section_avg, a.section_gold2,
 a.section_avg2, a.section_median, a.section_median2, sum(b.section_gold) as cumulative_chapter_gold
-from section_golds2_sawken a
-left join (select distinct section, section_gold from section_golds2_sawken) b on case when a.section='Village' then 1 when a.section='Castle' then 2 else 3 end>=
+from section_golds2_runner a
+left join (select distinct section, section_gold from section_golds2_runner) b on case when a.section='Village' then 1 when a.section='Castle' then 2 else 3 end>=
 	case when b.section='Village' then 1 when b.section='Castle' then 2 else 3 end
 group by a.section, a.section_gold, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.section_avg, a.section_gold2,
 a.section_avg2, a.section_median, a.section_median2) a
@@ -1255,40 +1255,40 @@ order by case when section='Village' then 1 when section='Castle' then 2 else 3 
 
 /* Section times of all the attempts */
 
-drop table if exists section_history_sawken;
-create table section_history_sawken as
+drop table if exists section_history_runner;
+create table section_history_runner as
 select section, id, date_started, finished_run, final_lrt, pb, sum(section_time) as section_time
 from(
 select a.*
 from(
 select section, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as section_time, count(*) as number_of_splits
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by section, id, date_started, finished_run, final_lrt, pb) a
-join section_splits_sawken b on a.section=b.section and a.number_of_splits=b.number_of_splits)
+join section_splits_runner b on a.section=b.section and a.number_of_splits=b.number_of_splits)
 group by 1, 2, date_started, finished_run, final_lrt, pb
 order by 1;
 
 /* Putting the section golds in LiveSplit format (previously numbers) */
 
-drop table if exists section_history2_sawken;
-create table section_history2_sawken as
+drop table if exists section_history2_runner;
+create table section_history2_runner as
 select *, case when trunc(section_time-trunc(section_time), 3) =0
 then floor(section_time / 60) || ':' ||
 to_char(trunc(section_time, 3) % 60, 'FM00.999')||'000'
 when trunc(section_time-trunc(section_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then floor(section_time / 60) || ':' ||
 to_char(trunc(section_time, 3) % 60, 'FM00.999')||'00'
-when trunc(section_time-trunc(section_time), 3) in (select numb from decimals_table_sawken)
+when trunc(section_time-trunc(section_time), 3) in (select numb from decimals_table_runner)
 then floor(section_time / 60) || ':' ||
 to_char(trunc(section_time, 3) % 60, 'FM00.999')||'0'
 else
 floor(section_time / 60) || ':' ||
 to_char(trunc(section_time, 3) % 60, 'FM00.999') end AS section_time2, rank() over (partition by section order by section_time) as rank_section
-from section_history_sawken
+from section_history_runner
 order by case when section='Village' then 1 when section='Castle' then 2 else 3 end, section_time;
 
-drop table if exists section_history3_sawken;
-create table section_history3_sawken as
+drop table if exists section_history3_runner;
+create table section_history3_runner as
 select section, id, date_started, finished_run, final_lrt, pb, section_time, section_time2, case when section_time<=min or min is null
 then 1 else 0 end as golded_section,
 floor(min / 60) || ':' ||
@@ -1301,31 +1301,31 @@ then to_char(trunc(min, 3) % 60, 'FM00.999')||'0' else
 to_char(trunc(min, 3) % 60, 'FM00.999') end AS section_gold_at_that_time, rank_section, section_rank_at_that_time, finished_sections, finished_sections_at_that_time
 from (select a.section, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.section_time, a.section_time2, min(b.section_time) as min,
 min(b.section_time2) as min2, a.rank_section, finished_sections, finished_sections_at_that_time, section_rank_at_that_time
-from section_history2_sawken a
-left join section_history2_sawken b on a.section=b.section and a.id>b.id
-left join (select section, count(*) as finished_sections from section_history2_sawken group by 1) c on a.section=c.section
+from section_history2_runner a
+left join section_history2_runner b on a.section=b.section and a.id>b.id
+left join (select section, count(*) as finished_sections from section_history2_runner group by 1) c on a.section=c.section
 left join (select *
 from (select a.*, b.section_time as section_time3, b.id as id2,
 rank() over (partition by a.section, a.id order by b.section_time) as section_rank_at_that_time
-from section_history2_sawken a
-join section_history2_sawken b on a.section=b.section and a.id>=b.id) a
+from section_history2_runner a
+join section_history2_runner b on a.section=b.section and a.id>=b.id) a
 where id=id2) d on a.section=d.section and a.id=d.id
 
 left join (
 
 select a.section, a.id, count(*) as finished_sections_at_that_time
-from section_history2_sawken a
-join section_history2_sawken b on a.section=b.section and a.id>=b.id
+from section_history2_runner a
+join section_history2_runner b on a.section=b.section and a.id>=b.id
 group by 1, 2) e on a.section=e.section and a.id=e.id
 group by a.rank_section, finished_sections, finished_sections_at_that_time, section_rank_at_that_time, a.section, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.section_time, a.section_time2) a;
 
 /*drop table if exists section_history;
-drop table if exists section_splits_sawken;*/
+drop table if exists section_splits_runner;*/
 
 /* All golds */
 
-drop table if exists doorsplits_golds_sawken;
-create table doorsplits_golds_sawken as
+drop table if exists doorsplits_golds_runner;
+create table doorsplits_golds_runner as
 select aa.*, bb.id, date_started, finished_run, final_lrt, pb,
 case when trunc(gold-trunc(gold), 3)=0 then
 (case when gold<10 then to_char(trunc(gold, 3) % 60, 'FM0.999')||'000'
@@ -1335,7 +1335,7 @@ when trunc(gold-trunc(gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.
 then (case when gold<10 then to_char(trunc(gold, 3) % 60, 'FM0.999')||'00'
 when gold<60 then to_char(trunc(gold, 3) % 60, 'FM00.999')||'00'
 else floor(gold / 60) || ':' || to_char(trunc(gold, 3) % 60, 'FM00.999')||'00' end)
-when trunc(gold-trunc(gold), 3) in (select numb from decimals_table_sawken)
+when trunc(gold-trunc(gold), 3) in (select numb from decimals_table_runner)
 then (case when gold<10 then to_char(trunc(gold, 3) % 60, 'FM0.999')||'0'
 when gold<60 then to_char(trunc(gold, 3) % 60, 'FM00.999')||'0'
 else floor(gold / 60) || ':' || to_char(trunc(gold, 3) % 60, 'FM00.999')||'0' end)
@@ -1346,19 +1346,19 @@ cast(door_median as numeric) as door_median
 from (
 select cle2, split, min(split_time) as gold
 from(select split, id, cle2, sum(lrt_number) as split_time
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by split, id, cle2) a
 group by split, cle2) aa
 left join (select *
 from(select split, id, cle2, date_started, finished_run, final_lrt, pb, sum(lrt_number) as split_time
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by split, id, cle2, date_started, finished_run, final_lrt, pb) a) bb on aa.gold=bb.split_time and aa.cle2=bb.cle2
 left join (select cle2, avg(lrt_time) as door_avg
 from(
 select a.*
 from(
 select cle2, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as lrt_time
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by cle2, id, date_started, finished_run, final_lrt, pb) a)
 --where id>=10500
 group by 1
@@ -1368,15 +1368,15 @@ from(
 select a.*
 from(
 select cle2, id, date_started, finished_run, final_lrt, pb, sum(lrt_number) as lrt_time
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by cle2, id, date_started, finished_run, final_lrt, pb) a)
 --where id>=10500
 group by 1
 order by 1) door_med on door_med.cle2=aa.cle2
 order by cle2;
 
-drop table if exists doorsplits_golds2_sawken;
-create table doorsplits_golds2_sawken as
+drop table if exists doorsplits_golds2_runner;
+create table doorsplits_golds2_runner as
 select cle2, id, date_started, final_lrt, pb, gold, gold2, door_avg, door_median,
 case when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3)=0 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
@@ -1391,7 +1391,7 @@ floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapt
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00'
 else floor(cumulative_chapter_gold / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00' end)
-when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (select numb from decimals_table_sawken)
+when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3) in (select numb from decimals_table_runner)
 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
           floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60) || ':' ||
@@ -1412,7 +1412,7 @@ when trunc(door_avg-trunc(door_avg), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 
 then (case when door_avg<10 then to_char(trunc(door_avg, 3) % 60, 'FM0.999')||'00'
 when door_avg<60 then to_char(trunc(door_avg, 3) % 60, 'FM00.999')||'00'
 else floor(door_avg / 60) || ':' || to_char(trunc(door_avg, 3) % 60, 'FM00.999')||'00' end)
-when trunc(door_avg-trunc(door_avg), 3) in (select numb from decimals_table_sawken)
+when trunc(door_avg-trunc(door_avg), 3) in (select numb from decimals_table_runner)
 then (case when door_avg<10 then to_char(trunc(door_avg, 3) % 60, 'FM0.999')||'0'
 when door_avg<60 then to_char(trunc(door_avg, 3) % 60, 'FM00.999')||'0'
 else floor(door_avg / 60) || ':' || to_char(trunc(door_avg, 3) % 60, 'FM00.999')||'0' end)
@@ -1427,7 +1427,7 @@ when trunc(door_median-trunc(door_median), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 
 then (case when door_median<10 then to_char(trunc(door_median, 3) % 60, 'FM0.999')||'00'
 when door_median<60 then to_char(trunc(door_median, 3) % 60, 'FM00.999')||'00'
 else floor(door_median / 60) || ':' || to_char(trunc(door_median, 3) % 60, 'FM00.999')||'00' end)
-when trunc(door_median-trunc(door_median), 3) in (select numb from decimals_table_sawken)
+when trunc(door_median-trunc(door_median), 3) in (select numb from decimals_table_runner)
 then (case when door_median<10 then to_char(trunc(door_median, 3) % 60, 'FM0.999')||'0'
 when door_median<60 then to_char(trunc(door_median, 3) % 60, 'FM00.999')||'0'
 else floor(door_median / 60) || ':' || to_char(trunc(door_median, 3) % 60, 'FM00.999')||'0' end)
@@ -1437,14 +1437,14 @@ else floor(door_median / 60) || ':' || to_char(trunc(door_median, 3) % 60, 'FM00
 from(
 select a.cle2, a.split, a.gold, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.gold2, a.door_avg, a.door_median,
 	sum(b.gold) as cumulative_chapter_gold
-from doorsplits_golds_sawken a
-left join (select distinct cle2, gold from doorsplits_golds_sawken) b on a.cle2>=b.cle2
+from doorsplits_golds_runner a
+left join (select distinct cle2, gold from doorsplits_golds_runner) b on a.cle2>=b.cle2
 group by a.cle2, a.split, a.gold, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.gold2, a.door_avg, a.door_median
 order by a.cle2) a
 order by cle2;
 
-drop table if exists doorsplits_golds_history_sawken;
-create table doorsplits_golds_history_sawken as
+drop table if exists doorsplits_golds_history_runner;
+create table doorsplits_golds_history_runner as
 select cle2, split, gold, id, date_started, finished_run, final_lrt, pb, gold2, case when lrt_number<=min or min is null then 1 else 0
 end as golded_split,
 case when trunc(min-trunc(min), 3)=0 then
@@ -1455,7 +1455,7 @@ when trunc(min-trunc(min), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80
 then (case when min<10 then to_char(trunc(min, 3) % 60, 'FM0.999')||'00'
 when min<60 then to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
 else floor(min / 60) || ':' || to_char(trunc(min, 3) % 60, 'FM00.999')||'00' end)
-when trunc(min-trunc(min), 3) in (select numb from decimals_table_sawken)
+when trunc(min-trunc(min), 3) in (select numb from decimals_table_runner)
 then (case when min<10 then to_char(trunc(min, 3) % 60, 'FM0.999')||'0'
 when min<60 then to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
 else floor(min / 60) || ':' || to_char(trunc(min, 3) % 60, 'FM00.999')||'0' end)
@@ -1464,34 +1464,34 @@ when min<60 then to_char(trunc(min, 3) % 60, 'FM00.999')
 else floor(min / 60) || ':' || to_char(trunc(min, 3) % 60, 'FM00.999') end) end as gold_at_that_time, lrt_number as lrt_number8, rank() over (partition by cle2 order by lrt_number) as rank_split
 from (select a.cle2, a.split, c.gold, c.gold2, a.lrt_number, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.lrt_split, min(b.lrt_number) as min,
 min(b.lrt_split) as min2
-from splits_cleaned_sawken a
-left join splits_cleaned_sawken b on a.cle2=b.cle2 and a.id>b.id
-left join (select distinct cle2, split, gold, gold2 from doorsplits_golds_sawken) c on a.cle2=c.cle2
+from splits_cleaned_runner a
+left join splits_cleaned_runner b on a.cle2=b.cle2 and a.id>b.id
+left join (select distinct cle2, split, gold, gold2 from doorsplits_golds_runner) c on a.cle2=c.cle2
 group by a.cle2, a.split, c.gold, c.gold2, a.lrt_number, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.lrt_split) a;
 
-drop table if exists doorsplits_golds_history_sawken2;
-create table doorsplits_golds_history_sawken2 as
+drop table if exists doorsplits_golds_history_runner2;
+create table doorsplits_golds_history_runner2 as
 select a.*, split_rank_at_that_time, finished_splits, finished_splits_at_that_time
-from doorsplits_golds_history_sawken a
-left join (select cle2, count(*) as finished_splits from doorsplits_golds_history_sawken group by 1) c on a.cle2=c.cle2
+from doorsplits_golds_history_runner a
+left join (select cle2, count(*) as finished_splits from doorsplits_golds_history_runner group by 1) c on a.cle2=c.cle2
 left join (select *
 from (select a.*, b.lrt_number8 as split_time3, b.id as id2,
 rank() over (partition by a.cle2, a.id order by b.lrt_number8) as split_rank_at_that_time
-from doorsplits_golds_history_sawken a
-join doorsplits_golds_history_sawken b on a.cle2=b.cle2 and a.id>=b.id) a
+from doorsplits_golds_history_runner a
+join doorsplits_golds_history_runner b on a.cle2=b.cle2 and a.id>=b.id) a
 where id=id2) d on a.cle2=d.cle2 and a.id=d.id
 
 left join (
 
 select a.cle2, a.id, count(*) as finished_splits_at_that_time
-from doorsplits_golds_history_sawken a
-join doorsplits_golds_history_sawken b on a.cle2=b.cle2 and a.id>=b.id
+from doorsplits_golds_history_runner a
+join doorsplits_golds_history_runner b on a.cle2=b.cle2 and a.id>=b.id
 group by 1, 2) e on a.cle2=e.cle2 and a.id=e.id;
 
 /* Getting the pace (and best pace) of each run after each split */
 
-drop table if exists best_paces_sawken;
-create table best_paces_sawken as
+drop table if exists best_paces_runner;
+create table best_paces_runner as
 select pace.*, best_pace, /*avg_pace, median_pace,*/
 case when trunc(pace-trunc(pace), 3)=0 then (case when pace<3600 then floor(pace / 60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'000'
@@ -1504,7 +1504,7 @@ to_char(trunc(pace, 3) % 60, 'FM00.999')||'00'
 else floor(pace / 3600) || ':' || case when floor(pace / 60)-(floor(pace/3600)*60)<10 then '0' else '' end ||
 	  floor(pace / 60)-(floor(pace/3600)*60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'00' end)
-when trunc(pace-trunc(pace), 3) in (select numb from decimals_table_sawken)
+when trunc(pace-trunc(pace), 3) in (select numb from decimals_table_runner)
 then (case when pace<3600 then floor(pace / 60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'0'
 else floor(pace / 3600) || ':' || case when floor(pace / 60)-(floor(pace/3600)*60)<10 then '0' else '' end ||
@@ -1528,7 +1528,7 @@ floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pa
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00'
 else floor(best_pace / 60) || ':' ||
 to_char(trunc(best_pace, 3) % 60, 'FM00.999')||'00' end)
-when trunc(best_pace-trunc(best_pace), 3) in (select numb from decimals_table_sawken)
+when trunc(best_pace-trunc(best_pace), 3) in (select numb from decimals_table_runner)
 then (case when best_pace>=3600 then
 floor(best_pace / 3600) || ':' || case when floor(best_pace / 60)-(floor(best_pace/3600)*60)<10 then '0' else '' end ||
           floor(best_pace / 60)-(floor(best_pace/3600)*60) || ':' ||
@@ -1554,7 +1554,7 @@ floor(avg_pace / 3600) || ':' || case when floor(avg_pace / 60)-(floor(avg_pace/
 to_char(trunc(avg_pace, 3) % 60, 'FM00.999')||'00'
 else floor(avg_pace / 60) || ':' ||
 to_char(trunc(avg_pace, 3) % 60, 'FM00.999')||'00' end)
-when trunc(avg_pace-trunc(avg_pace), 3) in (select numb from decimals_table_sawken)
+when trunc(avg_pace-trunc(avg_pace), 3) in (select numb from decimals_table_runner)
 then (case when avg_pace>=3600 then
 floor(avg_pace / 3600) || ':' || case when floor(avg_pace / 60)-(floor(avg_pace/3600)*60)<10 then '0' else '' end ||
           floor(avg_pace / 60)-(floor(avg_pace/3600)*60) || ':' ||
@@ -1580,7 +1580,7 @@ floor(median_pace / 3600) || ':' || case when floor(median_pace / 60)-(floor(med
 to_char(trunc(median_pace, 3) % 60, 'FM00.999')||'00'
 else floor(median_pace / 60) || ':' ||
 to_char(trunc(median_pace, 3) % 60, 'FM00.999')||'00' end)
-when trunc(median_pace-trunc(median_pace), 3) in (select numb from decimals_table_sawken)
+when trunc(median_pace-trunc(median_pace), 3) in (select numb from decimals_table_runner)
 then (case when median_pace>=3600 then
 floor(median_pace / 3600) || ':' || case when floor(median_pace / 60)-(floor(median_pace/3600)*60)<10 then '0' else '' end ||
           floor(median_pace / 60)-(floor(median_pace/3600)*60) || ':' ||
@@ -1596,10 +1596,10 @@ to_char(trunc(median_pace, 3) % 60, 'FM00.999') end) end as median_pace2*/
 from (select aa.cle2, aa.id, aa.split, count(*) as number_of_splits, sum(bb.lrt_number) as pace
 from
 (select *
-from splits_cleaned_sawken a) aa
+from splits_cleaned_runner a) aa
 join
 (select *
-from splits_cleaned_sawken a) bb on aa.cle2>=bb.cle2 and aa.id=bb.id
+from splits_cleaned_runner a) bb on aa.cle2>=bb.cle2 and aa.id=bb.id
 group by aa.id, aa.split, aa.cle2
 having count(*)=aa.cle2
 order by aa.id, aa.cle2) pace
@@ -1610,10 +1610,10 @@ from(
 select aa.cle2, aa.id, aa.split, count(*) as number_of_splits, sum(bb.lrt_number) as pace
 from
 (select *
-from splits_cleaned_sawken a) aa
+from splits_cleaned_runner a) aa
 join
 (select *
-from splits_cleaned_sawken a) bb on aa.cle2>=bb.cle2 and aa.id=bb.id
+from splits_cleaned_runner a) bb on aa.cle2>=bb.cle2 and aa.id=bb.id
 group by aa.id, aa.split, aa.cle2
 order by aa.id, aa.cle2)
 where id>0
@@ -1621,8 +1621,8 @@ and number_of_splits=cle2
 group by split, cle2
 order by cle2) best_pace on pace.cle2=best_pace.cle2;
 
-drop table if exists best_paces_history_sawken;
-create table best_paces_history_sawken as
+drop table if exists best_paces_history_runner;
+create table best_paces_history_runner as
 select cle2, id, split, number_of_splits, pace, best_pace, pace2, best_pace2, case when pace<=min or min is null then 1 else 0
 end as was_best_pace,
 case when trunc(min-trunc(min), 3)=0 then (case when min<3600 then floor(min / 60) || ':' ||
@@ -1636,7 +1636,7 @@ to_char(trunc(min, 3) % 60, 'FM00.999')||'00'
 else floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
 	  floor(min / 60)-(floor(min/3600)*60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'00' end)
-when trunc(min-trunc(min), 3) in (select numb from decimals_table_sawken)
+when trunc(min-trunc(min), 3) in (select numb from decimals_table_runner)
 then (case when min<3600 then floor(min / 60) || ':' ||
 to_char(trunc(min, 3) % 60, 'FM00.999')||'0'
 else floor(min / 3600) || ':' || case when floor(min / 60)-(floor(min/3600)*60)<10 then '0' else '' end ||
@@ -1651,76 +1651,76 @@ avg_pace, median_pace, avg_pace2, median_pace2*/, rank() over (partition by cle2
 from (select a.cle2, a.id, a.split, a.number_of_splits, a.pace, a.best_pace, a.pace2, a.best_pace2, /*a.avg_pace, a.median_pace,
 a.avg_pace2, a.median_pace2,*/ min(b.pace) as min,
 min(b.pace2) as min2
-from best_paces_sawken a
-left join best_paces_sawken b on a.cle2=b.cle2 and a.id>b.id
+from best_paces_runner a
+left join best_paces_runner b on a.cle2=b.cle2 and a.id>b.id
 group by a.cle2, a.id, a.split, a.number_of_splits, a.pace, a.best_pace, a.pace2, a.best_pace2/*, a.avg_pace, a.median_pace,
 a.avg_pace2, a.median_pace2*/) a
 order by cle2 desc, id;
 
-drop table if exists best_paces_history_sawken2;
-create table best_paces_history_sawken2 as
+drop table if exists best_paces_history_runner2;
+create table best_paces_history_runner2 as
 select a.*, pace_rank_at_that_time, finished_paces, finished_paces_at_that_time
-from best_paces_history_sawken a
-left join (select cle2, count(*) as finished_paces from best_paces_history_sawken group by 1) c on a.cle2=c.cle2
+from best_paces_history_runner a
+left join (select cle2, count(*) as finished_paces from best_paces_history_runner group by 1) c on a.cle2=c.cle2
 left join (select *
 from (select a.*, b.pace as pace_time3, b.id as id2,
 rank() over (partition by a.cle2, a.id order by b.pace) as pace_rank_at_that_time
-from best_paces_history_sawken a
-join best_paces_history_sawken b on a.cle2=b.cle2 and a.id>=b.id) a
+from best_paces_history_runner a
+join best_paces_history_runner b on a.cle2=b.cle2 and a.id>=b.id) a
 where id=id2) d on a.cle2=d.cle2 and a.id=d.id
 
 left join (
 
 select a.cle2, a.id, count(*) as finished_paces_at_that_time
-from best_paces_history_sawken a
-join best_paces_history_sawken b on a.cle2=b.cle2 and a.id>=b.id
+from best_paces_history_runner a
+join best_paces_history_runner b on a.cle2=b.cle2 and a.id>=b.id
 group by 1, 2) e on a.cle2=e.cle2 and a.id=e.id;
 
 /* Checking is a gold was done on a gold hunt (bad run) by checking the delta between the pace of that run and the best pace for each
 split */
 
-drop table if exists gold_hunt_detector_sawken;
-create table gold_hunt_detector_sawken as
+drop table if exists gold_hunt_detector_runner;
+create table gold_hunt_detector_runner as
 select cle2, split, gold, gold2, id, date_started, finished_run, final_lrt, pb, pace, pace2, best_pace, best_pace2,
 best_pace_delta
 from(
 select a.*, pace, best_pace, pace-best_pace as best_pace_delta, pace2, best_pace2,
 row_number () over (partition by a.cle2 order by pace-best_pace) as rang
-from doorsplits_golds_sawken a
-left join best_paces_history_sawken2 b on a.id=b.id and a.cle2=b.cle2) a
+from doorsplits_golds_runner a
+left join best_paces_history_runner2 b on a.id=b.id and a.cle2=b.cle2) a
 where rang=1
 order by cle2;
 
 /* Resets history to get the % of resets for each split */
 
-drop table if exists resets_history_sawken;
-create table resets_history_sawken as
+drop table if exists resets_history_runner;
+create table resets_history_runner as
 select a.*, attempts
 from(
 select cle2, split, count(*) as runs
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by cle2, split
 order by cle2) a cross join (select max(id)-case when runner_name like '%ota%' and runner_name like '%ku%' then 4779 when runner_name like '%ri%' and runner_name like '%chy%' then 3912
 when runner_name like '%saw%' and runner_name like '%ken%' then 84 else 0 end as attempts
-from attempts_treatment3_sawken
+from attempts_treatment3_runner
 group by runner_name) b;
 
-drop table if exists resets_history2_sawken;
-create table resets_history2_sawken as
+drop table if exists resets_history2_runner;
+create table resets_history2_runner as
 select cle2, split, runs, resets, (round(resets)/round(case when lag is null then runs+resets else lag end))*100
 as percentage_resets
 from(
 select *, lag(runs) over() as lag
 from(
 select cle2, split, runs, case when lag(runs) over ()-runs is null then attempts-runs else lag(runs) over ()-runs end as resets
-from resets_history_sawken));
+from resets_history_runner));
 
 /*drop table if exists resets_history;*/
 
 /* Final main table that has everything */
 
-drop table if exists splits_overview_sawken;
-create table splits_overview_sawken as
+drop table if exists splits_overview_runner;
+create table splits_overview_runner as
 select *
 from (select a.id, a.split, a.chapter, a.section, a.lrt_number, a.lrt_split, a.date_started, a.finished_run, a.final_lrt, a.pb, a.cle2, a.final_rta,
 a.date_end, a.time_start_numeric3 as time_start, a.time_end_numeric3 as time_end, a.playtime, a.rta_numeric, a.rta_split, e.gold2, e.gold, pace,
@@ -1807,48 +1807,48 @@ best_pace_at_that_time2, case when cast(substr(a.time_start, 1, 2) as numeric)>c
 then a.date_started+1 else a.date_started end as date_started2,
 case when cast(substr(a.time_end, 1, 2) as numeric)<cast(substr(a.time_end_numeric3, 1, 2) as numeric)
 then a.date_end-1 else a.date_end end as date_end2, door_avg, door_median, door_avg2, door_median2, median_chapter_time, median_chapter_time2,
-/*avg_pace, median_pace, avg_pace2, median_pace2,*/ section_median, section_median2, section_avg2, avg_chapter_time2, 'sawken' as runner_name, rank_chapter, chapter_rank_at_that_time, finished_chapters,
+/*avg_pace, median_pace, avg_pace2, median_pace2,*/ section_median, section_median2, section_avg2, avg_chapter_time2, 'runner' as runner_name, rank_chapter, chapter_rank_at_that_time, finished_chapters,
 finished_chapters_at_that_time, rank_section, section_rank_at_that_time, finished_sections, finished_sections_at_that_time, rank_split, split_rank_at_that_time, finished_splits, finished_splits_at_that_time,
 rank_pace, pace_rank_at_that_time, finished_paces, finished_paces_at_that_time,
 row_number() over (partition by a.id, a.cle2 order by id2 desc) as rang
-from splits_cleaned_sawken a
-left join best_paces_history_sawken2 b on a.id=b.id and a.cle2=b.cle2
+from splits_cleaned_runner a
+left join best_paces_history_runner2 b on a.id=b.id and a.cle2=b.cle2
 left join (select cle2, gold2, gold, door_avg, door_median, door_avg2, door_median2, min(cumulative_door_gold) as cumulative_door_gold, min(cumulative_door_gold_num) as cumulative_door_gold_num
-		   from doorsplits_golds2_sawken
+		   from doorsplits_golds2_runner
 		   group by cle2, gold2, gold, door_avg, door_median, door_avg2, door_median2) e on a.cle2=e.cle2
-left join doorsplits_golds_history_sawken2 ee on a.cle2=ee.cle2 and a.id=ee.id
-left join chapter_history3_sawken c on a.id=c.id and a.chapter=c.chapter
-left join section_history3_sawken d on a.id=d.id and a.section=d.section
-left join chapter_golds3_sawken f on a.chapter=f.chapter
-left join section_golds3_sawken g on a.section=g.section
+left join doorsplits_golds_history_runner2 ee on a.cle2=ee.cle2 and a.id=ee.id
+left join chapter_history3_runner c on a.id=c.id and a.chapter=c.chapter
+left join section_history3_runner d on a.id=d.id and a.section=d.section
+left join chapter_golds3_runner f on a.chapter=f.chapter
+left join section_golds3_runner g on a.section=g.section
 left join (select a.id, b.split as split_of_reset, b.cle2 as cle2_reset
 from (select id, max(cle2)+1 as max
-from splits_cleaned_sawken
+from splits_cleaned_runner
 group by id) a
-left join (select distinct cle2, split from splits_cleaned_sawken) b on a.max=b.cle2) resets on resets.id=a.id
-left join (select *, cast (id as numeric) as id2 from pb_history_sawken) h on a.id>h.id2) aa
+left join (select distinct cle2, split from splits_cleaned_runner) b on a.max=b.cle2) resets on resets.id=a.id
+left join (select *, cast (id as numeric) as id2 from pb_history_runner) h on a.id>h.id2) aa
 where rang=1
 order by id, cle2;
 
 /* RNG splits (like Lago) to get the % of patterns (like % of early dives, etc.) */
 
-drop table if exists rng_splits_sawken;
-create table rng_splits_sawken as
+drop table if exists rng_splits_runner;
+create table rng_splits_runner as
 select pattern, substr(pattern, 4, length(pattern)-3) as pattern2, runs, total, percentage
 from(select pattern, runs, total, percentage
 from (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select lago_pattern as pattern, count(*) as runs
-from splits_overview_sawken a
-left join splits_cleaned_sawken b on a.id=b.id and a.cle2=b.cle2
+from splits_overview_runner a
+left join splits_cleaned_runner b on a.id=b.id and a.cle2=b.cle2
 where (a.cle2=14 and a.lrt_number<117) or (a.cle2=13 and cle2_reset=14 and
 case when time_end_numeric2>time_end_numeric and b.time_end<>time_end_numeric3 then time_end_numeric-time_end_numeric2+86400 else time_end_numeric-time_end_numeric2 end>=case when runner_name like '%lu%'
 and runner_name like '%is%' then 59 else 56 end)
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken a
-left join splits_cleaned_sawken b on a.id=b.id and a.cle2=b.cle2
+from splits_overview_runner a
+left join splits_cleaned_runner b on a.id=b.id and a.cle2=b.cle2
 where (a.cle2=14 and a.lrt_number<117) or (a.cle2=13 and cle2_reset=14 and
 case when time_end_numeric2>time_end_numeric and b.time_end<>time_end_numeric3 then time_end_numeric-time_end_numeric2+86400 else time_end_numeric-time_end_numeric2 end>=case when runner_name like '%lu%'
 and runner_name like '%is%' then 59 else 56 end)) b)
@@ -1856,150 +1856,150 @@ union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select mendez_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where mendez_pattern<>'' and lrt_number<60
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=30 and lrt_number<60) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select catapult_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where catapult_pattern<>'' and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=65 and lrt_number<40) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select cabin_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where cabin_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=26-- and lrt_number<40
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select water_hall_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where water_hall_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=38-- and lrt_number<40
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select novis1_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where novis1_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=41-- and lrt_number<40
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select gallery_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where gallery_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=43-- and lrt_number<40
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select novis2_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where novis2_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=64-- and lrt_number<40
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select novis3_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where novis3_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=74-- and lrt_number<40
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select u3_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where u3_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=110-- and lrt_number<40
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select krauser_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where krauser_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=112-- and lrt_number<40
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select war_room_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where war_room_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=113-- and lrt_number<40
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select key_card_pattern as pattern, count(*) as runs
-from splits_overview_sawken
+from splits_overview_runner
 where key_card_pattern<>''-- and lrt_number<40
 group by 1) a
 cross join (
 select count(*) as total
-from splits_overview_sawken
+from splits_overview_runner
 where cle2=117-- and lrt_number<40
 ) b)
 order by pattern);
 
 /* Same but to get the consecutive patterns (like how many early dives in a row */
 
-drop table if exists consecutive_patterns_sawken;
-create table consecutive_patterns_sawken as
+drop table if exists consecutive_patterns_runner;
+create table consecutive_patterns_runner as
 select *
 from (
 select lago_pattern, max(rank) as maximum_consecutive_patterns
@@ -2009,8 +2009,8 @@ from(
 select distinct a.id, lago_pattern,
 row_number() over (order by a.id) as row_number,
 row_number() over (partition by lago_pattern order by a.id) as row_number2
-from splits_overview_sawken a
-left join splits_cleaned_sawken b on a.id=b.id and a.cle2=b.cle2
+from splits_overview_runner a
+left join splits_cleaned_runner b on a.id=b.id and a.cle2=b.cle2
 where (a.cle2=14 and a.lrt_number<117) or (a.cle2=13 and cle2_reset=14 and
 case when time_end_numeric2>time_end_numeric and b.time_end<>time_end_numeric3 then time_end_numeric-time_end_numeric2+86400 else time_end_numeric-time_end_numeric2 end>=case when runner_name like '%lu%'
 and runner_name like '%is%' then 59 else 56 end))
@@ -2024,7 +2024,7 @@ from(
 select distinct id, mendez_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by mendez_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where mendez_pattern<>'' and lrt_number<60)
 order by id)
 group by 1
@@ -2036,7 +2036,7 @@ from(
 select distinct id, catapult_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by catapult_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where catapult_pattern<>'' and lrt_number<40)
 order by id)
 group by 1
@@ -2048,7 +2048,7 @@ from(
 select distinct id, cabin_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by cabin_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where cabin_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2061,7 +2061,7 @@ from(
 select distinct id, water_hall_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by water_hall_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where water_hall_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2074,7 +2074,7 @@ from(
 select distinct id, novis1_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by novis1_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where novis1_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2087,7 +2087,7 @@ from(
 select distinct id, gallery_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by gallery_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where gallery_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2100,7 +2100,7 @@ from(
 select distinct id, novis2_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by novis2_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where novis2_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2113,7 +2113,7 @@ from(
 select distinct id, novis3_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by novis3_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where novis3_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2126,7 +2126,7 @@ from(
 select distinct id, u3_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by u3_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where u3_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2139,7 +2139,7 @@ from(
 select distinct id, krauser_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by krauser_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where krauser_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2152,7 +2152,7 @@ from(
 select distinct id, war_room_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by war_room_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where war_room_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2165,7 +2165,7 @@ from(
 select distinct id, key_card_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by key_card_pattern order by id) as row_number2
-from splits_overview_sawken
+from splits_overview_runner
 where key_card_pattern<>''-- and lrt_number<40
 )
 order by id)
@@ -2178,14 +2178,14 @@ order by lago_pattern;
 
 /* All chapter golds with doorsplits golds combined per chapter */
 
-drop table if exists chapter_golds_sheet_sawken;
-create table chapter_golds_sheet_sawken as
+drop table if exists chapter_golds_sheet_runner;
+create table chapter_golds_sheet_runner as
 select a.chapter, a.id, a.date_started, a.final_lrt, a.pb, a.chapter_gold2,
 case when cumulative_chapter_gold2<60 then (case when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) =0 then
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000'
 when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00'
-when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (select numb from decimals_table_sawken)
+when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (select numb from decimals_table_runner)
 then to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'0'
 else
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999') end)
@@ -2195,31 +2195,31 @@ to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000'
 when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 then floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00'
-when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (select numb from decimals_table_sawken)
+when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (select numb from decimals_table_runner)
 then floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'0'
 else
 floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999') end) end as doorsplit_combined_gold, cumulative_chapter_gold2 as doorsplit_combined_gold2, a.cumulative_chapter_gold,
 cumulative_door_gold, cumulative_door_gold_num, avg_chapter_time2, chapter_gold_at_that_time as previous_chapter_gold
-from chapter_golds3_sawken a
+from chapter_golds3_runner a
 left join (select chapter, sum(gold) as cumulative_chapter_gold2
 		   from(
 select chapter, a.gold, a.gold2, a.cle2, min(cumulative_door_gold) as cumulative_door_gold
-from doorsplits_golds2_sawken a
-left join (select distinct cle2, chapter from splits_overview_sawken) b on a.cle2=b.cle2
+from doorsplits_golds2_runner a
+left join (select distinct cle2, chapter from splits_overview_runner) b on a.cle2=b.cle2
 			   group by chapter, a.gold, a.gold2, a.cle2 order by a.cle2) b
 		  group by chapter) bb on a.chapter=bb.chapter
 left join (select *
 		   from (select cle2, chapter, cumulative_door_gold, cumulative_door_gold_num, row_number() over(partition by chapter
-order by cle2 desc) as rang from splits_overview_sawken) a where rang=1) c on a.chapter=c.chapter
+order by cle2 desc) as rang from splits_overview_runner) a where rang=1) c on a.chapter=c.chapter
 left join (select distinct id, chapter, chapter_gold_at_that_time
-		   from splits_overview_sawken where chapter_time2=chapter_gold2) d on a.chapter=d.chapter and a.id=d.id;
+		   from splits_overview_runner where chapter_time2=chapter_gold2) d on a.chapter=d.chapter and a.id=d.id;
 
 /* All section golds with doorsplits golds combined per section + chapter golds combined per section */
 
-drop table if exists section_golds_sheet_sawken;
-create table section_golds_sheet_sawken as
+drop table if exists section_golds_sheet_runner;
+create table section_golds_sheet_runner as
 select a.section, a.id, a.date_started, a.final_lrt, a.pb, a.section_gold2,
 case when trunc(cumulative_chapter_gold3-trunc(cumulative_chapter_gold3), 3)=0 then (case when cumulative_chapter_gold3>=3600 then
 floor(cumulative_chapter_gold3 / 3600) || ':' || case when floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60)<10 then '0' else '' end ||
@@ -2234,7 +2234,7 @@ floor(cumulative_chapter_gold3 / 3600) || ':' || case when floor(cumulative_chap
 to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'00'
 else floor(cumulative_chapter_gold3 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'00' end)
-when trunc(cumulative_chapter_gold3-trunc(cumulative_chapter_gold3), 3) in (select numb from decimals_table_sawken)
+when trunc(cumulative_chapter_gold3-trunc(cumulative_chapter_gold3), 3) in (select numb from decimals_table_runner)
 then (case when cumulative_chapter_gold3>=3600 then
 floor(cumulative_chapter_gold3 / 3600) || ':' || case when floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60)<10 then '0' else '' end ||
           floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60) || ':' ||
@@ -2261,7 +2261,7 @@ floor(cumulative_chapter_gold2 / 3600) || ':' || case when floor(cumulative_chap
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00'
 else floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00' end)
-when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (select numb from decimals_table_sawken)
+when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) in (select numb from decimals_table_runner)
 then (case when cumulative_chapter_gold2>=3600 then
 floor(cumulative_chapter_gold2 / 3600) || ':' || case when floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60)<10 then '0' else '' end ||
           floor(cumulative_chapter_gold2 / 60)-(floor(cumulative_chapter_gold2/3600)*60) || ':' ||
@@ -2275,35 +2275,35 @@ to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')
 else floor(cumulative_chapter_gold2 / 60) || ':' ||
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999') end) end as doorsplit_combined_gold, cumulative_chapter_gold2 as doorsplit_combined_gold2, a.cumulative_section_gold,
 cumulative_chapter_gold, cumulative_chapter_gold_num, cumulative_door_gold, cumulative_door_gold_num, a.section_avg2, section_gold_at_that_time as previous_section_gold
-from section_golds3_sawken a
+from section_golds3_runner a
 left join (select section, sum(gold) as cumulative_chapter_gold2
 		   from(
 select distinct section, a.gold, a.gold2, a.cle2
-from doorsplits_golds2_sawken a
-left join (select distinct cle2, section from splits_overview_sawken) b on a.cle2=b.cle2) b
+from doorsplits_golds2_runner a
+left join (select distinct cle2, section from splits_overview_runner) b on a.cle2=b.cle2) b
 		  group by section) bb on a.section=bb.section
 left join (select *
 		   from (select cle2, section, cumulative_door_gold, cumulative_door_gold_num, row_number() over(partition by section
-order by cle2 desc) as rang from splits_overview_sawken) a where rang=1) c on a.section=c.section
+order by cle2 desc) as rang from splits_overview_runner) a where rang=1) c on a.section=c.section
 
 left join (select section, sum(chapter_gold) as cumulative_chapter_gold3
 		   from(
 select section, a.chapter_gold, a.chapter_gold2, a.chapter, min(cumulative_chapter_gold) as cumulative_chapter_gold
-from chapter_golds3_sawken a
-left join (select distinct chapter, section from splits_overview_sawken) b on a.chapter=b.chapter
+from chapter_golds3_runner a
+left join (select distinct chapter, section from splits_overview_runner) b on a.chapter=b.chapter
 			   group by section, a.chapter_gold, a.chapter_gold2, a.chapter order by a.chapter) b
 		  group by section) d on a.section=d.section
 left join (select *
 		   from (select chapter, section, cumulative_chapter_gold, cumulative_chapter_gold_num, row_number() over(partition by section
-order by chapter desc) as rang from splits_overview_sawken) a where rang=1) e on a.section=e.section
+order by chapter desc) as rang from splits_overview_runner) a where rang=1) e on a.section=e.section
 left join (select distinct id, section, section_gold_at_that_time
-		   from splits_overview_sawken where section_time2=section_gold2) f on a.section=f.section and a.id=f.id
+		   from splits_overview_runner where section_time2=section_gold2) f on a.section=f.section and a.id=f.id
 order by case when a.section='Village' then 1 when a.section='Castle' then 2 else 3 end;
 
 /* Getting the history of PBs by the day of the week */
 
-drop table if exists weekday_data_sawken;
-create table weekday_data_sawken as
+drop table if exists weekday_data_runner;
+create table weekday_data_runner as
 select a.*, golds, chapter_golds, section_golds, best_paces,
 attempts/case when number_of_pbs=0 then null else number_of_pbs end as attempts_to_get_a_pb,
 round((round(golds, 4)/round(attempts, 4))*100, 2)||'%' as golds_ratio,
@@ -2323,11 +2323,11 @@ sum(playtime) as playtime, count(distinct id) as attempts, count(distinct case w
 round(round(round(count(distinct case when pb=1 then id else null end), 4)/round(count(distinct id), 4), 4)*100, 2)||'%' as pb_ratio,
 round(sum(playtime))/case when round(count(distinct case when pb=1 then id else null end))=0 then null else
 round(count(distinct case when pb=1 then id else null end)) end playtime_to_get_a_pb
-from attempts_treatment3_sawken
+from attempts_treatment3_runner
 group by 1) a
 left join (
 select case when extract(dow from date_started)=0 then 7 else extract(dow from date_started) end as weekday, sum(golded_split) as golds,
 sum(golded_chapter) as chapter_golds, sum(golded_section) as section_golds, sum(was_best_pace) as best_paces
-from splits_overview_sawken
+from splits_overview_runner
 group by 1) b on a.weekday=b.weekday
 order by a.weekday;
