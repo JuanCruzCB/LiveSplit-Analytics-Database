@@ -9,30 +9,25 @@ class SplitsFileParseError(Exception):
 
 
 class RE4SplitsManager:
-    CURRENTLY_ALLOWED_SPLITS = (
-        "splits luis.lss",
-        "splits joker.lss",
-        "splits mateo.lss",
-        "splits arcadan.lss",
-        "splits richy.lss",
-        "splits derek.lss",
-        "splits nevs.lss",
-        "splits otaku.lss",
-        "splits pocho.lss",
-        "splits missing.lss",
-    )
-
     def __init__(
         self,
         splits_output_folder: Path,
         my_splits_file: Path,
+        currently_allowed_runners: list[str],
     ) -> None:
         self._splits_output_folder = splits_output_folder
         self._my_splits_file = my_splits_file
+        self._currently_allowed_splits = [
+            f"splits {runner}.lss" for runner in currently_allowed_runners
+        ] + [my_splits_file.stem]
 
     @property
     def splits_output_folder(self) -> Path:
         return self._splits_output_folder
+
+    @property
+    def currently_allowed_splits(self) -> list[str]:
+        return self._currently_allowed_splits
 
     def get_splits_names(self) -> dict[str, datetime]:
         """

@@ -1,18 +1,17 @@
 from pathlib import Path
 
+from config import (
+    GLOBAL_SQL_FILE,
+    LAST_UPDATES_FILE,
+    MAIN_SQL_FILE,
+    load_config,
+    validate_paths,
+)
 from google_auth_manager import GoogleAuthManager
 from re4drive_manager import RE4DriveManager
 from re4query_runner import RE4QueryRunner
 from re4sheet_manager import RE4SheetManager
 from re4splits_manager import RE4SplitsManager
-from setup import (
-    GLOBAL_SQL_FILE,
-    GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE,
-    LAST_UPDATES_FILE,
-    MAIN_SQL_FILE,
-    load_environment_variables,
-    validate_paths,
-)
 
 
 def update_db_and_sheet(
@@ -60,20 +59,26 @@ def update_db_and_sheet(
 
 def main() -> None:
     (
-        my_splits_file_str,
-        other_runners_splits_folder_str,
+        other_runners_splits_folder,
+        my_splits_file,
+        service_account_secrets_file,
         google_sheet_url,
         google_drive_folder_id,
-    ) = load_environment_variables()
+        db_config,
+        runners,
+    ) = load_config()
 
-    validate_paths(my_splits_file_str, other_runners_splits_folder_str)
+    validate_paths(
+        other_runners_splits_folder, my_splits_file, service_account_secrets_file
+    )
 
     auth_manager = GoogleAuthManager(
-        service_account_file=GOOGLE_SERVICE_ACCOUNT_SECRETS_FILE
+        service_account_file=Path(service_account_secrets_file)
     )
     splits_manager = RE4SplitsManager(
-        splits_output_folder=Path(other_runners_splits_folder_str),
-        my_splits_file=Path(my_splits_file_str),
+        splits_output_folder=Path(other_runners_splits_folder),
+        my_splits_file=Path(my_splits_file),
+        currently_allowed_runners=runners,
     )
     drive_manager = RE4DriveManager(
         google_drive_folder_id=google_drive_folder_id,
@@ -87,6 +92,9 @@ def main() -> None:
         main_sql_script=MAIN_SQL_FILE,
         global_sql_script=GLOBAL_SQL_FILE,
         last_updates_file=LAST_UPDATES_FILE,
+        db_config=db_config,
+        my_splits_file=Path(my_splits_file),
+        currently_allowed_runners=runners,
     )
 
     print("Getting splits")

@@ -55,7 +55,7 @@ class RE4DriveManager:
 
         if (
             "splits" in filename
-            and filename not in self._splits_manager.CURRENTLY_ALLOWED_SPLITS
+            and filename not in self._splits_manager.currently_allowed_splits
         ):
             return print(f"Ignoring unknown splits file: '{filename}'")
 

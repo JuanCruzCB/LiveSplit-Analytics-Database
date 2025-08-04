@@ -2,7 +2,6 @@ import json
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, ClassVar
 
 import psycopg2
 from pandas import DataFrame
@@ -31,39 +30,28 @@ class DatabaseError(Exception):
 
 class RE4DatabaseManager:
     DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
-    DB_CONFIG: ClassVar[dict[str, Any]] = {
-        "dbname": "postgres",
-        "user": "postgres",
-        "host": "localhost",
-        "password": 123,
-        "port": 5432,
-    }
-    DEFAULT_UPDATES: ClassVar[dict[str, str]] = dict.fromkeys(
-        [
-            "1. NG Pro",
-            "splits arcadan",
-            "splits derek",
-            "splits joker",
-            "splits luis",
-            "splits mateo",
-            "splits richy",
-            "splits nevs",
-            "splits otaku",
-            "splits pocho",
-            "splits missing",
-        ],
-        "1/1/2025 1:00:00",
-    )
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         main_sql_script: Path,
         global_sql_script: Path,
         last_updates_file: Path,
+        db_config: dict,
+        my_splits_file: Path,
+        currently_allowed_runners: list[str],
     ) -> None:
         self._main_sql_script = main_sql_script
         self._global_sql_script = global_sql_script
         self._last_updates_file = last_updates_file
+        self._db_config = db_config
+
+        all_splits_names = [my_splits_file.stem] + [
+            f"splits {runner}" for runner in currently_allowed_runners
+        ]
+        self._default_updates = dict.fromkeys(
+            all_splits_names,
+            "1/1/2025 1:00:00",
+        )
 
         self._connection = None
         self._cursor = None
@@ -74,12 +62,12 @@ class RE4DatabaseManager:
         hardcoded credentials and create a cursor object.
         """
         try:
-            self._connection = psycopg2.connect(**self.DB_CONFIG)
+            self._connection = psycopg2.connect(**self._db_config)
             self._cursor = self._connection.cursor()
         except psycopg2.Error as e:
             raise DatabaseError(
                 message="Failed to connect to local Postgres Database.",
-                db_config=self.DB_CONFIG,
+                db_config=self._db_config,
                 original_exception=e,
             ) from e
 
@@ -113,8 +101,8 @@ class RE4DatabaseManager:
         """
         if not self._last_updates_file.exists():
             with Path(self._last_updates_file).open(mode="w") as json_file:
-                json.dump(obj=self.DEFAULT_UPDATES, fp=json_file, indent=4)
-            return self.DEFAULT_UPDATES
+                json.dump(obj=self._default_updates, fp=json_file, indent=4)
+            return self._default_updates
 
         with Path(self._last_updates_file).open(mode="r") as json_file:
             return json.load(fp=json_file)

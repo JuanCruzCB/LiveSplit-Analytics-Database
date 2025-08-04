@@ -58,25 +58,15 @@ class OrderColumns(StrEnum):
 
 class RE4QueryRunner:
     GOOD_DATE_FORMAT = "%d/%m/%Y"
-    CURRENTLY_ALLOWED_RUNNERS = (
-        "sawken",
-        "luis",
-        "joker",
-        "mateo",
-        "arcadan",
-        "richy",
-        "derek",
-        "nevs",
-        "otaku",
-        "pocho",
-        "missing",
-    )
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         main_sql_script: Path,
         global_sql_script: Path,
         last_updates_file: Path,
+        db_config: dict[str, str],
+        my_splits_file: Path,
+        currently_allowed_runners: list[str],
         runner: str = "sawken",
     ):
         self._runner = runner
@@ -84,7 +74,11 @@ class RE4QueryRunner:
             main_sql_script=main_sql_script,
             global_sql_script=global_sql_script,
             last_updates_file=last_updates_file,
+            db_config=db_config,
+            my_splits_file=my_splits_file,
+            currently_allowed_runners=currently_allowed_runners,
         )
+        self._currently_allowed_runners = currently_allowed_runners
         self._excel_dir = Path(__file__).parent.parent / "excels"
         self._excel_dir.mkdir(exist_ok=True)
 
@@ -155,7 +149,7 @@ class RE4QueryRunner:
         In addition, there's a column with the best chapter gold for each
         chapter, and a column with the cumulative best chapters.
         """
-        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+        runners = ", ".join(self._currently_allowed_runners)
         global_chapter_golds_query = f"""
         SELECT chapter, {runners}
         FROM global_chapter_golds
@@ -178,7 +172,7 @@ class RE4QueryRunner:
         In addition, there's a column with the best chapter gold for each
         chapter, and a column with the cumulative best chapters.
         """
-        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+        runners = ", ".join(self._currently_allowed_runners)
         global_chapter_golds_by_doors_query = f"""
         SELECT {runners}
         FROM global_chapter_golds_doors;
@@ -200,7 +194,7 @@ class RE4QueryRunner:
         In addition, there's a column with the best section gold for each
         section, and a column with the cumulative best sections.
         """
-        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+        runners = ", ".join(self._currently_allowed_runners)
         global_section_golds_query = f"""
         SELECT {runners}
         FROM global_section_golds;
@@ -221,7 +215,7 @@ class RE4QueryRunner:
         In addition, there's a column with the best section gold for each
         section, and a column with the cumulative best sections.
         """
-        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+        runners = ", ".join(self._currently_allowed_runners)
         global_section_golds_by_chapters_query = f"""
         SELECT {runners}
         FROM global_section_golds_chapters;
@@ -246,7 +240,7 @@ class RE4QueryRunner:
         In addition, there's a column with the best section gold for each
         section, and a column with the cumulative best sections.
         """
-        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+        runners = ", ".join(self._currently_allowed_runners)
         global_section_golds_by_doors_query = f"""
         SELECT {runners}
         FROM global_section_golds_doors;
@@ -288,7 +282,7 @@ class RE4QueryRunner:
         3) Their total number of attempts or resets.
         4) Their total playtime, in days and hours.
         """
-        runners = ", ".join(self.CURRENTLY_ALLOWED_RUNNERS)
+        runners = ", ".join(self._currently_allowed_runners)
         general_stats_query = f"""
         SELECT chapter, {runners}
         FROM global_chapter_golds
@@ -304,7 +298,7 @@ class RE4QueryRunner:
         """
         columns = ",\n".join(
             f"case when percent_{name} < 0 then 0 else percent_{name} end as percent_{name}"
-            for name in self.CURRENTLY_ALLOWED_RUNNERS
+            for name in self._currently_allowed_runners
         )
         resets_query = f"""
         SELECT split,
