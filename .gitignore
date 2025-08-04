@@ -6,9 +6,13 @@ venv/
 # Project files/dirs
 
 src/queries.py
-credentials/
 excels/
 info/
+
+# Config files
+
+config.yaml
+service_account_secrets.json
 
 # VSCode stuff
 
@@ -19,8 +23,3 @@ info/
 __pycache__/
 *.pyc
 *.pyo
-
-# Environment variables
-
-.env
-*.env
