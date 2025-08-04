@@ -30,16 +30,13 @@ class Config:
         paths = [
             self.individual_sql_file,
             self.global_sql_file,
-            self.main_runner_splits_file,
             self.other_runners_splits_folder,
+            self.main_runner_splits_file,
             self.service_account_secrets_file,
         ]
         for path in paths:
             if not path.exists():
-                if path.is_file():
-                    msg = f"The file {path} does not exist."
-                elif path.is_dir():
-                    msg = f"The folder {path} does not exist."
+                msg = f"The file or folder {path} does not exist."
                 raise FileNotFoundError(msg)
 
 
