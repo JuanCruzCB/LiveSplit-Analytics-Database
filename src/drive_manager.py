@@ -3,17 +3,17 @@ from typing import Any
 
 from pydrive2.drive import GoogleDrive
 
-from re4splits_manager import RE4SplitsManager
+from splits_manager import SplitsManager
 
 
-class RE4DriveManager:
+class DriveManager:
     GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
     def __init__(
         self,
         google_drive_folder_id: str,
         google_drive: GoogleDrive,
-        splits_manager: RE4SplitsManager,
+        splits_manager: SplitsManager,
     ) -> None:
         self._google_drive_folder_id = google_drive_folder_id
         self._google_drive = google_drive

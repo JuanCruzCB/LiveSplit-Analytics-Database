@@ -18,7 +18,7 @@ class Config:
     other_runners_splits_folder: Path
     main_runner_splits_file: Path
     service_account_secrets_file: Path
-    google_sheet_url: str
+    google_sheet_id: str
     google_drive_folder_id: str
     db_config: dict[str, str]
     allowed_runners: list[str]
@@ -52,7 +52,7 @@ def load_config() -> Config:
         service_account_secrets_file = Path(
             config["main"]["service_account_secrets_file"]
         )
-        google_sheet_url = config["main"]["google_sheet_url"]
+        google_sheet_id = config["main"]["google_sheet_id"]
         google_drive_folder_id = config["main"]["google_drive_folder_id"]
 
         db_config = config["database"]
@@ -70,7 +70,7 @@ def load_config() -> Config:
         other_runners_splits_folder=other_runners_splits_folder,
         main_runner_splits_file=main_runner_splits_file,
         service_account_secrets_file=service_account_secrets_file,
-        google_sheet_url=google_sheet_url,
+        google_sheet_id=google_sheet_id,
         google_drive_folder_id=google_drive_folder_id,
         db_config=db_config,
         allowed_runners=runners,

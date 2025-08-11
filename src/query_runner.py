@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 from pandas import DataFrame
 
-from re4database_manager import RE4DatabaseManager
+from database_manager import DatabaseManager
 from utils import format_time, parse_time
 
 
@@ -57,12 +57,12 @@ class OrderColumns(StrEnum):
     DATE_STARTED = "date_started"
 
 
-class RE4QueryRunner:
+class QueryRunner:
     GOOD_DATE_FORMAT = "%d/%m/%Y"
 
     def __init__(
         self,
-        db_manager: RE4DatabaseManager,
+        db_manager: DatabaseManager,
         allowed_runners: list[str],
         runner: str = "sawken",
     ):
@@ -100,7 +100,7 @@ class RE4QueryRunner:
     @staticmethod
     def _add_best_and_cumulative_best_columns(golds: DataFrame) -> DataFrame:
         golds["Best gold"] = golds.apply(
-            RE4QueryRunner._calculate_best_time,
+            QueryRunner._calculate_best_time,
             axis=1,
         )
         golds["Best gold seconds"] = golds["Best gold"].map(parse_time)
@@ -122,7 +122,7 @@ class RE4QueryRunner:
         remove_last_cell: bool = True,  # noqa: FBT001, FBT002
     ) -> DataFrame:
         df["Best"] = df.apply(
-            RE4QueryRunner._calculate_best_time,
+            QueryRunner._calculate_best_time,
             axis=1,
         )
         if remove_last_cell:
@@ -155,9 +155,7 @@ class RE4QueryRunner:
         """  # noqa: S608
         chapter_golds = self._db.query(query=global_chapter_golds_query)
         chapter_golds = chapter_golds.drop(columns=["chapter"])
-        chapter_golds = RE4QueryRunner._add_best_and_cumulative_best_columns(
-            chapter_golds
-        )
+        chapter_golds = QueryRunner._add_best_and_cumulative_best_columns(chapter_golds)
         return chapter_golds
 
     def get_chapter_golds_by_doors(self) -> DataFrame:
@@ -178,7 +176,7 @@ class RE4QueryRunner:
         chapter_golds_by_doors = self._db.query(
             query=global_chapter_golds_by_doors_query
         )
-        chapter_golds_by_doors = RE4QueryRunner._add_best_and_cumulative_best_columns(
+        chapter_golds_by_doors = QueryRunner._add_best_and_cumulative_best_columns(
             chapter_golds_by_doors
         )
         return chapter_golds_by_doors
@@ -198,9 +196,7 @@ class RE4QueryRunner:
         FROM global_section_golds;
         """  # noqa: S608
         section_golds = self._db.query(query=global_section_golds_query)
-        section_golds = RE4QueryRunner._add_best_and_cumulative_best_columns(
-            section_golds
-        )
+        section_golds = QueryRunner._add_best_and_cumulative_best_columns(section_golds)
         return section_golds
 
     def get_section_golds_by_chapters(self) -> DataFrame:
@@ -221,10 +217,8 @@ class RE4QueryRunner:
         section_golds_by_chapters = self._db.query(
             query=global_section_golds_by_chapters_query
         )
-        section_golds_by_chapters = (
-            RE4QueryRunner._add_best_and_cumulative_best_columns(
-                section_golds_by_chapters
-            )
+        section_golds_by_chapters = QueryRunner._add_best_and_cumulative_best_columns(
+            section_golds_by_chapters
         )
         return section_golds_by_chapters
 
@@ -246,7 +240,7 @@ class RE4QueryRunner:
         section_golds_by_doors = self._db.query(
             query=global_section_golds_by_doors_query
         )
-        section_golds_by_doors = RE4QueryRunner._add_best_and_cumulative_best_columns(
+        section_golds_by_doors = QueryRunner._add_best_and_cumulative_best_columns(
             section_golds_by_doors
         )
         return section_golds_by_doors
@@ -261,7 +255,7 @@ class RE4QueryRunner:
         """
         best_paces = self._db.query(query=ConstantQuery.BEST_PACES_QUERY)
         best_paces = best_paces.drop(columns=["chapter"])
-        best_paces = RE4QueryRunner._add_best_column(best_paces, remove_last_cell=False)
+        best_paces = QueryRunner._add_best_column(best_paces, remove_last_cell=False)
         return best_paces
 
     def get_rng_patterns(self) -> DataFrame:

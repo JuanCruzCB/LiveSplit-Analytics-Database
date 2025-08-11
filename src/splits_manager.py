@@ -8,7 +8,7 @@ class SplitsFileParseError(Exception):
     """Raised when a splits file cannot be parsed as expected."""
 
 
-class RE4SplitsManager:
+class SplitsManager:
     def __init__(
         self,
         splits_output_folder: Path,

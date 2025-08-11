@@ -103,7 +103,7 @@ class DatabaseError(Exception):
         return f"{self.message}{config_info}"
 
 
-class RE4DatabaseManager:
+class DatabaseManager:
     def __init__(
         self,
         individual_sql_script: Path,

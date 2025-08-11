@@ -9,13 +9,13 @@ from pandas import DataFrame
 from utils import get_days_hours_str, get_hours_minutes_str
 
 
-class RE4SheetManager:
+class SheetManager:
     DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
     GOOD_DATE_FORMAT = "%d/%m/%Y"
     BAD_DATE_FORMAT = "%Y-%m-%d"
 
-    def __init__(self, gspread_client: Client, google_sheet_url: str):
-        self._spreadsheet = gspread_client.open_by_url(url=google_sheet_url)
+    def __init__(self, gspread_client: Client, google_sheet_id: str):
+        self._spreadsheet = gspread_client.open_by_key(google_sheet_id)
 
     def _update_sheet_with_copy(
         self,
