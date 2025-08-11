@@ -19,9 +19,7 @@ class GoogleAuthManager:
             self._gspread_client = self._auth_google_sheets()
         except (OSError, ValueError) as e:
             msg = f"Failed to authenticate with Google Drive or Google Sheets: {e}"
-            raise RuntimeError(
-                msg,
-            ) from e
+            raise RuntimeError(msg) from e
 
     @property
     def google_drive(self):

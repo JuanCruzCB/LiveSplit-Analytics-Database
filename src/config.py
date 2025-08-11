@@ -5,9 +5,9 @@ import yaml
 
 PROJECT_FOLDER = Path(__file__).parent.parent
 YAML_CONFIG_FILE = PROJECT_FOLDER / "config" / "config.yaml"
-INDIVIDUAL_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Individual.sql"
-GLOBAL_SQL_FILE = PROJECT_FOLDER / "scripts" / "NG Pro Global (LIGHT).sql"
 LAST_UPDATES_FILE = PROJECT_FOLDER / "config" / "last_table_updates.json"
+INDIVIDUAL_SQL_FILE = PROJECT_FOLDER / "sql scripts" / "individual.sql"
+GLOBAL_SQL_FILE = PROJECT_FOLDER / "sql scripts" / "global.sql"
 
 
 @dataclass
@@ -59,9 +59,14 @@ def load_config() -> Config:
 
         runners = [runner.strip() for runner in config["runners"] if runner.strip()]
 
-    except KeyError as err:
+        for runner in runners:
+            if "," in runner or "-" in runner or " " in runner or "_" in runner:
+                msg = "The runner names cannot have commas, hyphens, underscores or spaces."
+                raise ValueError(msg)
+
+    except KeyError as e:
         msg = "The structure of the config.yaml file is incorrect."
-        raise ValueError(msg) from err
+        raise ValueError(msg) from e
 
     cfg = Config(
         individual_sql_file=INDIVIDUAL_SQL_FILE,

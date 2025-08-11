@@ -5,8 +5,8 @@ from pathlib import Path
 import pandas as pd
 from pandas import DataFrame
 
-from database_manager import DatabaseManager
-from utils import format_time, parse_time
+from db.database_manager import DatabaseManager
+from db.utils import format_time, parse_time
 
 
 class ConstantQuery(StrEnum):
@@ -20,40 +20,11 @@ class ConstantQuery(StrEnum):
         WHERE table_schema = 'public'
         ORDER BY table_name;
     """
-    SAWKEN_VS_JOKER_MEDIAN_DOORSPLITS = """
-    SELECT
-    s.cle2,
-    s.door_median AS sawken_door_median,
-    j.door_median AS joker_door_median,
-    s.door_median2 AS sawken_door_median2,
-    j.door_median2 AS joker_door_median2,
-    s.door_median - j.door_median AS difference
-    FROM
-    (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_sawken) s
-    FULL JOIN
-    (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_joker) j
-    ON s.cle2 = j.cle2
-    ORDER BY s.cle2;
-    """
-    SAWKEN_VS_JOKER_GOLD_DOORSPLITS = """SELECT
-        s.cle2,
-        s.gold AS sawken_door_gold,
-        j.gold AS joker_door_gold,
-        s.gold2 AS sawken_door_gold2,
-        j.gold2 AS joker_door_gold2,
-        s.gold - j.gold AS difference
-    FROM
-        (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_sawken) s
-    FULL JOIN
-        (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_joker) j
-    ON s.cle2 = j.cle2
-    ORDER BY s.cle2;
-    """
 
 
 class OrderColumns(StrEnum):
-    LRT_NUMBER = "lrt_number"
-    CLE2 = "cle2"
+    LRT_RAW_TIME = "lrt_number"
+    SPLIT_NUMBER = "cle2"
     DATE_STARTED = "date_started"
 
 
@@ -64,13 +35,13 @@ class QueryRunner:
         self,
         db_manager: DatabaseManager,
         allowed_runners: list[str],
-        runner: str = "sawken",
+        main_runner_name: str,
     ):
         self._db = db_manager
         self._allowed_runners = allowed_runners
-        self._runner = runner
-        self._excel_dir = Path(__file__).parent.parent / "excels"
-        self._excel_dir.mkdir(exist_ok=True)
+        self._runner = main_runner_name
+        self._output_dir = Path(__file__).parent.parent.parent / "output"
+        self._output_dir.mkdir(exist_ok=True)
 
     """
     MAIN QUERIES
@@ -321,7 +292,7 @@ class QueryRunner:
                 errors="coerce",
             ).dt.strftime(self.GOOD_DATE_FORMAT)
         if excel_name:
-            result.to_excel(self._excel_dir / f"{excel_name}.xlsx", index=False)
+            result.to_excel(self._output_dir / f"{excel_name}.xlsx", index=False)
         return result
 
     def export_table_names(self):
@@ -332,9 +303,7 @@ class QueryRunner:
             if not any(x in t for x in ["treatment", "cleaned", "info", "notepad"])
         ]
 
-        relevant_tables_path = (
-            Path(__file__).parent.parent / "info" / "relevant_tables.txt"
-        )
+        relevant_tables_path = self._output_dir / "relevant_tables.txt"
         with Path(relevant_tables_path).open("w") as f:
             f.write("\n".join(relevant_table_names))
 
@@ -346,7 +315,7 @@ class QueryRunner:
             return self.run(
                 f"""SELECT ds.cle2, sn.split, ds.gold2, ds.date_started
                 FROM doorsplits_golds2_{self._runner} as ds
-                INNER JOIN default_split_names_sawken as sn on ds.cle2 = sn.cle2
+                INNER JOIN default_split_names_{self._runner} as sn on ds.cle2 = sn.cle2
                 ORDER BY cle2""",
                 f"{self._runner}_doorsplit_golds_v1",
             )
@@ -505,7 +474,7 @@ class QueryRunner:
     def split_history(
         self,
         split_name: str,
-        order_by: StrEnum = OrderColumns.LRT_NUMBER,
+        order_by: OrderColumns = OrderColumns.LRT_RAW_TIME,
         desc: bool = True,  # noqa: FBT001, FBT002
     ) -> DataFrame:
         """
@@ -521,21 +490,43 @@ class QueryRunner:
             f"{self._runner}_split_history_{split_name.replace('{', '').replace('}', '').replace('-', '')}",
         )
 
-    def compare_runners(
-        self,
-        other_runner: str,
-        compare_type: str = "golds",
-    ) -> DataFrame:
-        """
-        Compare two runners (golds or medians).
-        """
-        queries = {
-            "golds": ConstantQuery.SAWKEN_VS_JOKER_GOLD_DOORSPLITS,
-            "medians": ConstantQuery.SAWKEN_VS_JOKER_MEDIAN_DOORSPLITS,
-        }
+    def compare_runners_doorsplit_golds(self, other_runner: str) -> DataFrame:
         return self.run(
-            queries[compare_type].value,
-            f"comparison_{self._runner}_vs_{other_runner}_{compare_type}",
+            query=f"""SELECT
+            runner1.cle2 AS split_number,
+            runner1.gold AS {self._runner}_door_gold,
+            runner2.gold AS {other_runner}_door_gold,
+            runner1.gold2 AS {self._runner}_door_gold2,
+            runner2.gold2 AS {other_runner}_door_gold2,
+            runner1.gold - runner2.gold AS difference
+            FROM
+                (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_{self._runner}) runner1
+            FULL JOIN
+                (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_{other_runner}) runner2
+            ON runner1.cle2 = runner2.cle2
+            ORDER BY runner1.cle2;
+            """,
+            excel_name=f"doorsplit_golds_comparison_{self._runner}_vs_{other_runner}",
+        )
+
+    def compare_runners_doorsplit_medians(self, other_runner: str) -> DataFrame:
+        return self.run(
+            query=f"""
+            SELECT
+            runner1.cle2 AS split_number,
+            runner1.door_median AS {self._runner}_door_median,
+            runner2.door_median AS {other_runner}_door_median,
+            runner1.door_median2 AS {self._runner}_door_median2,
+            runner2.door_median2 AS {other_runner}_door_median2,
+            runner1.door_median - runner2.door_median AS difference
+            FROM
+            (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_{self._runner}) runner1
+            FULL JOIN
+            (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_{other_runner}) runner2
+            ON runner1.cle2 = runner2.cle2
+            ORDER BY runner1.cle2;
+            """,
+            excel_name=f"doorsplit_medians_comparison_{self._runner}_vs_{other_runner}",
         )
 
     def attempts_per_week(self) -> DataFrame:

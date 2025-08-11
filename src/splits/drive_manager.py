@@ -3,7 +3,7 @@ from typing import Any
 
 from pydrive2.drive import GoogleDrive
 
-from splits_manager import SplitsManager
+from splits.splits_manager import SplitsManager
 
 
 class DriveManager:

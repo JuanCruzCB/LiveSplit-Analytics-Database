@@ -6,8 +6,7 @@ venv/
 # Project files/dirs
 
 src/queries.py
-excels/
-info/
+output/
 
 # Config files
 

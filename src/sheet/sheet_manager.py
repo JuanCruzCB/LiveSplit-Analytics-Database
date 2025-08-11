@@ -6,7 +6,7 @@ from gspread import Client
 from gspread.exceptions import APIError, WorksheetNotFound
 from pandas import DataFrame
 
-from utils import get_days_hours_str, get_hours_minutes_str
+from sheet.utils import get_days_hours_str, get_hours_minutes_str
 
 
 class SheetManager:

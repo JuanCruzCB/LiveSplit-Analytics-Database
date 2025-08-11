@@ -1,12 +1,12 @@
 from pandas import DataFrame
 
+from auth.google_auth_manager import GoogleAuthManager
 from config import load_config
-from database_manager import DatabaseManager, LastUpdatesTracker
-from drive_manager import DriveManager
-from google_auth_manager import GoogleAuthManager
-from query_runner import QueryRunner
-from sheet_manager import SheetManager
-from splits_manager import SplitsManager
+from db.database_manager import DatabaseManager, LastUpdatesTracker
+from db.query_runner import QueryRunner
+from sheet.sheet_manager import SheetManager
+from splits.drive_manager import DriveManager
+from splits.splits_manager import SplitsManager
 
 
 def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
@@ -103,7 +103,9 @@ def main() -> None:
     )
 
     query_runner = QueryRunner(
-        db_manager=db_manager, allowed_runners=config.allowed_runners
+        db_manager=db_manager,
+        allowed_runners=config.allowed_runners,
+        main_runner_name=config.allowed_runners[0],
     )
 
     try:

@@ -18,7 +18,7 @@ class SplitsManager:
         self._splits_output_folder = splits_output_folder
         self._main_runner_splits_file = main_runner_splits_file
         self._currently_allowed_splits = [
-            f"splits {runner}.lss" for runner in allowed_runners[1:]
+            f"splits {runner}.lss" for runner in allowed_runners
         ]
 
     @property
