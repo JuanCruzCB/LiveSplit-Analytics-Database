@@ -1,104 +1,12 @@
-from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-
 from pandas import DataFrame
 
-from config import Config, load_config
+from config import load_config
 from google_auth_manager import GoogleAuthManager
 from re4database_manager import LastUpdatesTracker, RE4DatabaseManager
 from re4drive_manager import RE4DriveManager
 from re4query_runner import RE4QueryRunner
 from re4sheet_manager import RE4SheetManager
 from re4splits_manager import RE4SplitsManager
-
-
-@dataclass
-class Services:
-    auth_manager: GoogleAuthManager
-    splits_manager: RE4SplitsManager
-    drive_manager: RE4DriveManager
-    sheet_manager: RE4SheetManager
-    last_updates_tracker: LastUpdatesTracker
-    db_manager: RE4DatabaseManager
-    query_runner: RE4QueryRunner
-
-
-def initialize_services(config: Config) -> Services:
-    auth_manager = GoogleAuthManager(
-        service_account_secrets_file=config.service_account_secrets_file
-    )
-
-    splits_manager = RE4SplitsManager(
-        splits_output_folder=config.other_runners_splits_folder,
-        main_runner_splits_file=config.main_runner_splits_file,
-        allowed_runners=config.allowed_runners,
-    )
-
-    drive_manager = RE4DriveManager(
-        google_drive_folder_id=config.google_drive_folder_id,
-        google_drive=auth_manager.google_drive,
-        splits_manager=splits_manager,
-    )
-
-    sheet_manager = RE4SheetManager(
-        gspread_client=auth_manager.gspread_client,
-        google_sheet_url=config.google_sheet_url,
-    )
-
-    last_updates_tracker = LastUpdatesTracker(
-        storage_file=config.last_updates_file,
-        default_files=[
-            config.main_runner_splits_file,
-            *list(config.other_runners_splits_folder.glob("*.lss")),
-        ],
-    )
-
-    db_manager = RE4DatabaseManager(
-        individual_sql_script=config.individual_sql_file,
-        global_sql_script=config.global_sql_file,
-        db_config=config.db_config,
-        main_runner_name=config.allowed_runners[0],
-        last_updates_tracker=last_updates_tracker,
-    )
-
-    query_runner = RE4QueryRunner(
-        db_manager=db_manager, allowed_runners=config.allowed_runners
-    )
-
-    return Services(
-        auth_manager=auth_manager,
-        splits_manager=splits_manager,
-        drive_manager=drive_manager,
-        sheet_manager=sheet_manager,
-        last_updates_tracker=last_updates_tracker,
-        db_manager=db_manager,
-        query_runner=query_runner,
-    )
-
-
-def sync_and_clean_splits(
-    drive_manager: RE4DriveManager, splits_manager: RE4SplitsManager
-) -> dict[Path, datetime]:
-    print("Syncing and cleaning splits data")
-    print("=" * 100)
-    drive_manager.sync_local_splits()
-    splits_manager.clean_splits()
-    print("=" * 100 + "\n")
-    return splits_manager.get_splits_last_modtime()
-
-
-def update_database(
-    query_runner: RE4QueryRunner, splits_data: dict[Path, datetime]
-) -> bool:
-    print("Updating database tables")
-    print("=" * 100)
-    query_runner.open_db_connection()
-    has_new_data = query_runner.update_runners_tables(splits=splits_data)
-    if has_new_data:
-        query_runner.update_global_tables()
-    print("=" * 100 + "\n")
-    return has_new_data
 
 
 def get_all_database_data(query_runner: RE4QueryRunner) -> dict[str, DataFrame]:
@@ -148,19 +56,72 @@ def update_google_sheet(
 
 def main() -> None:
     config = load_config()
-    services = initialize_services(config)
+    print("Logging in to Google Drive and Google Sheets...")
+    print("=" * 100)
+    auth_manager = GoogleAuthManager(
+        service_account_secrets_file=config.service_account_secrets_file
+    )
+    print("Logged in succesfully!")
+    print("=" * 100 + "\n")
+
+    splits_manager = RE4SplitsManager(
+        splits_output_folder=config.other_runners_splits_folder,
+        main_runner_splits_file=config.main_runner_splits_file,
+        allowed_runners=config.allowed_runners,
+    )
+
+    drive_manager = RE4DriveManager(
+        google_drive_folder_id=config.google_drive_folder_id,
+        google_drive=auth_manager.google_drive,
+        splits_manager=splits_manager,
+    )
+
+    print("Downloading any out-of-sync split files from the Drive...")
+    print("=" * 100)
+    drive_manager.sync_local_splits()
+    print("=" * 100 + "\n")
+    print("Cleaning any dirty split files...")
+    print("=" * 100)
+    splits_manager.clean_splits()
+    print("=" * 100 + "\n")
+
+    sheet_manager = RE4SheetManager(
+        gspread_client=auth_manager.gspread_client,
+        google_sheet_url=config.google_sheet_url,
+    )
+
+    last_updates_tracker = LastUpdatesTracker(
+        storage_file=config.last_updates_file, default_files=splits_manager.get_splits()
+    )
+
+    db_manager = RE4DatabaseManager(
+        individual_sql_script=config.individual_sql_file,
+        global_sql_script=config.global_sql_file,
+        db_config=config.db_config,
+        main_runner_name=config.allowed_runners[0],
+        last_updates_tracker=last_updates_tracker,
+    )
+
+    query_runner = RE4QueryRunner(
+        db_manager=db_manager, allowed_runners=config.allowed_runners
+    )
 
     try:
-        splits_data = sync_and_clean_splits(
-            services.drive_manager, services.splits_manager
-        )
-        if update_database(services.query_runner, splits_data):
-            all_data = get_all_database_data(services.query_runner)
-            update_google_sheet(services.sheet_manager, all_data)
+        print("Updating database tables...")
+        print("=" * 100)
+        query_runner.open_db_connection()
+        if query_runner.update_runners_tables(
+            splits=splits_manager.get_splits_last_modtime()
+        ):
+            query_runner.update_global_tables()
+            print("=" * 100 + "\n")
+            all_data = get_all_database_data(query_runner)
+            update_google_sheet(sheet_manager, all_data)
         else:
+            print("=" * 100 + "\n")
             print("No new data - not updating the sheet.")
     finally:
-        services.query_runner.close_db_connection()
+        query_runner.close_db_connection()
 
 
 if __name__ == "__main__":

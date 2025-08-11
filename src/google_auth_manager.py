@@ -22,7 +22,6 @@ class GoogleAuthManager:
             raise RuntimeError(
                 msg,
             ) from e
-        print("Logged in to Google Drive and Google Sheets succesfully.")
 
     @property
     def google_drive(self):

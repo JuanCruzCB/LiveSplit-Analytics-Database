@@ -29,6 +29,12 @@ class RE4SplitsManager:
     def currently_allowed_splits(self) -> list[str]:
         return self._currently_allowed_splits
 
+    def get_splits(self) -> list[Path]:
+        return [
+            self._main_runner_splits_file,
+            *self._splits_output_folder.glob("*.lss"),
+        ]
+
     def get_splits_last_modtime(self) -> dict[Path, datetime]:
         """
         Checks the local folder containing the splits of the runners and
