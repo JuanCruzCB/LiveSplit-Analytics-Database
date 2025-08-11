@@ -6,30 +6,10 @@ from pathlib import Path
 import psycopg2
 from pandas import DataFrame
 
+from db.database_error import DatabaseError
 from db.last_updates_tracker import LastUpdatesTracker
 
 logger = logging.getLogger(__name__)
-
-
-class DatabaseError(Exception):
-    """
-    Custom exception for database connection failures.
-    """
-
-    def __init__(
-        self,
-        message: str = "There's no current connection to the local Postgres Database.",
-        db_config: dict | None = None,
-        original_exception: Exception | None = None,
-    ) -> None:
-        self.message = message
-        self.db_config = db_config
-        self.original_exception = original_exception
-        super().__init__(message)
-
-    def __str__(self) -> str:
-        config_info = f" (Config: {self.db_config})" if self.db_config else ""
-        return f"{self.message}{config_info}"
 
 
 class DatabaseManager:
@@ -74,6 +54,35 @@ class DatabaseManager:
         if self._connection:
             self._connection.close()
 
+    def execute(
+        self,
+        query: str,
+        message: str = "Unspecified query ran",
+        params: dict | None = None,
+    ) -> DataFrame:
+        """
+        Return a DataFrame with the results of running the specified query
+        on the db.
+        """
+        if not self._connection or not self._cursor:
+            raise DatabaseError
+
+        try:
+            start = time.time()
+            self._cursor.execute(query, params)
+            self._connection.commit()
+            end = time.time()
+            logger.info("%s in %.3f seconds!", message, end - start)
+            return DataFrame(
+                data=self._cursor.fetchall(),
+                columns=[desc[0] for desc in self._cursor.description],
+            )
+        except psycopg2.Error as e:
+            raise DatabaseError(
+                message=f"There was an SQL error while running the query {query}.",
+                original_exception=e,
+            ) from e
+
     def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
         """
         If there's currently a connection, run the main SQL script.
@@ -105,8 +114,8 @@ class DatabaseManager:
             modified_script = modified_script.replace("path", f"{split!s}")
 
             try:
-                self._execute_sql_script(
-                    modified_script,
+                self.execute(
+                    query=modified_script,
                     message=f"Updated the database tables for {runner_name} successfully",
                 )
             except psycopg2.Error as e:
@@ -129,45 +138,17 @@ class DatabaseManager:
         if not self._connection or not self._cursor:
             raise DatabaseError
 
-        logger.info("Updating the global database tables...")
         try:
-            self._execute_sql_script(
-                sql_script=self._global_sql_script.read_text(),
+            logger.info("Updating the global database tables...")
+            self.execute(
+                query=self._global_sql_script.read_text(),
                 message="Updated the database global tables successfully",
             )
-
         except psycopg2.Error as e:
             raise DatabaseError(
                 message="There was an SQL error while updating the global tables.",
                 original_exception=e,
             ) from e
-
-    def query(self, query: str, params: tuple | None = None) -> DataFrame:
-        """
-        Return a DataFrame with the results of running the specified query
-        on the db.
-        """
-        if not self._connection or not self._cursor:
-            raise DatabaseError
-
-        try:
-            self._cursor.execute(query, params)
-            return DataFrame(
-                data=self._cursor.fetchall(),
-                columns=[desc[0] for desc in self._cursor.description],
-            )
-        except psycopg2.Error as e:
-            raise DatabaseError(
-                message=f"There was an SQL error while running the query {query}.",
-                original_exception=e,
-            ) from e
-
-    def _execute_sql_script(self, sql_script: str, message: str):
-        start = time.time()
-        self._cursor.execute(sql_script)
-        self._connection.commit()
-        end = time.time()
-        logger.info("%s in %.3f seconds!", message, end - start)
 
     def __del__(self) -> None:
         self.close_connection()

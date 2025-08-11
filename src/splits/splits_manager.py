@@ -4,11 +4,9 @@ from pathlib import Path
 
 from defusedxml.ElementTree import parse
 
+from splits.splits_file_parse_error import SplitsFileParseError
+
 logger = logging.getLogger(__name__)
-
-
-class SplitsFileParseError(Exception):
-    """Raised when a splits file cannot be parsed as expected."""
 
 
 class SplitsManager:

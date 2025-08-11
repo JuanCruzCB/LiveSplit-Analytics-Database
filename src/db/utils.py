@@ -34,3 +34,12 @@ def parse_time(time: str) -> Decimal:
         return int(minutes) * 60 + Decimal(seconds)
 
     return Decimal(time)
+
+
+def calculate_best_time(times: list[str]) -> str:
+    """
+    Receives a list of times in [H]:MM:SS.mmm format and
+    returns the minimum time among all of them.
+    """
+    times_decimal = [parse_time(cg) for cg in times]
+    return format_time(min(times_decimal))
