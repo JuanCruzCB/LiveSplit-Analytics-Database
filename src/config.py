@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -8,6 +9,8 @@ YAML_CONFIG_FILE = PROJECT_FOLDER / "config" / "config.yaml"
 LAST_UPDATES_FILE = PROJECT_FOLDER / "config" / "last_table_updates.json"
 INDIVIDUAL_SQL_FILE = PROJECT_FOLDER / "sql scripts" / "individual.sql"
 GLOBAL_SQL_FILE = PROJECT_FOLDER / "sql scripts" / "global.sql"
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -37,6 +40,7 @@ class Config:
         for path in paths:
             if not path.exists():
                 msg = f"The file or folder {path} does not exist."
+                logger.exception(msg)
                 raise FileNotFoundError(msg)
 
 
@@ -62,10 +66,12 @@ def load_config() -> Config:
         for runner in runners:
             if "," in runner or "-" in runner or " " in runner or "_" in runner:
                 msg = "The runner names cannot have commas, hyphens, underscores or spaces."
+                logger.exception(msg)
                 raise ValueError(msg)
 
     except KeyError as e:
         msg = "The structure of the config.yaml file is incorrect."
+        logger.exception(msg)
         raise ValueError(msg) from e
 
     cfg = Config(
@@ -82,3 +88,15 @@ def load_config() -> Config:
     )
     cfg.validate()
     return cfg
+
+
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%d/%m/%Y %I:%M:%S %p",
+        handlers=[
+            logging.FileHandler(PROJECT_FOLDER / "output" / "history.log"),
+            logging.StreamHandler(),
+        ],
+    )

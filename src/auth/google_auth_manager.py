@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 
 from google.oauth2.service_account import Credentials
 from gspread import authorize
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleAuthManager:
@@ -13,12 +16,15 @@ class GoogleAuthManager:
     """
 
     def __init__(self, service_account_secrets_file: Path):
+        logger.info("Logging in to Google Drive and Google Sheets...")
         self._service_account_secrets_file = service_account_secrets_file
         try:
             self._google_drive = self._auth_google_drive()
             self._gspread_client = self._auth_google_sheets()
+            logger.info("Logged in succesfully!")
         except (OSError, ValueError) as e:
             msg = f"Failed to authenticate with Google Drive or Google Sheets: {e}"
+            logger.exception(msg)
             raise RuntimeError(msg) from e
 
     @property

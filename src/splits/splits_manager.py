@@ -1,7 +1,10 @@
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
 from defusedxml.ElementTree import parse
+
+logger = logging.getLogger(__name__)
 
 
 class SplitsFileParseError(Exception):
@@ -83,16 +86,18 @@ class SplitsManager:
         To clean them, first remove all data of the Icon tags, then
         remove any commas from any split name, then ???
         """
+        logger.info("Cleaning any dirty split files...")
         self._check_splits_folder_existence()
 
         for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
             splits_are_dirty = False
-            print(f"Checking '{splits_file.name}'...", end="")
+            logger.info("Checking '%s'...", splits_file.name)
             splits_file_tree = parse(splits_file)
             root = splits_file_tree.getroot()
 
             if root is None:
                 msg = f"An unexpected error ocurred while inspecting '{splits_file.name}'."
+                logger.exception(msg)
                 raise SplitsFileParseError(msg)
 
             # 1. Ensure the splits don't have any icons
@@ -108,17 +113,15 @@ class SplitsManager:
                     splits_are_dirty = True
 
             if splits_are_dirty:
-                print(" Splits are dirty, cleaning them...", end="")
+                logger.info("Splits are dirty, cleaning them...")
                 splits_file_tree.write(
                     splits_file,
                     encoding="utf-8",
                     xml_declaration=True,
                 )
-            else:
-                print(" ✅", end="")
-            print()
 
     def _check_splits_folder_existence(self):
         if not self._splits_output_folder.exists():
             msg = "The output folder for the splits of other runners does not exist."
+            logger.exception(msg)
             raise FileNotFoundError(msg)

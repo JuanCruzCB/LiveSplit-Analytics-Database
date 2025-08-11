@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -7,6 +8,8 @@ from gspread.exceptions import APIError, WorksheetNotFound
 from pandas import DataFrame
 
 from sheet.utils import get_days_hours_str, get_hours_minutes_str
+
+logger = logging.getLogger(__name__)
 
 
 class SheetManager:
@@ -39,22 +42,25 @@ class SheetManager:
 
             if original_data:
                 old_sheet.update(values=original_data, range_name="A1")
-                print(f"Backup '{old_sheet_tab_name}' overwritten successfully!")
+                logger.info("Backup '%s' overwritten successfully!", old_sheet_tab_name)
 
             original_sheet.update(
                 range_name=starting_cell,
                 values=data_list,
             )
-            print(f"Sheet '{sheet_tab_name}' updated successfully!")
+            logger.info("Sheet '%s' updated successfully!", sheet_tab_name)
 
         except WorksheetNotFound as e:
             msg = f"Sheet tab '{sheet_tab_name}' not found in the Google Sheet."
+            logger.exception(msg)
             raise ValueError(msg) from e
         except APIError as e:
             msg = f"Google Sheets API error while updating '{sheet_tab_name}': {e!s}"
+            logger.exception(msg)
             raise RuntimeError(msg) from e
         except Exception as e:
             msg = f"Unexpected error while updating '{sheet_tab_name}': {e!s}"
+            logger.exception(msg)
             raise RuntimeError(msg) from e
 
     def _update_sheet_without_copy(
@@ -74,16 +80,19 @@ class SheetManager:
                 range_name=starting_cell,
                 values=data_list,
             )
-            print(f"Sheet '{sheet_tab_name}' updated successfully!")
+            logger.info("Sheet '%s' updated successfully!", sheet_tab_name)
 
         except WorksheetNotFound as e:
             msg = f"Sheet tab '{sheet_tab_name}' not found in the Google Sheet."
+            logger.exception(msg)
             raise ValueError(msg) from e
         except APIError as e:
             msg = f"Google Sheets API error while updating '{sheet_tab_name}': {e!s}"
+            logger.exception(msg)
             raise RuntimeError(msg) from e
         except Exception as e:
             msg = f"Unexpected error while updating '{sheet_tab_name}': {e!s}"
+            logger.exception(msg)
             raise RuntimeError(msg) from e
 
     def copy_doorsplits_to_sheet(self, doorsplit_golds: DataFrame) -> None:
@@ -214,10 +223,13 @@ class SheetManager:
             )
         except WorksheetNotFound as e:
             msg = "The tab 'Title' does not exist in the Google Sheet."
+            logger.exception(msg)
             raise ValueError(msg) from e
         except APIError as e:
             msg = "Google Sheets API error during post_last_update."
+            logger.exception(msg)
             raise RuntimeError(msg) from e
         except Exception as e:
             msg = "Unexpected error during post_last_update."
+            logger.exception(msg)
             raise RuntimeError(msg) from e

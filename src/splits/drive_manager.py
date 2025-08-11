@@ -1,9 +1,12 @@
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
 from pydrive2.drive import GoogleDrive
 
 from splits.splits_manager import SplitsManager
+
+logger = logging.getLogger(__name__)
 
 
 class DriveManager:
@@ -27,6 +30,7 @@ class DriveManager:
         Additionally, also download splits files that are allowed but don't
         yet exist locally because they haven't been downloaded yet.
         """
+        logger.info("Downloading any out-of-sync split files from the Drive...")
         local_splits = self._splits_manager.get_splits_stem_last_modtime()
         query = {"q": f"'{self._google_drive_folder_id}' in parents and trashed=false"}
         all_remote_files = self._google_drive.ListFile(query).GetList()
@@ -57,7 +61,7 @@ class DriveManager:
             "splits" in filename
             and filename not in self._splits_manager.currently_allowed_splits
         ):
-            return print(f"Ignoring unknown splits file: '{filename}'")
+            return logger.warning("Ignoring unknown splits file: '%s'", filename)
 
         base_name = filename.replace(".lss", "")
 
@@ -72,8 +76,9 @@ class DriveManager:
         if last_modified_datetime_remote > last_modified_datetime_local:
             return self._download_drive_splits(filename, remote_file, first_time="")
 
-        return print(
-            f"File '{filename}' is already up to date locally, so there's no need to update it."
+        return logger.info(
+            "Splits file '%s' is already up to date locally, so there's no need to update it.",
+            filename,
         )
 
     def _download_drive_splits(
@@ -83,8 +88,8 @@ class DriveManager:
         Download the specified splits_file from the Google Drive folder
         into the output folder assigned on the constructor.
 
-        Print a different message depending on whether this file
+        Log a different message depending on whether this file
         is being downloaded for the first time ever or not.
         """
-        print(f"Downloading '{filename}'{first_time}...")
+        logger.info("Downloading '%s'%s...", filename, first_time)
         splits_file.GetContentFile(self._splits_manager.splits_output_folder / filename)

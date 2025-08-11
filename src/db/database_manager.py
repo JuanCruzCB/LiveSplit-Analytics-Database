@@ -1,10 +1,13 @@
 import json
+import logging
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 
 import psycopg2
 from pandas import DataFrame
+
+logger = logging.getLogger(__name__)
 
 
 class LastUpdatesTracker:
@@ -152,6 +155,7 @@ class DatabaseManager:
         if not self._connection or not self._cursor:
             raise DatabaseError
 
+        logger.info("Updating the individual database tables...")
         sql_script = self._individual_sql_script.read_text()
         new_updates = False
 
@@ -160,8 +164,9 @@ class DatabaseManager:
             db_last_modified = self._last_updates_tracker.get_timestamp(file=split)
 
             if db_last_modified > file_last_modified:
-                print(
-                    f"Not updating the tables for file '{split}' since they are already up to date.",
+                logger.info(
+                    "Not updating the tables for splits file '%s' since they are already up to date.",
+                    split.name,
                 )
                 continue
 
@@ -187,6 +192,8 @@ class DatabaseManager:
             self._last_updates_tracker.set_timestamp_now(file=split)
             new_updates = True
 
+        if not new_updates:
+            logger.info("The database is already up to date.")
         return new_updates
 
     def update_global_tables(self) -> None:
@@ -196,6 +203,7 @@ class DatabaseManager:
         if not self._connection or not self._cursor:
             raise DatabaseError
 
+        logger.info("Updating the global database tables...")
         try:
             self._execute_sql_script(
                 sql_script=self._global_sql_script.read_text(),
@@ -233,7 +241,7 @@ class DatabaseManager:
         self._cursor.execute(sql_script)
         self._connection.commit()
         end = time.time()
-        print(f"{message} in {end - start:.3f} seconds!")
+        logger.info("%s in %.3f seconds!", message, end - start)
 
     def __del__(self) -> None:
         self.close_connection()
