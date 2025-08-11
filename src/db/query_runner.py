@@ -85,7 +85,8 @@ class QueryRunner:
     @staticmethod
     def _add_best_column(
         df: DataFrame,
-        remove_last_cell: bool = True,  # noqa: FBT001, FBT002
+        *,
+        remove_last_cell: bool = True,
     ) -> DataFrame:
         df["Best"] = df.apply(
             calculate_best_time,
@@ -276,13 +277,13 @@ class QueryRunner:
     SECONDARY QUERIES
     """
 
-    def run(
+    def execute(
         self, query: str, params: dict | None = None, excel_name: str = ""
     ) -> DataFrame:
         """
         Execute the query on the db and optionally save the data to an excel file.
         """
-        data = self._db.execute(query, params)
+        data = self._db.execute(query=query, params=params)
         if "date_started" in data.columns:
             data["date_started"] = data["date_started"].apply(
                 lambda x: pd.to_datetime(x, errors="coerce").strftime(
@@ -300,12 +301,12 @@ class QueryRunner:
         with Path(self._output_dir / "relevant_tables.txt").open("w") as f:
             f.write("\n".join(relevant_tables["table_name"].to_list()))
 
-    def doorsplit_golds(self, version: int = 2, ties: bool = False) -> DataFrame:  # noqa: FBT001, FBT002
+    def doorsplit_golds(self, version: int = 2, *, ties: bool = False) -> DataFrame:
         """
         Get all doorsplit golds (version 1 or 2).
         """
         if version == 1:
-            return self.run(
+            return self.execute(
                 query=f"""
                 SELECT ds_golds.cle2, ds_golds.split, ds_golds.gold2, ds_golds.date_started
                 FROM doorsplits_golds2_{self._runner} AS ds_golds
@@ -315,7 +316,7 @@ class QueryRunner:
                 excel_name=f"{self._runner}_doorsplit_golds_v1",
             )
 
-        return self.run(
+        return self.execute(
             query=f"""
             WITH tied_golds2 (tied) AS (values (%(ties)s))
             SELECT *
@@ -359,14 +360,14 @@ class QueryRunner:
         Get chapter golds (version 1 or 2).
         """
         if version == 1:
-            return self.run(
+            return self.execute(
                 query=f"""
                 SELECT chapter, chapter_gold2, date_started
                 FROM chapter_golds2_{self._runner}
                 """,  # noqa: S608
                 excel_name=f"{self._runner}_chapter_golds_v1",
             )
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
                 id,
@@ -402,14 +403,14 @@ class QueryRunner:
         Get section golds (version 1 or 2).
         """
         if version == 1:
-            return self.run(
+            return self.execute(
                 query=f"""
                 SELECT section, section_gold2, date_started
                 FROM section_golds3_{self._runner}
                 """,  # noqa: S608
                 excel_name=f"{self._runner}_section_golds_v1",
             )
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
                 id,
@@ -447,7 +448,7 @@ class QueryRunner:
         )
 
     def doorsplits_pb_analysis(self) -> DataFrame:
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
                 id,
@@ -468,7 +469,7 @@ class QueryRunner:
         )
 
     def chapter_pb_analysis(self) -> DataFrame:
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
                 id,
@@ -488,7 +489,7 @@ class QueryRunner:
         )
 
     def section_pb_analysis(self) -> DataFrame:
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
                 id,
@@ -513,7 +514,7 @@ class QueryRunner:
         )
 
     def best_paces_pb_analysis(self) -> DataFrame:
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
                 id,
@@ -534,7 +535,7 @@ class QueryRunner:
         )
 
     def best_paces_eoc_pb_analysis(self) -> DataFrame:
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
                 id,
@@ -559,7 +560,7 @@ class QueryRunner:
         """
         Get all doorsplits that make up a chapter gold.
         """
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT cle2, split, chapter, lrt_split, gold2, chapter_gold2, date_started
             FROM splits_overview_{self._runner}
@@ -574,7 +575,8 @@ class QueryRunner:
         self,
         split_name: str,
         order_by: OrderColumns = OrderColumns.LRT_RAW_TIME,
-        desc: bool = True,  # noqa: FBT001, FBT002
+        *,
+        desc: bool = True,
     ) -> DataFrame:
         """
         Get history of a specific split.
@@ -584,7 +586,7 @@ class QueryRunner:
         split_name_formatted = (
             split_name.replace("{", "").replace("}", "").replace("-", "")
         )
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT split, lrt_split, date_started
             FROM splits_overview_{self._runner}
@@ -597,7 +599,7 @@ class QueryRunner:
         )
 
     def compare_runners_doorsplit_golds(self, other_runner: str) -> DataFrame:
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
             runner1.cle2 AS split_number,
@@ -617,7 +619,7 @@ class QueryRunner:
         )
 
     def compare_runners_doorsplit_medians(self, other_runner: str) -> DataFrame:
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
             runner1.cle2 AS split_number,
@@ -637,7 +639,7 @@ class QueryRunner:
         )
 
     def attempts_per_week(self) -> DataFrame:
-        return self.run(
+        return self.execute(
             query=f"""
             SELECT
             CASE

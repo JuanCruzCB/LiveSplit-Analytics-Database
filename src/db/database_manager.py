@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-import psycopg2
+import psycopg
 from pandas import DataFrame
 
 from db.database_error import DatabaseError
@@ -28,17 +28,15 @@ class DatabaseManager:
         self._last_updates_tracker = last_updates_tracker
 
         self._connection = None
-        self._cursor = None
 
     def open_connection(self) -> None:
         """
         Connect to the local postgres db using the
-        hardcoded credentials and create a cursor object.
+        hardcoded credentials.
         """
         try:
-            self._connection = psycopg2.connect(**self._db_config)
-            self._cursor = self._connection.cursor()
-        except psycopg2.Error as e:
+            self._connection = psycopg.connect(**self._db_config)
+        except psycopg.Error as e:
             raise DatabaseError(
                 message="Failed to connect to local Postgres Database.",
                 db_config=self._db_config,
@@ -47,12 +45,11 @@ class DatabaseManager:
 
     def close_connection(self) -> None:
         """
-        Close the cursor object and close the connection to the local postgres db.
+        Close the connection to the local postgres db.
         """
-        if self._cursor:
-            self._cursor.close()
         if self._connection:
             self._connection.close()
+            self._connection = None
 
     def execute(
         self,
@@ -64,20 +61,22 @@ class DatabaseManager:
         Return a DataFrame with the results of running the specified query
         on the db.
         """
-        if not self._connection or not self._cursor:
+        if not self._connection:
             raise DatabaseError
 
         try:
             start = time.time()
-            self._cursor.execute(query, params)
+            with self._connection.cursor() as cur:
+                cur.execute(query, params)  # type: ignore  # noqa: PGH003
+                data = cur.fetchall()
+                columns = (
+                    [desc.name for desc in cur.description] if cur.description else []
+                )
             self._connection.commit()
             end = time.time()
             logger.info("%s in %.3f seconds!", message, end - start)
-            return DataFrame(
-                data=self._cursor.fetchall(),
-                columns=[desc[0] for desc in self._cursor.description],
-            )
-        except psycopg2.Error as e:
+            return DataFrame(data=data, columns=columns)
+        except psycopg.Error as e:
             raise DatabaseError(
                 message=f"There was an SQL error while running the query {query}.",
                 original_exception=e,
@@ -87,7 +86,7 @@ class DatabaseManager:
         """
         If there's currently a connection, run the main SQL script.
         """
-        if not self._connection or not self._cursor:
+        if not self._connection:
             raise DatabaseError
 
         logger.info("Updating the individual database tables...")
@@ -95,7 +94,6 @@ class DatabaseManager:
         new_updates = False
 
         for split, file_last_modified in splits.items():
-            modified_script = sql_script
             db_last_modified = self._last_updates_tracker.get_timestamp(file=split)
 
             if db_last_modified > file_last_modified:
@@ -110,7 +108,7 @@ class DatabaseManager:
                 if self._last_updates_tracker.is_first_file_equal_to(file=split)
                 else split.stem[7:]
             )
-            modified_script = modified_script.replace("runner", runner_name)
+            modified_script = sql_script.replace("runner", runner_name)
             modified_script = modified_script.replace("path", f"{split!s}")
 
             try:
@@ -118,7 +116,7 @@ class DatabaseManager:
                     query=modified_script,
                     message=f"Updated the database tables for {runner_name} successfully",
                 )
-            except psycopg2.Error as e:
+            except psycopg.Error as e:
                 raise DatabaseError(
                     message=f"There was an SQL error while updating the individual tables for {runner_name}",
                     original_exception=e,
@@ -135,7 +133,7 @@ class DatabaseManager:
         """
         Run the global SQL script that updates the global tables.
         """
-        if not self._connection or not self._cursor:
+        if not self._connection:
             raise DatabaseError
 
         try:
@@ -144,7 +142,7 @@ class DatabaseManager:
                 query=self._global_sql_script.read_text(),
                 message="Updated the database global tables successfully",
             )
-        except psycopg2.Error as e:
+        except psycopg.Error as e:
             raise DatabaseError(
                 message="There was an SQL error while updating the global tables.",
                 original_exception=e,
