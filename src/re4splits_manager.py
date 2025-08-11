@@ -114,6 +114,8 @@ class RE4SplitsManager:
                     encoding="utf-8",
                     xml_declaration=True,
                 )
+            else:
+                print(" ✅", end="")
             print()
 
     def _check_splits_folder_existence(self):
