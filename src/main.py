@@ -1,6 +1,7 @@
 from pandas import DataFrame
 
-from auth.google_auth_manager import GoogleAuthManager
+from auth.google_drive_auth import GoogleDriveAuth
+from auth.google_sheets_auth import GoogleSheetsAuth
 from config import load_config, setup_logging
 from db.database_manager import DatabaseManager, LastUpdatesTracker
 from db.query_runner import QueryRunner
@@ -50,7 +51,10 @@ def main() -> None:
     setup_logging()
     config = load_config()
 
-    auth = GoogleAuthManager(
+    google_drive_auth = GoogleDriveAuth(
+        service_account_secrets_file=config.service_account_secrets_file
+    )
+    google_sheets_auth = GoogleSheetsAuth(
         service_account_secrets_file=config.service_account_secrets_file
     )
     splits = SplitsManager(
@@ -60,7 +64,7 @@ def main() -> None:
     )
     drive = DriveManager(
         google_drive_folder_id=config.google_drive_folder_id,
-        google_drive=auth.google_drive,
+        google_drive=google_drive_auth.auth(),
         splits_manager=splits,
     )
 
@@ -68,7 +72,7 @@ def main() -> None:
     splits.clean_splits()
 
     sheet = SheetManager(
-        gspread_client=auth.gspread_client,
+        gspread_client=google_sheets_auth.auth(),
         google_sheet_id=config.google_sheet_id,
     )
     last_updates = LastUpdatesTracker(
