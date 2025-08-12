@@ -65,22 +65,26 @@ class DatabaseManager:
             raise DatabaseError
 
         try:
+            result = DataFrame()
             start = time.time()
             with self._connection.cursor() as cur:
                 cur.execute(query, params)  # type: ignore  # noqa: PGH003
-                data = cur.fetchall()
-                columns = (
-                    [desc.name for desc in cur.description] if cur.description else []
-                )
+                end = time.time()
+                if cur.description:
+                    data = cur.fetchall()
+                    columns = [desc.name for desc in cur.description]
+                    result = DataFrame(data=data, columns=columns)
+
             self._connection.commit()
-            end = time.time()
-            logger.info("%s in %.3f seconds!", message, end - start)
-            return DataFrame(data=data, columns=columns)
+
         except psycopg.Error as e:
             raise DatabaseError(
                 message=f"There was an SQL error while running the query {query}.",
                 original_exception=e,
             ) from e
+        else:
+            logger.info("%s in %.3f seconds!", message, end - start)
+            return result
 
     def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
         """
