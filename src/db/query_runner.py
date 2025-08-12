@@ -278,7 +278,10 @@ class QueryRunner:
     """
 
     def execute(
-        self, query: str, params: dict | None = None, excel_name: str = ""
+        self,
+        query: str,
+        params: dict[str, str | int] | None = None,
+        excel_name: str = "",
     ) -> DataFrame:
         """
         Execute the query on the db and optionally save the data to an excel file.

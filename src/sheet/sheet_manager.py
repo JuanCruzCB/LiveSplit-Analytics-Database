@@ -25,7 +25,7 @@ class SheetManager:
         sheet_tab_name: str,
         data: DataFrame,
         starting_cell: str,
-    ):
+    ) -> None:
         """
         Copies the current contents of the tab 'sheet_tab_name' and
         pastes them onto 'sheet_tab_name old'.
@@ -33,10 +33,9 @@ class SheetManager:
         inside the Google Sheet with the 'data' that was sent.
         """
         data_list = data.replace({np.nan: ""}).to_numpy().tolist()
+        old_sheet_tab_name = f"{sheet_tab_name} old"
         try:
-            old_sheet_tab_name = f"{sheet_tab_name} old"
             old_sheet = self._spreadsheet.worksheet(title=old_sheet_tab_name)
-
             original_sheet = self._spreadsheet.worksheet(title=sheet_tab_name)
             original_data = original_sheet.get_all_values()
 
@@ -48,8 +47,6 @@ class SheetManager:
                 range_name=starting_cell,
                 values=data_list,
             )
-            logger.info("Sheet '%s' updated successfully!", sheet_tab_name)
-
         except WorksheetNotFound as e:
             msg = f"Sheet tab '{sheet_tab_name}' not found in the Google Sheet."
             logger.exception(msg)
@@ -62,26 +59,26 @@ class SheetManager:
             msg = f"Unexpected error while updating '{sheet_tab_name}': {e!s}"
             logger.exception(msg)
             raise RuntimeError(msg) from e
+        else:
+            logger.info("Sheet '%s' updated successfully!", sheet_tab_name)
 
     def _update_sheet_without_copy(
         self,
         sheet_tab_name: str,
         data: DataFrame,
         starting_cell: str,
-    ):
+    ) -> None:
         """
         Updates the tab 'sheet_tab_name' starting from 'starting_cell'
         inside the Google Sheet with the 'data' that was sent.
         """
         data_list = data.replace({np.nan: ""}).to_numpy().tolist()
+        original_sheet = self._spreadsheet.worksheet(title=sheet_tab_name)
         try:
-            original_sheet = self._spreadsheet.worksheet(title=sheet_tab_name)
             original_sheet.update(
                 range_name=starting_cell,
                 values=data_list,
             )
-            logger.info("Sheet '%s' updated successfully!", sheet_tab_name)
-
         except WorksheetNotFound as e:
             msg = f"Sheet tab '{sheet_tab_name}' not found in the Google Sheet."
             logger.exception(msg)
@@ -94,6 +91,8 @@ class SheetManager:
             msg = f"Unexpected error while updating '{sheet_tab_name}': {e!s}"
             logger.exception(msg)
             raise RuntimeError(msg) from e
+        else:
+            logger.info("Sheet '%s' updated successfully!", sheet_tab_name)
 
     def copy_doorsplits_to_sheet(self, doorsplit_golds: DataFrame) -> None:
         self._update_sheet_with_copy(
@@ -233,3 +232,5 @@ class SheetManager:
             msg = "Unexpected error during post_last_update."
             logger.exception(msg)
             raise RuntimeError(msg) from e
+        else:
+            logger.info("Sheet '%s' updated successfully!", sheet)

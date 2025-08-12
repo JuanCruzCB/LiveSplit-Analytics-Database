@@ -6,7 +6,7 @@ class DatabaseError(Exception):
     def __init__(
         self,
         message: str = "There's no current connection to the local Postgres Database.",
-        db_config: dict | None = None,
+        db_config: dict[str, str | int] | None = None,
         original_exception: Exception | None = None,
     ) -> None:
         self.message = message

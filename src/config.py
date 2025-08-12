@@ -23,7 +23,7 @@ class Config:
     service_account_secrets_file: Path
     google_sheet_id: str
     google_drive_folder_id: str
-    db_config: dict[str, str]
+    db_config: dict[str, str | int]
     allowed_runners: list[str]
 
     def validate(self) -> None:

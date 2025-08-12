@@ -17,7 +17,7 @@ class DatabaseManager:
         self,
         individual_sql_script: Path,
         global_sql_script: Path,
-        db_config: dict,
+        db_config: dict[str, str | int],
         main_runner_name: str,
         last_updates_tracker: LastUpdatesTracker,
     ) -> None:
@@ -35,7 +35,7 @@ class DatabaseManager:
         hardcoded credentials.
         """
         try:
-            self._connection = psycopg.connect(**self._db_config)
+            self._connection = psycopg.connect(**self._db_config)  # type: ignore  # noqa: PGH003
         except psycopg.Error as e:
             raise DatabaseError(
                 message="Failed to connect to local Postgres Database.",
@@ -55,7 +55,7 @@ class DatabaseManager:
         self,
         query: str,
         message: str = "Unspecified query ran",
-        params: dict | None = None,
+        params: dict[str, str | int] | None = None,
     ) -> DataFrame:
         """
         Return a DataFrame with the results of running the specified query
