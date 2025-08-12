@@ -12,7 +12,7 @@ from splits.splits_manager import SplitsManager
 
 def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
     return {
-        "doorsplit_golds": query_runner.get_doorsplit_golds(),
+        "doorsplit_golds": query_runner.get_runners_doorsplit_golds(),
         "chapter_golds": query_runner.get_chapter_golds(),
         "chapter_golds_by_doors": query_runner.get_chapter_golds_by_doors(),
         "section_golds": query_runner.get_section_golds(),

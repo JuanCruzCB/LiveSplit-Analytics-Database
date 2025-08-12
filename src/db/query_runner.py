@@ -97,13 +97,40 @@ class QueryRunner:
 
         return df
 
-    def get_doorsplit_golds(self) -> DataFrame:
+    def get_runners_doorsplit_golds(self) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
         and each column contains all the doorsplit golds of that runner.
         The last row contains the doorsplits sum of best of that runner.
         """
-        return self._db.execute(query=ConstantQuery.DOORSPLIT_GOLDS_QUERY)
+        dfs = []
+        split_names = self._db.execute(
+            query=f"""
+            SELECT split
+            FROM default_split_names_{self._runner};
+            """  # noqa: S608
+        )
+        split_names.loc[len(split_names)] = "Total"
+        dfs.append(split_names)
+        for runner in self._allowed_runners:
+            runner_golds = self._db.execute(
+                query=f"""
+                SELECT gold2 AS {runner}
+                FROM (
+                    SELECT DISTINCT cle2, gold2
+                    FROM doorsplits_golds_{runner}
+                    ORDER BY cle2
+                );
+                """  # noqa: S608
+            )
+            runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
+            sum_of_best = runner_golds["Times in seconds"].sum()
+            sum_of_best_formatted = format_time(sum_of_best)
+            runner_golds = runner_golds.drop(columns=["Times in seconds"])
+            runner_golds.loc[len(runner_golds)] = sum_of_best_formatted
+            dfs.append(runner_golds)
+
+        return pd.concat(dfs, axis=1)
 
     def get_chapter_golds(self) -> DataFrame:
         """
