@@ -786,20 +786,6 @@ else time_start_numeric+cumulative_rta end as time_end_numeric2
 from splits_cleaned_runner_old2 a
 left join default_split_names_runner b on a.cle2=b.cle2);
 
-/*drop table if exists splits_treatment;
-drop table if exists splits_treatment2;
-drop table if exists splits_treatment3;
-drop table if exists splits_treatment4;
-drop table if exists splits_treatment5;
-drop table if exists splits_treatment6;
-drop table if exists attempts_treatment;
-drop table if exists attempts_treatment2;
-drop table if exists attempts_treatment3;
-drop table if exists split_name_info;
-drop table if exists split_name_info2;
-drop table if exists split_name_info3;
-drop table if exists pb_history;*/
-
 /* Chapter golds part
 Here we define for each chapter, how many splits we have, so we know if a run has finished a chapter or not (obviously to count the chapter
 golds, we need to count only the chapter that are finished, because a chapter that only did the first split and reset is gonna be faster
@@ -988,8 +974,6 @@ group by a.chapter, a.chapter_gold, a.id, a.date_started, a.finished_run, a.fina
 a.median_chapter_time, a.avg_chapter_time2, a.median_chapter_time2) a
 order by chapter;
 
-/*drop table if exists chapter_golds;*/
-
 /* Chapter times of all the attempts */
 
 drop table if exists chapter_history_runner;
@@ -1075,9 +1059,6 @@ from chapter_history2_runner a
 join chapter_history2_runner b on a.chapter=b.chapter and a.id>=b.id
 group by 1, 2) e on a.chapter=e.chapter and a.id=e.id
 group by finished_chapters_at_that_time, chapter_rank_at_that_time, finished_chapters, a.rank_chapter, a.chapter, a.id, a.date_started, a.finished_run, a.pb, a.chapter_time, a.chapter_time2) a;
-
-/*drop table if exists chapter_history;
-drop table if exists chapter_splits_runner;*/
 
 /* Section golds, same as chapters, we count the number of splits per section to only count finished sections */
 
@@ -1213,8 +1194,6 @@ group by a.section, a.section_gold, a.id, a.date_started, a.finished_run, a.fina
 a.section_avg2, a.section_median, a.section_median2) a
 order by case when section='Village' then 1 when section='Castle' then 2 else 3 end;
 
-/*drop table if exists section_golds;*/
-
 /* Section times of all the attempts */
 
 drop table if exists section_history_runner;
@@ -1280,9 +1259,6 @@ from section_history2_runner a
 join section_history2_runner b on a.section=b.section and a.id>=b.id
 group by 1, 2) e on a.section=e.section and a.id=e.id
 group by a.rank_section, finished_sections, finished_sections_at_that_time, section_rank_at_that_time, a.section, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.section_time, a.section_time2) a;
-
-/*drop table if exists section_history;
-drop table if exists section_splits_runner;*/
 
 /* All golds */
 
@@ -1676,8 +1652,6 @@ from(
 select cle2, split, runs, case when lag(runs) over ()-runs is null then attempts-runs else lag(runs) over ()-runs end as resets
 from resets_history_runner));
 
-/*drop table if exists resets_history;*/
-
 /* Final main table that has everything */
 
 drop table if exists splits_overview_runner;
@@ -1840,120 +1814,120 @@ union
 from(
 select cabin_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where cabin_pattern<>''-- and lrt_number<40
+where cabin_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=26-- and lrt_number<40
+where cle2=26
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select water_hall_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where water_hall_pattern<>''-- and lrt_number<40
+where water_hall_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=38-- and lrt_number<40
+where cle2=38
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select novis1_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where novis1_pattern<>''-- and lrt_number<40
+where novis1_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=41-- and lrt_number<40
+where cle2=41
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select gallery_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where gallery_pattern<>''-- and lrt_number<40
+where gallery_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=43-- and lrt_number<40
+where cle2=43
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select novis2_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where novis2_pattern<>''-- and lrt_number<40
+where novis2_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=64-- and lrt_number<40
+where cle2=64
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select novis3_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where novis3_pattern<>''-- and lrt_number<40
+where novis3_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=74-- and lrt_number<40
+where cle2=74
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select u3_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where u3_pattern<>''-- and lrt_number<40
+where u3_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=110-- and lrt_number<40
+where cle2=110
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select krauser_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where krauser_pattern<>''-- and lrt_number<40
+where krauser_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=112-- and lrt_number<40
+where cle2=112
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select war_room_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where war_room_pattern<>''-- and lrt_number<40
+where war_room_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=113-- and lrt_number<40
+where cle2=113
 ) b)
 union
 (select a.*, total, round(runs)/round(total)*100 as percentage
 from(
 select key_card_pattern as pattern, count(*) as runs
 from splits_overview_runner
-where key_card_pattern<>''-- and lrt_number<40
+where key_card_pattern<>''
 group by 1) a
 cross join (
 select count(*) as total
 from splits_overview_runner
-where cle2=117-- and lrt_number<40
+where cle2=117
 ) b)
 order by pattern);
 
@@ -2010,7 +1984,7 @@ select distinct id, cabin_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by cabin_pattern order by id) as row_number2
 from splits_overview_runner
-where cabin_pattern<>''-- and lrt_number<40
+where cabin_pattern<>''
 )
 order by id)
 group by 1
@@ -2023,7 +1997,7 @@ select distinct id, water_hall_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by water_hall_pattern order by id) as row_number2
 from splits_overview_runner
-where water_hall_pattern<>''-- and lrt_number<40
+where water_hall_pattern<>''
 )
 order by id)
 group by 1
@@ -2036,7 +2010,7 @@ select distinct id, novis1_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by novis1_pattern order by id) as row_number2
 from splits_overview_runner
-where novis1_pattern<>''-- and lrt_number<40
+where novis1_pattern<>''
 )
 order by id)
 group by 1
@@ -2049,7 +2023,7 @@ select distinct id, gallery_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by gallery_pattern order by id) as row_number2
 from splits_overview_runner
-where gallery_pattern<>''-- and lrt_number<40
+where gallery_pattern<>''
 )
 order by id)
 group by 1
@@ -2062,7 +2036,7 @@ select distinct id, novis2_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by novis2_pattern order by id) as row_number2
 from splits_overview_runner
-where novis2_pattern<>''-- and lrt_number<40
+where novis2_pattern<>''
 )
 order by id)
 group by 1
@@ -2075,7 +2049,7 @@ select distinct id, novis3_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by novis3_pattern order by id) as row_number2
 from splits_overview_runner
-where novis3_pattern<>''-- and lrt_number<40
+where novis3_pattern<>''
 )
 order by id)
 group by 1
@@ -2088,7 +2062,7 @@ select distinct id, u3_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by u3_pattern order by id) as row_number2
 from splits_overview_runner
-where u3_pattern<>''-- and lrt_number<40
+where u3_pattern<>''
 )
 order by id)
 group by 1
@@ -2101,7 +2075,7 @@ select distinct id, krauser_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by krauser_pattern order by id) as row_number2
 from splits_overview_runner
-where krauser_pattern<>''-- and lrt_number<40
+where krauser_pattern<>''
 )
 order by id)
 group by 1
@@ -2114,7 +2088,7 @@ select distinct id, war_room_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by war_room_pattern order by id) as row_number2
 from splits_overview_runner
-where war_room_pattern<>''-- and lrt_number<40
+where war_room_pattern<>''
 )
 order by id)
 group by 1
@@ -2127,7 +2101,7 @@ select distinct id, key_card_pattern,
 row_number() over (order by id) as row_number,
 row_number() over (partition by key_card_pattern order by id) as row_number2
 from splits_overview_runner
-where key_card_pattern<>''-- and lrt_number<40
+where key_card_pattern<>''
 )
 order by id)
 group by 1
