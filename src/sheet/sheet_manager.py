@@ -189,7 +189,7 @@ class SheetManager:
         )
         self._update_sheet_without_copy(
             tab_name="Resets",
-            starting_cell="A3",
+            starting_cell="B3",
             data=resets.map(lambda x: float(x) if isinstance(x, Decimal) else x),
         )
 
@@ -232,4 +232,4 @@ class SheetManager:
             logger.exception(msg)
             raise RuntimeError(msg) from e
         else:
-            logger.info("Sheet '%s' updated successfully!", sheet)
+            logger.info("Sheet '%s' updated successfully!", sheet.title)

@@ -364,7 +364,7 @@ class QueryRunner:
 
                     UNION
 
-                    SELECT CAST(MAX(id) AS VARCHAR) AS {runner}, 3 AS sort_key
+                    SELECT CAST(COUNT(*) AS VARCHAR) AS {runner}, 3 AS sort_key
                     FROM attempts_treatment3_{runner}
 
                     UNION
