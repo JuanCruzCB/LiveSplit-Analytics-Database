@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from pandas import DataFrame
+
 
 def format_time(seconds: Decimal) -> str:
     """
@@ -43,3 +45,29 @@ def calculate_best_time(times: list[str]) -> str:
     """
     times_decimal = [parse_time(cg) for cg in times]
     return format_time(min(times_decimal))
+
+
+def add_best_and_cumulative_best_columns(golds: DataFrame) -> DataFrame:
+    """
+    Receives a DataFrame with the runners golds and calculates the best gold
+    and cumulative best gold of all the data, then adds these as new columns
+    and returns the modified DataFrame.
+    """
+    golds["Best gold"] = golds.apply(
+        lambda row: calculate_best_time(row[1:]),
+        axis=1,
+    )
+    golds["Best gold seconds"] = golds["Best gold"].map(parse_time)
+    golds["Cumulative best seconds"] = golds["Best gold seconds"].cumsum()
+    golds["Cumulative best"] = golds["Cumulative best seconds"].apply(format_time)
+    golds = golds.drop(columns=["Best gold seconds", "Cumulative best seconds"])
+
+    best_gold_idx = golds.columns.get_loc("Best gold")
+    cumulative_best_idx = golds.columns.get_loc("Cumulative best")
+
+    # The last row of the 'Best gold' and 'Cumulative best' columns
+    # doesn't need to hold any data.
+    golds.iloc[golds.index[-1], best_gold_idx] = ""  # type: ignore  # noqa: PGH003
+    golds.iloc[golds.index[-1], cumulative_best_idx] = ""  # type: ignore  # noqa: PGH003
+
+    return golds
