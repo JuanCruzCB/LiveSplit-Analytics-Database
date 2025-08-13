@@ -146,26 +146,6 @@ values
 ('-Saddler', 122),
 ('{End} Jetski', 123);
 
-/* Creating the table with runner names and their respective UTC time zones to chang ethe date and time of each attempt (by default it's set to UTC on LiveSplit no matter where you live) */
-
-drop table if exists time_zone_runners;
-create table time_zone_runners (name1 varchar(255), name2 varchar(255), utc integer);
-
-insert into time_zone_runners (name1, name2, utc)
-values
-('saw', 'ken', 3),
-('lu', 'is', -1),
-('jo', 'ker', 3),
-('ma', 'teo', 3),
-('arca', 'dan', 3),
-('ri', 'chy', 6),
-('de', 'rek', 0);
-
-drop table if exists time_zone_runners2;
-create table time_zone_runners2 as
-select name1||name2 as runner_name, utc
-from time_zone_runners;
-
 /* Creating the rng names for each pattern */
 
 drop table if exists rng;
@@ -674,29 +654,13 @@ where a.id<>'';
 
 drop table if exists attempts_treatment3_runner;
 create table attempts_treatment3_runner as
-select a.*,
-case when utc>0 and cast(substr(time_start_livesplit, 1, 2) as numeric)<utc then date_started_livesplit-1 when utc<0 and cast(substr(time_start_livesplit, 1, 2) as numeric)>=24+utc then date_started_livesplit+1
-else date_started_livesplit end as date_started,
-case when utc>0 and cast(substr(time_start_livesplit, 1, 2) as numeric)<utc then cast(substr(time_start_livesplit, 1, 2)as numeric)+24-utc||substr(time_start_livesplit, 3, 6)
-when utc>0 and cast(substr(time_start_livesplit, 1, 2) as numeric)<10+utc then '0'||cast(substr(time_start_livesplit, 1, 2)as numeric)-utc||substr(time_start_livesplit, 3, 6)
-when utc>0 then cast(substr(time_start_livesplit, 1, 2)as numeric)-utc||substr(time_start_livesplit, 3, 6)
-when utc<0 and cast(substr(time_start_livesplit, 1, 2) as numeric)>=24+utc
-then '0'||cast(substr(time_start_livesplit, 1, 2)as numeric)-24-utc||substr(time_start_livesplit, 3, 6)
-when utc<0 and cast(substr(time_start_livesplit, 1, 2) as numeric)<10+utc
-then '0'||cast(substr(time_start_livesplit, 1, 2)as numeric)-utc||substr(time_start_livesplit, 3, 6)
-when utc<0 then cast(substr(time_start_livesplit, 1, 2)as numeric)-utc||substr(time_start_livesplit, 3, 6) else time_start_livesplit end as time_start,
-case when utc>0 and cast(substr(time_end_livesplit, 1, 2) as numeric)<utc then date_end_livesplit-1 when utc<0 and cast(substr(time_end_livesplit, 1, 2) as numeric)>=24+utc then date_end_livesplit+1 else
-date_end_livesplit end as date_end,
-case when utc>0 and cast(substr(time_end_livesplit, 1, 2) as numeric)<utc then cast(substr(time_end_livesplit, 1, 2)as numeric)+24-utc||substr(time_end_livesplit, 3, 6)
-when utc>0 and cast(substr(time_end_livesplit, 1, 2) as numeric)<10+utc then '0'||cast(substr(time_end_livesplit, 1, 2)as numeric)-utc||substr(time_end_livesplit, 3, 6)
-when utc>0 then cast(substr(time_end_livesplit, 1, 2)as numeric)-utc||substr(time_end_livesplit, 3, 6)
-when utc<0 and cast(substr(time_end_livesplit, 1, 2) as numeric)>=24+utc
-then '0'||cast(substr(time_end_livesplit, 1, 2)as numeric)-24-utc||substr(time_end_livesplit, 3, 6)
-when utc<0 and cast(substr(time_end_livesplit, 1, 2) as numeric)<10+utc
-then '0'||cast(substr(time_end_livesplit, 1, 2)as numeric)-utc||substr(time_end_livesplit, 3, 6)
-when utc<0 then cast(substr(time_end_livesplit, 1, 2)as numeric)-utc||substr(time_end_livesplit, 3, 6) else time_end_livesplit end as time_end
-from attempts_treatment3_old_runner a
-left join time_zone_runners2 b on a.runner_name=b.runner_name;
+select
+	*,
+	date_started_livesplit as date_started,
+	time_start_livesplit as time_start,
+	date_end_livesplit as date_end,
+	time_end_livesplit as time_end
+from attempts_treatment3_old_runner;
 
 /* Getting the list of all PBs, also converting the PBs into number format, can be used for calculations (or graphs, etc.) */
 
