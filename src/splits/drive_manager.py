@@ -3,10 +3,15 @@ from datetime import UTC, datetime
 from typing import Any
 
 from pydrive2.drive import GoogleDrive
+from pydrive2.files import ApiRequestError
 
 from splits.splits_manager import SplitsManager
 
 logger = logging.getLogger(__name__)
+
+
+class GoogleDriveFolderNotFoundError(Exception):
+    pass
 
 
 class DriveManager:
@@ -33,7 +38,14 @@ class DriveManager:
         logger.info("Downloading any out-of-sync split files from the Drive...")
         local_splits = self._splits_manager.get_splits_stem_last_modtime()
         query = {"q": f"'{self._google_drive_folder_id}' in parents and trashed=false"}
-        all_remote_files = self._google_drive.ListFile(query).GetList()
+        try:
+            all_remote_files = self._google_drive.ListFile(query).GetList()
+        except ApiRequestError as e:
+            logger.exception(
+                "There's no Google Drive folder with id = %s",
+                self._google_drive_folder_id,
+            )
+            raise GoogleDriveFolderNotFoundError from e
 
         for remote_file in all_remote_files:
             self._process_remote_file(remote_file, local_splits)

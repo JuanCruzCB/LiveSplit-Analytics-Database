@@ -4,12 +4,20 @@ from decimal import Decimal
 
 import numpy as np
 from gspread import Client
-from gspread.exceptions import APIError, WorksheetNotFound
+from gspread.exceptions import APIError, SpreadsheetNotFound, WorksheetNotFound
 from pandas import DataFrame
 
 from sheet.utils import get_days_hours_str, get_hours_minutes_str
 
 logger = logging.getLogger(__name__)
+
+
+class SheetNotFoundError(Exception):
+    pass
+
+
+class UnauthorizedError(Exception):
+    pass
 
 
 class SheetManager:
@@ -18,7 +26,16 @@ class SheetManager:
     BAD_DATE_FORMAT = "%Y-%m-%d"
 
     def __init__(self, gspread_client: Client, google_sheet_id: str):
-        self._spreadsheet = gspread_client.open_by_key(google_sheet_id)
+        try:
+            self._spreadsheet = gspread_client.open_by_key(google_sheet_id)
+        except SpreadsheetNotFound as e:
+            msg = f"The spreadsheet with id = {google_sheet_id} was not found."
+            logger.exception(msg)
+            raise SheetNotFoundError from e
+        except PermissionError as e:
+            msg = f"The service account that is being used does not have authorization on the spreadsheet with id = {google_sheet_id}"
+            logger.exception(msg)
+            raise UnauthorizedError from e
 
     def _update_sheet_with_copy(
         self,
