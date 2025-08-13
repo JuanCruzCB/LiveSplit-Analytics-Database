@@ -22,9 +22,9 @@ class SheetManager:
 
     def _update_sheet_with_copy(
         self,
-        sheet_tab_name: str,
-        data: DataFrame,
+        tab_name: str,
         starting_cell: str,
+        data: DataFrame,
     ) -> None:
         """
         Copies the current contents of the tab 'sheet_tab_name' and
@@ -33,10 +33,10 @@ class SheetManager:
         inside the Google Sheet with the 'data' that was sent.
         """
         data_list = data.replace({np.nan: ""}).to_numpy().tolist()
-        old_sheet_tab_name = f"{sheet_tab_name} old"
+        old_sheet_tab_name = f"{tab_name} old"
         try:
             old_sheet = self._spreadsheet.worksheet(title=old_sheet_tab_name)
-            original_sheet = self._spreadsheet.worksheet(title=sheet_tab_name)
+            original_sheet = self._spreadsheet.worksheet(title=tab_name)
             original_data = original_sheet.get_all_values()
 
             if original_data:
@@ -48,71 +48,71 @@ class SheetManager:
                 values=data_list,
             )
         except WorksheetNotFound as e:
-            msg = f"Sheet tab '{sheet_tab_name}' not found in the Google Sheet."
+            msg = f"Sheet tab '{tab_name}' not found in the Google Sheet."
             logger.exception(msg)
             raise ValueError(msg) from e
         except APIError as e:
-            msg = f"Google Sheets API error while updating '{sheet_tab_name}': {e!s}"
+            msg = f"Google Sheets API error while updating '{tab_name}': {e!s}"
             logger.exception(msg)
             raise RuntimeError(msg) from e
         except Exception as e:
-            msg = f"Unexpected error while updating '{sheet_tab_name}': {e!s}"
+            msg = f"Unexpected error while updating '{tab_name}': {e!s}"
             logger.exception(msg)
             raise RuntimeError(msg) from e
         else:
-            logger.info("Sheet '%s' updated successfully!", sheet_tab_name)
+            logger.info("Sheet '%s' updated successfully!", tab_name)
 
     def _update_sheet_without_copy(
         self,
-        sheet_tab_name: str,
-        data: DataFrame,
+        tab_name: str,
         starting_cell: str,
+        data: DataFrame,
     ) -> None:
         """
         Updates the tab 'sheet_tab_name' starting from 'starting_cell'
         inside the Google Sheet with the 'data' that was sent.
         """
         data_list = data.replace({np.nan: ""}).to_numpy().tolist()
-        original_sheet = self._spreadsheet.worksheet(title=sheet_tab_name)
+        original_sheet = self._spreadsheet.worksheet(title=tab_name)
         try:
             original_sheet.update(
                 range_name=starting_cell,
                 values=data_list,
             )
         except WorksheetNotFound as e:
-            msg = f"Sheet tab '{sheet_tab_name}' not found in the Google Sheet."
+            msg = f"Sheet tab '{tab_name}' not found in the Google Sheet."
             logger.exception(msg)
             raise ValueError(msg) from e
         except APIError as e:
-            msg = f"Google Sheets API error while updating '{sheet_tab_name}': {e!s}"
+            msg = f"Google Sheets API error while updating '{tab_name}': {e!s}"
             logger.exception(msg)
             raise RuntimeError(msg) from e
         except Exception as e:
-            msg = f"Unexpected error while updating '{sheet_tab_name}': {e!s}"
+            msg = f"Unexpected error while updating '{tab_name}': {e!s}"
             logger.exception(msg)
             raise RuntimeError(msg) from e
         else:
-            logger.info("Sheet '%s' updated successfully!", sheet_tab_name)
+            logger.info("Sheet '%s' updated successfully!", tab_name)
 
     def upload_runners_doorsplit_golds(self, doorsplit_golds: DataFrame) -> None:
         self._update_sheet_with_copy(
-            sheet_tab_name="Doors",
-            data=doorsplit_golds.drop(columns=["split"]),
+            tab_name="Doors",
             starting_cell="B3",
+            data=doorsplit_golds.drop(columns=["Split"]),
         )
 
     def upload_runners_chapter_golds(
         self, chapter_golds: DataFrame, chapter_golds_by_doors: DataFrame
     ) -> None:
         self._update_sheet_with_copy(
-            sheet_tab_name="Chapters",
-            data=chapter_golds.drop(columns=["chapter"]),
+            tab_name="Chapters",
             starting_cell="B3",
+            data=chapter_golds.drop(columns=["Chapter"]),
         )
         self._update_sheet_without_copy(
-            sheet_tab_name="Chapters",
-            data=chapter_golds_by_doors.drop(columns=["chapter"]),
+            tab_name="Chapters",
             starting_cell="B25",
+            data=chapter_golds_by_doors.drop(columns=["Chapter"]),
         )
 
     def upload_runners_section_golds(
@@ -122,19 +122,19 @@ class SheetManager:
         section_golds_by_doors: DataFrame,
     ) -> None:
         self._update_sheet_with_copy(
-            sheet_tab_name="Sections",
-            data=section_golds.drop(columns=["section"]),
+            tab_name="Sections",
             starting_cell="B3",
+            data=section_golds.drop(columns=["Section"]),
         )
         self._update_sheet_without_copy(
-            sheet_tab_name="Sections",
-            data=section_golds_by_chapters.drop(columns=["section"]),
+            tab_name="Sections",
             starting_cell="B9",
+            data=section_golds_by_chapters.drop(columns=["Section"]),
         )
         self._update_sheet_without_copy(
-            sheet_tab_name="Sections",
-            data=section_golds_by_doors.drop(columns=["section"]),
+            tab_name="Sections",
             starting_cell="B15",
+            data=section_golds_by_doors.drop(columns=["Section"]),
         )
 
     def upload_runners_best_paces(
@@ -142,9 +142,9 @@ class SheetManager:
         best_paces: DataFrame,
     ) -> None:
         self._update_sheet_with_copy(
-            sheet_tab_name="Paces",
-            data=best_paces.drop(columns=["chapter"]),
+            tab_name="Paces",
             starting_cell="B3",
+            data=best_paces.drop(columns=["Chapter"]),
         )
 
     def upload_runners_rng_patterns(
@@ -153,12 +153,12 @@ class SheetManager:
     ) -> None:
         rng_patterns = rng_patterns.map(
             lambda x: float(x) if isinstance(x, Decimal) else x
-        ).drop(columns=["rng pattern"])
+        ).drop(columns=["Pattern"])
 
         self._update_sheet_with_copy(
-            sheet_tab_name="RNG Patterns",
-            data=rng_patterns,
+            tab_name="RNG Patterns",
             starting_cell="B4",
+            data=rng_patterns,
         )
 
     def upload_runners_general_stats(
@@ -175,9 +175,9 @@ class SheetManager:
             lambda playtime: get_days_hours_str(playtime)
         )
         self._update_sheet_without_copy(
-            sheet_tab_name="General",
-            data=general_stats,
+            tab_name="General",
             starting_cell="B3",
+            data=general_stats,
         )
 
     def upload_runners_resets(
@@ -185,12 +185,12 @@ class SheetManager:
         resets: DataFrame,
     ) -> None:
         resets = resets.map(lambda x: float(x) if isinstance(x, Decimal) else x).drop(
-            columns=["split"]
+            columns=["Split"]
         )
         self._update_sheet_without_copy(
-            sheet_tab_name="Resets",
-            data=resets.map(lambda x: float(x) if isinstance(x, Decimal) else x),
+            tab_name="Resets",
             starting_cell="A3",
+            data=resets.map(lambda x: float(x) if isinstance(x, Decimal) else x),
         )
 
     def upload_runners_weekday_data(
@@ -204,9 +204,9 @@ class SheetManager:
             weekday_data.iloc[i] = weekday_data.iloc[i].apply(get_hours_minutes_str)
         weekday_data = weekday_data.drop(columns=["Day", "Stat type"])
         self._update_sheet_without_copy(
-            sheet_tab_name="Weekday",
-            data=weekday_data,
+            tab_name="Weekday",
             starting_cell="C2",
+            data=weekday_data,
         )
 
     def upload_last_updated_on(self) -> None:
@@ -216,8 +216,8 @@ class SheetManager:
             utc_minus_3 = timezone(timedelta(hours=-3))
             current_time = datetime.now(tz=utc_minus_3).strftime(self.DATE_TIME_FORMAT)
             sheet.update_acell(
-                "A2",
-                f"Last updated on: {current_time} (UTC-3)",
+                label="A2",
+                value=f"Last updated on: {current_time} (UTC-3)",
             )
         except WorksheetNotFound as e:
             msg = "The tab 'Title' does not exist in the Google Sheet."

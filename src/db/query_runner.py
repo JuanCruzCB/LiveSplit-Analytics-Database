@@ -347,16 +347,8 @@ class QueryRunner:
         dfs.append(
             DataFrame({"Stat": ["Last update", "PB", "Attempts", "Total playtime"]})
         )
+        wrong_attempt_counts = {"sawken": 84, "richy": 3912, "otaku": 4779}
         for runner in self._allowed_runners:
-            match runner:
-                case "sawken":
-                    wrong_attempt_count = 84
-                case "richy":
-                    wrong_attempt_count = 3912
-                case "otaku":
-                    wrong_attempt_count = 4779
-                case _:
-                    wrong_attempt_count = 0
             runner_stats = self._db.execute(
                 query=f"""
                 SELECT stats AS {runner}
@@ -373,7 +365,7 @@ class QueryRunner:
 
                     UNION
 
-                    SELECT CAST((MAX(id) - {wrong_attempt_count!s})AS VARCHAR) AS sawken, 3 AS sort_key
+                    SELECT CAST((MAX(id) - {wrong_attempt_counts.get(runner, 0)})AS VARCHAR) AS {runner}, 3 AS sort_key
                     FROM attempts_treatment3_{runner}
 
                     UNION
