@@ -625,9 +625,7 @@ drop table if exists attempts_treatment2_runner;
 create table attempts_treatment2_runner as
 select *
 from attempts_treatment2_runner_old
-where id<>''
-and cast(id as numeric)>=case when runner_name like '%ota%' and runner_name like '%ku%' then 4780 when runner_name like '%ri%' and runner_name like '%chy%' then 3913
-when runner_name like '%saw%' and runner_name like '%ken%' then 85 else 0 end;
+where id <> '' and to_date(substr(date_started, 7, 4) || '-' || substr(date_started, 1, 2) || '-' || substr(date_started, 4, 2), 'YYYY-MM-DD') >= '2024-10-15' -- This date needs to be customizable
 
 /* Getting the list of all finished runs and for each finished run, was it a PB when it was done or not? (which also means getting the LRT
 PB at that time too) */
@@ -1700,8 +1698,7 @@ from(
 select cle2, split, count(*) as runs
 from splits_cleaned_runner
 group by cle2, split
-order by cle2) a cross join (select max(id)-case when runner_name like '%ota%' and runner_name like '%ku%' then 4779 when runner_name like '%ri%' and runner_name like '%chy%' then 3912
-when runner_name like '%saw%' and runner_name like '%ken%' then 84 else 0 end as attempts
+order by cle2) a cross join (select max(id) as attempts
 from attempts_treatment3_runner
 group by runner_name) b;
 

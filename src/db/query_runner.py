@@ -347,7 +347,6 @@ class QueryRunner:
         dfs.append(
             DataFrame({"Stat": ["Last update", "PB", "Attempts", "Total playtime"]})
         )
-        wrong_attempt_counts = {"sawken": 84, "richy": 3912, "otaku": 4779}
         for runner in self._allowed_runners:
             runner_stats = self._db.execute(
                 query=f"""
@@ -365,7 +364,7 @@ class QueryRunner:
 
                     UNION
 
-                    SELECT CAST((MAX(id) - {wrong_attempt_counts.get(runner, 0)})AS VARCHAR) AS {runner}, 3 AS sort_key
+                    SELECT CAST(MAX(id) AS VARCHAR) AS {runner}, 3 AS sort_key
                     FROM attempts_treatment3_{runner}
 
                     UNION
@@ -564,7 +563,7 @@ class QueryRunner:
                 SELECT ds_golds.cle2, ds_golds.split, ds_golds.gold2, ds_golds.date_started
                 FROM doorsplits_golds2_{self._main_runner} AS ds_golds
                 INNER JOIN default_split_names_{self._main_runner} AS split_names on ds_golds.cle2 = split_names.cle2
-                ORDER BY cle2
+                ORDER BY cle2;
                 """,  # noqa: S608
                 excel_name=f"{self._main_runner}_doorsplit_golds_v1",
             )
@@ -616,7 +615,7 @@ class QueryRunner:
             return self.execute(
                 query=f"""
                 SELECT chapter, chapter_gold2, date_started
-                FROM chapter_golds2_{self._main_runner}
+                FROM chapter_golds2_{self._main_runner};
                 """,  # noqa: S608
                 excel_name=f"{self._main_runner}_chapter_golds_v1",
             )
@@ -659,7 +658,7 @@ class QueryRunner:
             return self.execute(
                 query=f"""
                 SELECT section, section_gold2, date_started
-                FROM section_golds3_{self._main_runner}
+                FROM section_golds3_{self._main_runner};
                 """,  # noqa: S608
                 excel_name=f"{self._main_runner}_section_golds_v1",
             )
@@ -844,8 +843,7 @@ class QueryRunner:
             SELECT split, lrt_split, date_started
             FROM splits_overview_{self._main_runner}
             WHERE split = %(split_name)s
-            ORDER BY {order_by.value}
-            {"DESC" if desc else ""};
+            ORDER BY {order_by.value}{"DESC" if desc else ""};
             """,  # noqa: S608
             params={"split_name": split_name},
             excel_name=f"{self._main_runner}_{split_name_formatted}_history",
@@ -855,18 +853,18 @@ class QueryRunner:
         return self.execute(
             query=f"""
             SELECT
-            runner1.cle2 AS split_number,
-            runner1.gold AS {self._main_runner}_door_gold,
-            runner2.gold AS {other_runner}_door_gold,
-            runner1.gold2 AS {self._main_runner}_door_gold2,
-            runner2.gold2 AS {other_runner}_door_gold2,
-            runner1.gold - runner2.gold AS difference
+                runner1.cle2 AS split_number,
+                runner1.gold AS {self._main_runner}_door_gold,
+                runner2.gold AS {other_runner}_door_gold,
+                runner1.gold2 AS {self._main_runner}_door_gold2,
+                runner2.gold2 AS {other_runner}_door_gold2,
+                runner1.gold - runner2.gold AS difference
             FROM
                 (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_{self._main_runner}) runner1
             FULL JOIN
                 (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_{other_runner}) runner2
-            ON runner1.cle2 = runner2.cle2
-            ORDER BY runner1.cle2;
+                ON runner1.cle2 = runner2.cle2
+                ORDER BY runner1.cle2;
             """,  # noqa: S608
             excel_name=f"doorsplit_golds_comparison_{self._main_runner}_vs_{other_runner}",
         )
@@ -875,18 +873,18 @@ class QueryRunner:
         return self.execute(
             query=f"""
             SELECT
-            runner1.cle2 AS split_number,
-            runner1.door_median AS {self._main_runner}_door_median,
-            runner2.door_median AS {other_runner}_door_median,
-            runner1.door_median2 AS {self._main_runner}_door_median2,
-            runner2.door_median2 AS {other_runner}_door_median2,
-            runner1.door_median - runner2.door_median AS difference
+                runner1.cle2 AS split_number,
+                runner1.door_median AS {self._main_runner}_door_median,
+                runner2.door_median AS {other_runner}_door_median,
+                runner1.door_median2 AS {self._main_runner}_door_median2,
+                runner2.door_median2 AS {other_runner}_door_median2,
+                runner1.door_median - runner2.door_median AS difference
             FROM
-            (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_{self._main_runner}) runner1
+                (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_{self._main_runner}) runner1
             FULL JOIN
-            (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_{other_runner}) runner2
-            ON runner1.cle2 = runner2.cle2
-            ORDER BY runner1.cle2;
+                (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_{other_runner}) runner2
+                ON runner1.cle2 = runner2.cle2
+                ORDER BY runner1.cle2;
             """,  # noqa: S608
             excel_name=f"doorsplit_medians_comparison_{self._main_runner}_vs_{other_runner}",
         )
@@ -896,12 +894,12 @@ class QueryRunner:
             query=f"""
             SELECT
             CASE
-                WHEN EXTRACT(week from date) = 1 AND EXTRACT(month from date) = 12 THEN EXTRACT(year from date) + 1
-                WHEN EXTRACT(week from date) > 50 AND EXTRACT(month from date) = 1 THEN EXTRACT(year from date) - 1
-                ELSE EXTRACT(year from date) end * 100 + EXTRACT(week from date) AS week, count(distinct id) AS runs
-            FROM dates a
-            LEFT JOIN attempts_treatment3_{self._main_runner} b on a.date = b.date_started
-            WHERE EXTRACT(year from date) = EXTRACT(year from current_date) AND date <= current_date
+                WHEN EXTRACT(WEEK FROM date) = 1 AND EXTRACT(MONTH FROM date) = 12 THEN EXTRACT(YEAR FROM date) + 1
+                WHEN EXTRACT(WEEK FROM date) > 50 AND EXTRACT(MONTH FROM date) = 1 THEN EXTRACT(YEAR FROM date) - 1
+                ELSE EXTRACT(year from date) END * 100 + EXTRACT(WEEK FROM date) AS week, COUNT(DISTINCT id) AS runs
+            FROM dates d
+            LEFT JOIN attempts_treatment3_{self._main_runner} attempts on d.date = attempts.date_started
+            WHERE EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE) AND date <= CURRENT_DATE
             GROUP BY 1
             ORDER BY 1;
             """,  # noqa: S608
