@@ -94,28 +94,28 @@ class SheetManager:
         else:
             logger.info("Sheet '%s' updated successfully!", sheet_tab_name)
 
-    def copy_doorsplits_to_sheet(self, doorsplit_golds: DataFrame) -> None:
+    def upload_runners_doorsplit_golds(self, doorsplit_golds: DataFrame) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Doors",
             data=doorsplit_golds.drop(columns=["split"]),
             starting_cell="B3",
         )
 
-    def copy_chapters_to_sheet(
+    def upload_runners_chapter_golds(
         self, chapter_golds: DataFrame, chapter_golds_by_doors: DataFrame
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Chapters",
-            data=chapter_golds,
+            data=chapter_golds.drop(columns=["chapter"]),
             starting_cell="B3",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Chapters",
-            data=chapter_golds_by_doors,
+            data=chapter_golds_by_doors.drop(columns=["chapter"]),
             starting_cell="B25",
         )
 
-    def copy_sections_to_sheet(
+    def upload_runners_section_golds(
         self,
         section_golds: DataFrame,
         section_golds_by_chapters: DataFrame,
@@ -123,37 +123,37 @@ class SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Sections",
-            data=section_golds,
+            data=section_golds.drop(columns=["section"]),
             starting_cell="B3",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Sections",
-            data=section_golds_by_chapters,
+            data=section_golds_by_chapters.drop(columns=["section"]),
             starting_cell="B9",
         )
         self._update_sheet_without_copy(
             sheet_tab_name="Sections",
-            data=section_golds_by_doors,
+            data=section_golds_by_doors.drop(columns=["section"]),
             starting_cell="B15",
         )
 
-    def copy_best_paces_to_sheet(
+    def upload_runners_best_paces(
         self,
         best_paces: DataFrame,
     ) -> None:
         self._update_sheet_with_copy(
             sheet_tab_name="Paces",
-            data=best_paces,
+            data=best_paces.drop(columns=["chapter"]),
             starting_cell="B3",
         )
 
-    def copy_rng_patterns_to_sheet(
+    def upload_runners_rng_patterns(
         self,
         rng_patterns: DataFrame,
     ) -> None:
         rng_patterns = rng_patterns.map(
             lambda x: float(x) if isinstance(x, Decimal) else x
-        ).drop(columns=["pattern"])
+        ).drop(columns=["rng pattern"])
 
         self._update_sheet_with_copy(
             sheet_tab_name="RNG Patterns",
@@ -161,11 +161,11 @@ class SheetManager:
             starting_cell="B4",
         )
 
-    def copy_general_stats_to_sheet(
+    def upload_runners_general_stats(
         self,
         general_stats: DataFrame,
     ) -> None:
-        general_stats = general_stats.drop(columns=["chapter"])
+        general_stats = general_stats.drop(columns=["Stat"])
         general_stats.iloc[0] = general_stats.iloc[0].apply(
             lambda date_str: datetime.strptime(date_str, self.BAD_DATE_FORMAT)
             .replace(tzinfo=UTC)
@@ -180,37 +180,36 @@ class SheetManager:
             starting_cell="B3",
         )
 
-    def copy_resets_to_sheet(
+    def upload_runners_resets(
         self,
         resets: DataFrame,
     ) -> None:
+        resets = resets.map(lambda x: float(x) if isinstance(x, Decimal) else x).drop(
+            columns=["split"]
+        )
         self._update_sheet_without_copy(
             sheet_tab_name="Resets",
             data=resets.map(lambda x: float(x) if isinstance(x, Decimal) else x),
             starting_cell="A3",
         )
 
-    def copy_weekday_data_to_sheet(
+    def upload_runners_weekday_data(
         self,
         weekday_data: DataFrame,
     ) -> None:
-        ranges_to_process = [
-            range(7, 14),
-            range(21, 28),
-            range(35, 42),
-            range(49, 56),
-            range(63, 70),
-        ]
-        for r in ranges_to_process:
-            for i in r:
-                weekday_data.iloc[i] = weekday_data.iloc[i].apply(get_hours_minutes_str)
+        indexes_with_playtime = weekday_data.index[
+            weekday_data["Stat type"].str.contains("Playtime", case=False, na=False)
+        ].tolist()
+        for i in indexes_with_playtime:
+            weekday_data.iloc[i] = weekday_data.iloc[i].apply(get_hours_minutes_str)
+        weekday_data = weekday_data.drop(columns=["Day", "Stat type"])
         self._update_sheet_without_copy(
             sheet_tab_name="Weekday",
-            data=weekday_data.drop(columns=["day", "col"]),
+            data=weekday_data,
             starting_cell="C2",
         )
 
-    def post_last_update(self) -> None:
+    def upload_last_updated_on(self) -> None:
         try:
             sheet = self._spreadsheet.worksheet(title="Title")
 

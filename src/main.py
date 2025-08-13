@@ -13,38 +13,38 @@ from splits.splits_manager import SplitsManager
 def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
     return {
         "doorsplit_golds": query_runner.get_runners_doorsplit_golds(),
-        "chapter_golds": query_runner.get_chapter_golds(),
-        "chapter_golds_by_doors": query_runner.get_chapter_golds_by_doors(),
-        "section_golds": query_runner.get_section_golds(),
-        "section_golds_by_chapters": query_runner.get_section_golds_by_chapters(),
-        "section_golds_by_doors": query_runner.get_section_golds_by_doors(),
-        "best_paces": query_runner.get_best_paces(),
-        "rng_patterns": query_runner.get_rng_patterns(),
-        "general_stats": query_runner.get_general_stats(),
-        "resets": query_runner.get_resets(),
-        "weekday_data": query_runner.get_weekday_data(),
+        "chapter_golds": query_runner.get_runners_chapter_golds(),
+        "chapter_golds_by_doors": query_runner.get_runners_chapter_golds_by_doors(),
+        "section_golds": query_runner.get_runners_section_golds(),
+        "section_golds_by_chapters": query_runner.get_runners_section_golds_by_chapters(),
+        "section_golds_by_doors": query_runner.get_runners_section_golds_by_doors(),
+        "best_paces": query_runner.get_runners_best_paces(),
+        "rng_patterns": query_runner.get_runners_rng_patterns(),
+        "general_stats": query_runner.get_runners_general_stats(),
+        "resets": query_runner.get_runners_resets(),
+        "weekday_data": query_runner.get_runners_weekday_data(),
     }
 
 
 def update_google_sheet(
     sheet_manager: SheetManager, data: dict[str, DataFrame]
 ) -> None:
-    sheet_manager.copy_general_stats_to_sheet(data["general_stats"])
-    sheet_manager.copy_doorsplits_to_sheet(data["doorsplit_golds"])
-    sheet_manager.copy_chapters_to_sheet(
+    sheet_manager.upload_runners_general_stats(data["general_stats"])
+    sheet_manager.upload_runners_doorsplit_golds(data["doorsplit_golds"])
+    sheet_manager.upload_runners_chapter_golds(
         data["chapter_golds"],
         data["chapter_golds_by_doors"],
     )
-    sheet_manager.copy_sections_to_sheet(
+    sheet_manager.upload_runners_section_golds(
         data["section_golds"],
         data["section_golds_by_chapters"],
         data["section_golds_by_doors"],
     )
-    sheet_manager.copy_best_paces_to_sheet(data["best_paces"])
-    sheet_manager.copy_resets_to_sheet(data["resets"])
-    sheet_manager.copy_rng_patterns_to_sheet(data["rng_patterns"])
-    sheet_manager.copy_weekday_data_to_sheet(data["weekday_data"])
-    sheet_manager.post_last_update()
+    sheet_manager.upload_runners_best_paces(data["best_paces"])
+    sheet_manager.upload_runners_resets(data["resets"])
+    sheet_manager.upload_runners_rng_patterns(data["rng_patterns"])
+    sheet_manager.upload_runners_weekday_data(data["weekday_data"])
+    sheet_manager.upload_last_updated_on()
 
 
 def main() -> None:
@@ -80,7 +80,6 @@ def main() -> None:
     )
     db = DatabaseManager(
         individual_sql_script=config.individual_sql_file,
-        global_sql_script=config.global_sql_file,
         db_config=config.db_config,
         main_runner_name=config.allowed_runners[0],
         last_updates_tracker=last_updates,
@@ -94,7 +93,6 @@ def main() -> None:
     try:
         qr.open_db_connection()
         if qr.update_runners_tables(splits=splits.get_splits_last_modtime()):
-            qr.update_global_tables()
             all_data = get_all_database_data(qr)
             update_google_sheet(sheet, all_data)
     finally:

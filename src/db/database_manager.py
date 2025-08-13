@@ -16,13 +16,11 @@ class DatabaseManager:
     def __init__(
         self,
         individual_sql_script: Path,
-        global_sql_script: Path,
         db_config: dict[str, str | int],
         main_runner_name: str,
         last_updates_tracker: LastUpdatesTracker,
     ) -> None:
         self._individual_sql_script = individual_sql_script
-        self._global_sql_script = global_sql_script
         self._db_config = db_config
         self._main_runner_name = main_runner_name
         self._last_updates_tracker = last_updates_tracker
@@ -132,25 +130,6 @@ class DatabaseManager:
         if not new_updates:
             logger.info("The database is already up to date.")
         return new_updates
-
-    def update_global_tables(self) -> None:
-        """
-        Run the global SQL script that updates the global tables.
-        """
-        if not self._connection:
-            raise DatabaseError
-
-        try:
-            logger.info("Updating the global database tables...")
-            self.execute(
-                query=self._global_sql_script.read_text(),
-                message="Updated the database global tables successfully",
-            )
-        except psycopg.Error as e:
-            raise DatabaseError(
-                message="There was an SQL error while updating the global tables.",
-                original_exception=e,
-            ) from e
 
     def __del__(self) -> None:
         self.close_connection()
