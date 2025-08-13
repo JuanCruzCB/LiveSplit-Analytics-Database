@@ -1,327 +1,316 @@
-/* Before running the code there is 1 thing you need to do:
-
-- You need to put your splits file in a folder on your PC where everyone has access, otherwise Postgres won't
-have access to it and you'll get the permission denied error message when trying to import the .lss file, for that I suggest
-you put the splits file in 'C:\Users\Public, if you don't want it to be here, you can change it but make sure it's a folder
-where Postgres can access it (and change the folder path in the code right below).
-This can be done only once and never again if you decide to keep your splits in that public folder everytime, but if not,
-you'll have to manually move the splits file from where you usually keep it to the public folder everytime you want to run this script
-with your last attempts. */
-
 /* Importing the original splits file */
 
-drop table if exists splits_runner;
-create table splits_runner (notepad_info varchar (255));
+DROP TABLE IF EXISTS splits_runner;
+CREATE TABLE splits_runner (notepad_info VARCHAR (255));
 
-copy splits_runner from 'path' with delimiter ','; /* Change path here + splits name */
+COPY splits_runner FROM 'path' WITH DELIMITER ','; /* NOTE: The path to the splits file needs to be public, so that Postgres can access it */
 
 /* Creating a table with default split names */
 
-drop table if exists default_split_names_runner;
-create table default_split_names_runner (split varchar(255), cle2 integer);
+DROP TABLE IF EXISTS default_split_names_runner;
+CREATE TABLE default_split_names_runner (split VARCHAR(255), cle2 integer);
 
-insert into default_split_names_runner (split, cle2)
-values
-('-Start', 1),
-('-Village', 2),
-('-Farm', 3),
-('{1-1} Boulder', 4),
-('-Canyon', 5),
-('-Factory', 6),
-('{1-2} Enter House', 7),
-('-Exit House', 8),
-('-Village 2', 9),
-('-Underground', 10),
-('-Graveyard', 11),
-('-Crows', 12),
-('-Swamp', 13),
-('{1-3} Del Lago', 14),
-('-Wake Up', 15),
-('-Waterfall', 16),
-('-Boat Ride', 17),
-('-El Gigante', 18),
-('-Dogs', 19),
-('{2-1} Church', 20),
-('-Ashley', 21),
-('-Graveyard 2', 22),
-('-Underground 2', 23),
-('-Village 3', 24),
-('-Farm 2', 25),
-('{2-2} Cabin', 26),
-('-Lever', 27),
-('-El Gigante 2', 28),
-('-Gondola', 29),
-('-Mendez', 30),
-('-Gondola 2', 31),
-('{2-3} Truck', 32),
-('-Enter Castle', 33),
-('-Catapults', 34),
-('-Swords Room', 35),
-('-Castle Key', 36),
-('-Garrador', 37),
-('-Water Hall', 38),
-('{3-1} Ceremony Room', 39),
-('-Ceremony Room', 40),
-('-Novistadors 1', 41),
-('-Ceremony Room 2', 42),
-('-Gallery', 43),
-('-Fountain', 44),
-('{3-2} Maze', 45),
-('-Bedroom', 46),
-('-Cage', 47),
-('{3-3} Bridge', 48),
-('-Save Ashley', 49),
-('-Cranks', 50),
-('-Puzzle', 51),
-('{3-4} Exit', 52),
-('-Reunited', 53),
-('-Cart Room', 54),
-('-Lava Room', 55),
-('-Cart Room 2', 56),
-('-Chimera Wall', 57),
-('-Cart Room 3', 58),
-('-Hallway', 59),
-('-Queen''s Grail', 60),
-('-Hallway 2', 61),
-('-King''s Grail', 62),
-('-Hallway 3', 63),
-('-Novistadors 2', 64),
-('-Catapults 2', 65),
-('-Clock Tower', 66),
-('-Bridge', 67),
-('-Garradors', 68),
-('-Striker', 69),
-('{4-1} Verdugo', 70),
-('-Merchant', 71),
-('-Boulder', 72),
-('-El Gigantes', 73),
-('{4-2} Novistadors 3', 74),
-('-Ruins', 75),
-('-Enter Mines', 76),
-('-Minecart', 77),
-('{4-3} Emblem', 78),
-('-Salazar Statue', 79),
-('-Elevator', 80),
-('-Salazar', 81),
-('{4-4} Exit', 82),
-('-Enter Island', 83),
-('-Outside Facility', 84),
-('-Oven Man', 85),
-('-Monitor Room', 86),
-('-Garage Door', 87),
-('-Hallway 4', 88),
-('-Regenerator', 89),
-('-Hallway 5', 90),
-('-Freezer', 91),
-('-Hallway 6', 92),
-('-Trash Room', 93),
-('-Cell', 94),
-('-Stairs Room', 95),
-('-Iron Maiden', 96),
-('-Stairs Room 2', 97),
-('{5-1} Cell', 98),
-('-Ashley''s Back', 99),
-('-Observation Room', 100),
-('-Iron Maidens', 101),
-('-Wrecking Ball', 102),
-('-Regenerators', 103),
-('-Truck', 104),
-('{5-2} Merchant', 105),
-('-Ceremony Room 3', 106),
-('-Krauser', 107),
-('-Lasers', 108),
-('-Cave', 109),
-('-U-3', 110),
-('-Tents', 111),
-('{5-3} Krauser', 112),
-('-Military Area', 113),
-('-RIP Mike', 114),
-('-Ruins 2', 115),
-('-Jail', 116),
-('-Key Card', 117),
-('-Ashley Again', 118),
-('{5-4} Plaga Removal', 119),
-('-Exit', 120),
-('-Construction Site', 121),
-('-Saddler', 122),
-('{End} Jetski', 123);
+INSERT INTO default_split_names_runner (split, cle2)
+VALUES
+	('-Start', 1),
+	('-Village', 2),
+	('-Farm', 3),
+	('{1-1} Boulder', 4),
+	('-Canyon', 5),
+	('-Factory', 6),
+	('{1-2} Enter House', 7),
+	('-Exit House', 8),
+	('-Village 2', 9),
+	('-Underground', 10),
+	('-Graveyard', 11),
+	('-Crows', 12),
+	('-Swamp', 13),
+	('{1-3} Del Lago', 14),
+	('-Wake Up', 15),
+	('-Waterfall', 16),
+	('-Boat Ride', 17),
+	('-El Gigante', 18),
+	('-Dogs', 19),
+	('{2-1} Church', 20),
+	('-Ashley', 21),
+	('-Graveyard 2', 22),
+	('-Underground 2', 23),
+	('-Village 3', 24),
+	('-Farm 2', 25),
+	('{2-2} Cabin', 26),
+	('-Lever', 27),
+	('-El Gigante 2', 28),
+	('-Gondola', 29),
+	('-Mendez', 30),
+	('-Gondola 2', 31),
+	('{2-3} Truck', 32),
+	('-Enter Castle', 33),
+	('-Catapults', 34),
+	('-Swords Room', 35),
+	('-Castle Key', 36),
+	('-Garrador', 37),
+	('-Water Hall', 38),
+	('{3-1} Ceremony Room', 39),
+	('-Ceremony Room', 40),
+	('-Novistadors 1', 41),
+	('-Ceremony Room 2', 42),
+	('-Gallery', 43),
+	('-Fountain', 44),
+	('{3-2} Maze', 45),
+	('-Bedroom', 46),
+	('-Cage', 47),
+	('{3-3} Bridge', 48),
+	('-Save Ashley', 49),
+	('-Cranks', 50),
+	('-Puzzle', 51),
+	('{3-4} Exit', 52),
+	('-Reunited', 53),
+	('-Cart Room', 54),
+	('-Lava Room', 55),
+	('-Cart Room 2', 56),
+	('-Chimera Wall', 57),
+	('-Cart Room 3', 58),
+	('-Hallway', 59),
+	('-Queen''s Grail', 60),
+	('-Hallway 2', 61),
+	('-King''s Grail', 62),
+	('-Hallway 3', 63),
+	('-Novistadors 2', 64),
+	('-Catapults 2', 65),
+	('-Clock Tower', 66),
+	('-Bridge', 67),
+	('-Garradors', 68),
+	('-Striker', 69),
+	('{4-1} Verdugo', 70),
+	('-Merchant', 71),
+	('-Boulder', 72),
+	('-El Gigantes', 73),
+	('{4-2} Novistadors 3', 74),
+	('-Ruins', 75),
+	('-Enter Mines', 76),
+	('-Minecart', 77),
+	('{4-3} Emblem', 78),
+	('-Salazar Statue', 79),
+	('-Elevator', 80),
+	('-Salazar', 81),
+	('{4-4} Exit', 82),
+	('-Enter Island', 83),
+	('-Outside Facility', 84),
+	('-Oven Man', 85),
+	('-Monitor Room', 86),
+	('-Garage Door', 87),
+	('-Hallway 4', 88),
+	('-Regenerator', 89),
+	('-Hallway 5', 90),
+	('-Freezer', 91),
+	('-Hallway 6', 92),
+	('-Trash Room', 93),
+	('-Cell', 94),
+	('-Stairs Room', 95),
+	('-Iron Maiden', 96),
+	('-Stairs Room 2', 97),
+	('{5-1} Cell', 98),
+	('-Ashley''s Back', 99),
+	('-Observation Room', 100),
+	('-Iron Maidens', 101),
+	('-Wrecking Ball', 102),
+	('-Regenerators', 103),
+	('-Truck', 104),
+	('{5-2} Merchant', 105),
+	('-Ceremony Room 3', 106),
+	('-Krauser', 107),
+	('-Lasers', 108),
+	('-Cave', 109),
+	('-U-3', 110),
+	('-Tents', 111),
+	('{5-3} Krauser', 112),
+	('-Military Area', 113),
+	('-RIP Mike', 114),
+	('-Ruins 2', 115),
+	('-Jail', 116),
+	('-Key Card', 117),
+	('-Ashley Again', 118),
+	('{5-4} Plaga Removal', 119),
+	('-Exit', 120),
+	('-Construction Site', 121),
+	('-Saddler', 122),
+	('{End} Jetski', 123);
 
 /* Creating the rng names for each pattern */
 
-drop table if exists rng;
-create table rng (pattern varchar(255));
+DROP TABLE IF EXISTS rng;
+CREATE TABLE rng (pattern VARCHAR(255));
 
-insert into rng (pattern)
-values
-('1-a No dive'),
-('1-b Late dive'),
-('1-c Early dive'),
-('2-a Fast Mendez'),
-('2-b Medium Mendez'),
-('2-c Slow Mendez'),
-('3-a Perfect catapult'),
-('3-b Stagger catapult'),
-('3-c Boulder catapult'),
-('4-a Great cabin'),
-('4-b Good cabin'),
-('4-c Average cabin'),
-('4-d Bad cabin'),
-('4-e Shitty cabin'),
-('5-a Great water hall'),
-('5-b Good water hall'),
-('5-c Average water hall'),
-('5-d Bad water hall'),
-('5-e Shitty water hall'),
-('6-a Great novis 1'),
-('6-b Good novis 1'),
-('6-c Average novis 1'),
-('6-d Bad novis 1'),
-('6-e Shitty novis 1'),
-('7-a Great gallery'),
-('7-b Good gallery'),
-('7-c Average gallery'),
-('7-d Bad gallery'),
-('7-e Shitty gallery'),
-('8-a Great novis 2'),
-('8-b Good novis 2'),
-('8-c Average novis 2'),
-('8-d Bad novis 2'),
-('8-e Shitty novis 2'),
-('9-a Great novis 3'),
-('9-b Good novis 3'),
-('9-c Average novis 3'),
-('9-d Bad novis 3'),
-('9-e Shitty novis 3'),
-('90-a Great u3'),
-('90-b Good u3'),
-('90-c Average u3'),
-('90-d Bad u3'),
-('90-e Shitty u3'),
-('91-a Great Krauser'),
-('91-b Good Krauser'),
-('91-c Average Krauser'),
-('91-d Bad Krauser'),
-('91-e Shitty Krauser'),
-('92-a Great war room'),
-('92-b Good war room'),
-('92-c Average war room'),
-('92-d Bad war room'),
-('92-e Shitty war room'),
-('93-a Great key card'),
-('93-b Good key card'),
-('93-c Average key card'),
-('93-d Bad key card'),
-('93-e Shitty key card');
+INSERT INTO rng (pattern)
+VALUES
+	('1-a No dive'),
+	('1-b Late dive'),
+	('1-c Early dive'),
+	('2-a Fast Mendez'),
+	('2-b Medium Mendez'),
+	('2-c Slow Mendez'),
+	('3-a Perfect catapult'),
+	('3-b Stagger catapult'),
+	('3-c Boulder catapult'),
+	('4-a Great cabin'),
+	('4-b Good cabin'),
+	('4-c Average cabin'),
+	('4-d Bad cabin'),
+	('4-e Shitty cabin'),
+	('5-a Great water hall'),
+	('5-b Good water hall'),
+	('5-c Average water hall'),
+	('5-d Bad water hall'),
+	('5-e Shitty water hall'),
+	('6-a Great novis 1'),
+	('6-b Good novis 1'),
+	('6-c Average novis 1'),
+	('6-d Bad novis 1'),
+	('6-e Shitty novis 1'),
+	('7-a Great gallery'),
+	('7-b Good gallery'),
+	('7-c Average gallery'),
+	('7-d Bad gallery'),
+	('7-e Shitty gallery'),
+	('8-a Great novis 2'),
+	('8-b Good novis 2'),
+	('8-c Average novis 2'),
+	('8-d Bad novis 2'),
+	('8-e Shitty novis 2'),
+	('9-a Great novis 3'),
+	('9-b Good novis 3'),
+	('9-c Average novis 3'),
+	('9-d Bad novis 3'),
+	('9-e Shitty novis 3'),
+	('90-a Great u3'),
+	('90-b Good u3'),
+	('90-c Average u3'),
+	('90-d Bad u3'),
+	('90-e Shitty u3'),
+	('91-a Great Krauser'),
+	('91-b Good Krauser'),
+	('91-c Average Krauser'),
+	('91-d Bad Krauser'),
+	('91-e Shitty Krauser'),
+	('92-a Great war room'),
+	('92-b Good war room'),
+	('92-c Average war room'),
+	('92-d Bad war room'),
+	('92-e Shitty war room'),
+	('93-a Great key card'),
+	('93-b Good key card'),
+	('93-c Average key card'),
+	('93-d Bad key card'),
+	('93-e Shitty key card');
 
 /* Creating a table with all the decimals (2 digits) from 0 to 1 */
 
-drop table if exists decimals_table_runner;
-create table decimals_table_runner (numb decimal);
+DROP TABLE IF EXISTS decimals_table_runner;
+CREATE TABLE decimals_table_runner (numb DECIMAL);
 
-insert into decimals_table_runner (numb)
-values
-(0.01),
-(0.02),
-(0.03),
-(0.04),
-(0.05),
-(0.06),
-(0.07),
-(0.08),
-(0.09),
-(0.1),
-(0.11),
-(0.12),
-(0.13),
-(0.14),
-(0.15),
-(0.16),
-(0.17),
-(0.18),
-(0.19),
-(0.2),
-(0.21),
-(0.22),
-(0.23),
-(0.24),
-(0.25),
-(0.26),
-(0.27),
-(0.28),
-(0.29),
-(0.3),
-(0.31),
-(0.32),
-(0.33),
-(0.34),
-(0.35),
-(0.36),
-(0.37),
-(0.38),
-(0.39),
-(0.4),
-(0.41),
-(0.42),
-(0.43),
-(0.44),
-(0.45),
-(0.46),
-(0.47),
-(0.48),
-(0.49),
-(0.5),
-(0.51),
-(0.52),
-(0.53),
-(0.54),
-(0.55),
-(0.56),
-(0.57),
-(0.58),
-(0.59),
-(0.6),
-(0.61),
-(0.62),
-(0.63),
-(0.64),
-(0.65),
-(0.66),
-(0.67),
-(0.68),
-(0.69),
-(0.7),
-(0.71),
-(0.72),
-(0.73),
-(0.74),
-(0.75),
-(0.76),
-(0.77),
-(0.78),
-(0.79),
-(0.8),
-(0.81),
-(0.82),
-(0.83),
-(0.84),
-(0.85),
-(0.86),
-(0.87),
-(0.88),
-(0.89),
-(0.9),
-(0.91),
-(0.92),
-(0.93),
-(0.94),
-(0.95),
-(0.96),
-(0.97),
-(0.98),
-(0.99);
+INSERT INTO decimals_table_runner (numb)
+VALUES
+	(0.01),
+	(0.02),
+	(0.03),
+	(0.04),
+	(0.05),
+	(0.06),
+	(0.07),
+	(0.08),
+	(0.09),
+	(0.1),
+	(0.11),
+	(0.12),
+	(0.13),
+	(0.14),
+	(0.15),
+	(0.16),
+	(0.17),
+	(0.18),
+	(0.19),
+	(0.2),
+	(0.21),
+	(0.22),
+	(0.23),
+	(0.24),
+	(0.25),
+	(0.26),
+	(0.27),
+	(0.28),
+	(0.29),
+	(0.3),
+	(0.31),
+	(0.32),
+	(0.33),
+	(0.34),
+	(0.35),
+	(0.36),
+	(0.37),
+	(0.38),
+	(0.39),
+	(0.4),
+	(0.41),
+	(0.42),
+	(0.43),
+	(0.44),
+	(0.45),
+	(0.46),
+	(0.47),
+	(0.48),
+	(0.49),
+	(0.5),
+	(0.51),
+	(0.52),
+	(0.53),
+	(0.54),
+	(0.55),
+	(0.56),
+	(0.57),
+	(0.58),
+	(0.59),
+	(0.6),
+	(0.61),
+	(0.62),
+	(0.63),
+	(0.64),
+	(0.65),
+	(0.66),
+	(0.67),
+	(0.68),
+	(0.69),
+	(0.7),
+	(0.71),
+	(0.72),
+	(0.73),
+	(0.74),
+	(0.75),
+	(0.76),
+	(0.77),
+	(0.78),
+	(0.79),
+	(0.8),
+	(0.81),
+	(0.82),
+	(0.83),
+	(0.84),
+	(0.85),
+	(0.86),
+	(0.87),
+	(0.88),
+	(0.89),
+	(0.9),
+	(0.91),
+	(0.92),
+	(0.93),
+	(0.94),
+	(0.95),
+	(0.96),
+	(0.97),
+	(0.98),
+	(0.99);
 
-/* We imported the whole splits including the LiveSplit settings and stuff, now we want to only keep the part with the segments history
-(to get the golds, best paces, etc.)=part 1 */
+/* We imported the whole splits including the LiveSplit settings and stuff, now we want to only keep the part with the segments history (to get the golds, best paces, etc.)=part 1 */
 
 drop table if exists notepad_splits_runner;
 create table notepad_splits_runner as
@@ -341,8 +330,8 @@ where notepad_info like '%<AutoSplitterSettings%');
 
 /* We do the same for the attempts (to get the date of the run, if the run was finished, if it was a PB, etc.)=part 2*/
 
-drop table if exists notepad_attempts_runner;
-create table notepad_attempts_runner as
+DROP TABLE IF EXISTS notepad_attempts_runner;
+CREATE TABLE notepad_attempts_runner as
 select ltrim(notepad_info, ' ') as notepad_info, 'runner' as runner_name
 from (select *, row_number() over () as cle
 from splits_runner) a
@@ -357,14 +346,11 @@ from (select *, row_number() over () as cle
 from splits_runner) a
 where notepad_info like '%</AttemptHistory>%');
 
-drop table if exists splits_treatment_runner;
-create table splits_treatment_runner as
+DROP TABLE IF EXISTS splits_treatment_runner;
+CREATE TABLE splits_treatment_runner as
 select
 
-/* Retrieving the run id from the notepad info, it's only present where the row contains <Time id="4">, this means it's the
-run id number 4, for the parts that don't contain that, we simply leave it blank, for the rest, it will depend on the length
-of the variable, if it's run id = 150 the length will be 1 extra compared to run id = 50 because there's obviously one
-more digit, so depending on that, there's different cases, I went up to 6 digits, so until run id = 999999. */
+/* Retrieving the run id from the notepad info, it's only present where the row contains <Time id="4">, this means it's the run id number 4, for the parts that don't contain that, we simply leave it blank, for the rest, it will depend on the length of the variable, if it's run id = 150 the length will be 1 extra compared to run id = 50 because there's obviously one more digit, so depending on that, there's different cases, I went up to 6 digits, so until run id = 999999. */
 
 case when notepad_info not like '%Time id%' then ''
 when length(notepad_info)=13 then substr(substr(notepad_info, 11, 1), 1, 1)
@@ -375,8 +361,7 @@ when length(notepad_info)=17 then substr(substr(notepad_info, 11, 5), 1, 5)
 when length(notepad_info)=18 then substr(substr(notepad_info, 11, 6), 1, 6)
 else '' end as run_id,
 
-/* Retrieving the split name, this one will only show once at the top for each split then will list of the times for each
-run for this specific split */
+/* Retrieving the split name, this one will only show once at the top for each split then will list of the times for each run for this specific split */
 
 case when notepad_info not like '%<Name>%' then ''
 else substr(substr(notepad_info, 7, length(notepad_info)-6), 1, length(notepad_info)-13) end as split_name,
@@ -390,43 +375,35 @@ else substr(substr(notepad_info, 11, length(notepad_info)-10), 1, length(notepad
 notepad_info as info, row_number() over () as cle /* This row_number can be useful to have a unique key for each row */
 from notepad_splits_runner;
 
-drop table if exists splits_treatment2_runner;
-create table splits_treatment2_runner as
+DROP TABLE IF EXISTS splits_treatment2_runner;
+CREATE TABLE splits_treatment2_runner as
 select *,
 
-/* Converting the run id as an integer, sometimes (rare) there are some run ids with no time for a specific split (because it
-was deleted by the runner) so it will show just id without a time and then the run id in this case will not be for example
-100 but 100" so it will mess up the integer conversion, so for these rare cases we force them as 0 as done in this case when,
-we also force the other blank rows to 0 */
+/* Converting the run id as an integer, sometimes (rare) there are some run ids with no time for a specific split (because it was deleted by the runner) so it will show just id without a time and then the run id in this case will not be for example 100 but 100" so it will mess up the integer conversion, so for these rare cases we force them as 0 as done in this case when, we also force the other blank rows to 0 */
 
 case when (info like '%<Time id=%' and info like '% />%') or run_id='' then 0
 else cast(run_id as integer) end as run_id2,
 
-/* The LRT times for each split are showing 2 rows after the run id, we want everything on the same row so we just do the lead
-function, we want the information from 2 rows after the run id but also 1 row after run id because sometimes the RTA is not
-showing (negative runs) and it just has the LRT available, so in that case we just take the next row and not the one after it */
+/* The LRT times for each split are showing 2 rows after the run id, we want everything on the same row so we just do the lead function, we want the information from 2 rows after the run id but also 1 row after run id because sometimes the RTA is not showing (negative runs) and it just has the LRT available, so in that case we just take the next row and not the one after it */
 
 lead(lrt) over(order by cle) as lead,
 lead(lrt, 2) over (order by cle) as lead2,
 lead(rta_split) over(order by cle) as lead_rta
 from splits_treatment_runner;
 
-/* Now putting back the LRT times that are 2 rows below the row we want (or 1 row below if no RTA time) in the same row as the other info
-(run id, etc.) and removing the other intermediate unnecessary columns */
+/* Now putting back the LRT times that are 2 rows below the row we want (or 1 row below if no RTA time) in the same row as the other info (run id, etc.) and removing the other intermediate unnecessary columns */
 
-drop table if exists splits_treatment3_runner;
-create table splits_treatment3_runner as
+DROP TABLE IF EXISTS splits_treatment3_runner;
+CREATE TABLE splits_treatment3_runner as
 select split_name, info, cle, run_id2,
 case when run_id2=0 then '' when run_id2<0 then lead else lead2 end as lrt2,
 case when run_id2<=0 then '' else lead_rta end as rta2
 from splits_treatment2_runner;
 
-/* Now that we have the run ids and the LRT times in the same row, we just need to get the split names on the same row too,
-for that we select the minimum row number for each split (using the "cle" variable we created with the row_number function) which tells
-us at which row starts the new split (so the previous split ends 1 row before that) */
+/* Now that we have the run ids and the LRT times in the same row, we just need to get the split names on the same row too, for that we select the minimum row number for each split (using the "cle" variable we created with the row_number function) which tells us at which row starts the new split (so the previous split ends 1 row before that) */
 
-drop table if exists split_name_info_runner;
-create table split_name_info_runner as
+DROP TABLE IF EXISTS split_name_info_runner;
+CREATE TABLE split_name_info_runner as
 select distinct split_name, rang, min(cle) as min
 from(
 select distinct split_name, row_number() over (partition by split_name order by cle) as rang, cle
@@ -435,30 +412,21 @@ where split_name<>'') a
 group by 1, 2
 order by 3;
 
-drop table if exists split_name_info2_runner;
-create table split_name_info2_runner as
+DROP TABLE IF EXISTS split_name_info2_runner;
+CREATE TABLE split_name_info2_runner as
 select *,
 
-/* Now that we have the min row for each split name, it's easy to get the max, it's just the min of the next split-1,
-we also create a second "cle" variable "cle2" which also uses a row_number function but this time only with the 123 rows of the 123 unique
-splits (and not the whole LiveSplit history rows), this will be useful to create the chapters and sections */
+/* Now that we have the min row for each split name, it's easy to get the max, it's just the min of the next split-1, we also create a second "cle" variable "cle2" which also uses a row_number function but this time only with the 123 rows of the 123 unique splits (and not the whole LiveSplit history rows), this will be useful to create the chapters and sections */
 
 lead(min) over(order by min)-1 as max, row_number() over() as cle2
 from split_name_info_runner;
 
-drop table if exists split_name_info3_runner;
-create table split_name_info3_runner as
+DROP TABLE IF EXISTS split_name_info3_runner;
+CREATE TABLE split_name_info3_runner as
 select *,
 
-/* Getting the chapter and section for each split using the "cle2" variable created just above, we know that 1-1 has only 4 splits if cle2
-is between 1 and 4, we know it's one of the first 4 splits and therefore it's 1-1, etc.
-Then doing the same for sections, technically we didn't need to created a cle2 variable, the original cle variable was already enough,
-but it would have been a bit harder to create the chapter and section names since it depends on each runners splits, for example a runner
-could have 10K rows of 1-1 then 8K rows of 1-2, etc. so we'd have to identify the chapters using the split names and stuff, here it's easy
-since it's the same for everyone, everyone has 4 splits in 1-1, etc. (not to mention cle2 is actually a very useful variable and had to be
-created anyway, since it's the split number, so cle2=1 means it's the first split of the run, etc.
-It's better to use the id of the split instead of its name, since not all the runners have the same split names (this also skips the part
-where everyone needs to have the same split names for the script to work) */
+/* Getting the chapter and section for each split using the "cle2" variable created just above, we know that 1-1 has only 4 splits if cle2 is between 1 and 4, we know it's one of the first 4 splits and therefore it's 1-1, etc.
+Then doing the same for sections, technically we didn't need to created a cle2 variable, the original cle variable was already enough, but it would have been a bit harder to create the chapter and section names since it depends on each runners splits, for example a runner could have 10K rows of 1-1 then 8K rows of 1-2, etc. so we'd have to identify the chapters using the split names and stuff, here it's easy since it's the same for everyone, everyone has 4 splits in 1-1, etc. (not to mention cle2 is actually a very useful variable and had to be created anyway, since it's the split number, so cle2=1 means it's the first split of the run, etc. It's better to use the id of the split instead of its name, since not all the runners have the same split names (this also skips the part where everyone needs to have the same split names for the script to work) */
 
 case when cle2<=4 then '1-1'
 when cle2<=7 then '1-2'
@@ -484,25 +452,20 @@ when cle2<=82 then 'Castle'
 else 'Island' end as section
 from split_name_info2_runner;
 
-drop table if exists splits_treatment4_runner;
-create table splits_treatment4_runner as
+DROP TABLE IF EXISTS splits_treatment4_runner;
+CREATE TABLE splits_treatment4_runner as
 
-/* Now that the split names are finished (+chapter and section names added) we join that table with the table we had that has run ids and
-LRT times on the same row, now it will have the split names (+chapter and section names) on the same row too, because as explained above,
-the split name on the original file only shows once at the top and then just lists the times history without displaying the split name,
-so we need that for each row
-Just like we did for run ids and LRT times, we make the split name empty on the rows we don't want (there are a lot of unnecessary rows
-in the original file since all the data has 1 info per row (for example split name, LRT time and run id will show on 3 different rows on
-the original file, but since here we put everything in the same row, we only keep one row out of the 3 and the other 2 are useless,
-so we delete them, it also makes the file a bit lighter since we now have much less rows to work with */
+/* Now that the split names are finished (+chapter and section names added) we join that table with the table we had that has run ids and LRT times on the same row, now it will have the split names (+chapter and section names) on the same row too, because as explained above, the split name on the original file only shows once at the top and then just lists the times history without displaying the split name, so we need that for each row
+
+Just like we did for run ids and LRT times, we make the split name empty on the rows we don't want (there are a lot of unnecessary rows in the original file since all the data has 1 info per row (for example split name, LRT time and run id will show on 3 different rows on the original file, but since here we put everything in the same row, we only keep one row out of the 3 and the other 2 are useless, so we delete them, it also makes the file a bit lighter since we now have much less rows to work with */
 
 select info, cle, run_id2, lrt2, case when lrt2='' then '' else b.split_name end as split_name2, chapter, section, cle2, rta2
 from splits_treatment3_runner a
 left join split_name_info3_runner b on a.cle>=b.min and a.cle<=case when b.max is null then 10000000 else b.max end
 order by cle;
 
-drop table if exists splits_treatment5_runner;
-create table splits_treatment5_runner as
+DROP TABLE IF EXISTS splits_treatment5_runner;
+CREATE TABLE splits_treatment5_runner as
 select info, cle, run_id2, lrt2, split_name2, chapter, section, cle2,
 round(hours*3600+minutes*60+seconds+milliseconds/10000000, 7) as lrt3,
 rta2, round(hours_rta*3600+minutes_rta*60+seconds_rta+milliseconds_rta/10000000, 7) as rta3
@@ -522,17 +485,15 @@ case when rta2='' then 0 else cast(substr(rta2, 7, 2) as integer) end as seconds
 case when rta2='' or length(rta2)=8 then 0 else cast(substr(rta2, 10, 7) as decimal) end as milliseconds_rta
 from splits_treatment4_runner
 
-/* At this point we only keep the rows that have the information and we already have everything in the same row (run id,
-lrt time and split name) so we can delete all the rest */
+/* At this point we only keep the rows that have the information and we already have everything in the same row (run id, lrt time and split name) so we can delete all the rest */
 
 where split_name2<>'');
 
-drop table if exists splits_treatment6_runner;
-create table splits_treatment6_runner as
+DROP TABLE IF EXISTS splits_treatment6_runner;
+CREATE TABLE splits_treatment6_runner as
 select *,
 
-/* Also adding the LRT time with the same format as in LiveSplit, not used for calculations (for that we use the number format create in
-the table above) but it's just easier to read */
+/* Also adding the LRT time with the same format as in LiveSplit, not used for calculations (for that we use the number format create in the table above) but it's just easier to read */
 
 case when lrt3-trunc(lrt3)=0 then (case when lrt3<10 then substr(lrt2, 8, 5)||'.000'
 when lrt3<60 then substr(lrt2, 7, 6)||'.000'
@@ -563,8 +524,8 @@ from splits_treatment5_runner;
 
 /* Treatment of part 1 (segments history) is done, now we need to work on part 2 (attempts history) with the run ids and the dates */
 
-drop table if exists attempts_treatment_runner;
-create table attempts_treatment_runner as
+DROP TABLE IF EXISTS attempts_treatment_runner;
+CREATE TABLE attempts_treatment_runner as
 select *,
 
 /* Retrieving the run id */
@@ -592,26 +553,24 @@ case when substr(notepad_info, 1, 2)='<G' then substr(notepad_info, 11, 8) else 
 case when substr(notepad_info, 1, 2)='<R' then substr(notepad_info, 11, 8) else '' end as rta
 from notepad_attempts_runner;
 
-/* The finished runs will have their LRT time 2 rows after the run id, so need to put everything in the same row as done
-earlier */
+/* The finished runs will have their LRT time 2 rows after the run id, so need to put everything in the same row as done earlier */
 
-drop table if exists attempts_treatment2_runner_old;
-create table attempts_treatment2_runner_old as
+DROP TABLE IF EXISTS attempts_treatment2_runner_old;
+CREATE TABLE attempts_treatment2_runner_old as
 select run_id as id, date as date_started, finished_run, lead(rta, 1) over () as final_rta, lead(lrt, 2) over () as final_lrt,
 date_end, time_start, time_end, runner_name
 from attempts_treatment_runner;
 
-drop table if exists attempts_treatment2_runner;
-create table attempts_treatment2_runner as
+DROP TABLE IF EXISTS attempts_treatment2_runner;
+CREATE TABLE attempts_treatment2_runner as
 select *
 from attempts_treatment2_runner_old
 where id <> '' and to_date(substr(date_started, 7, 4) || '-' || substr(date_started, 1, 2) || '-' || substr(date_started, 4, 2), 'YYYY-MM-DD') >= '2024-10-15'; -- This date needs to be customizable
 
-/* Getting the list of all finished runs and for each finished run, was it a PB when it was done or not? (which also means getting the LRT
-PB at that time too) */
+/* Getting the list of all finished runs and for each finished run, was it a PB when it was done or not? (which also means getting the LRT PB at that time too) */
 
-drop table if exists pb_history_runner_old;
-create table pb_history_runner_old as
+DROP TABLE IF EXISTS pb_history_runner_old;
+CREATE TABLE pb_history_runner_old as
 select finished_runs.id, finished_runs.final_lrt, min(pbs.final_lrt) as lrt_pb,
 case when finished_runs.final_lrt=min(pbs.final_lrt) then 1 else 0 end as pb
 from (select *
@@ -623,13 +582,10 @@ where final_lrt<>'') pbs on cast(finished_runs.id as integer)>=cast(pbs.id as in
 group by finished_runs.id, finished_runs.final_lrt
 order by cast(finished_runs.id as integer);
 
-/* We now join the attempts history (with dates and run id on the same row) with the finished runs information (was it a PB, etc.)
-to have everything in the same table.
-As earlier, only keeping the good rows and deleting the rest (since we put everything in the same row, a lot of rows are now useless.
-Treatment of part2 is now done */
+/* We now join the attempts history (with dates and run id on the same row) with the finished runs information (was it a PB, etc.) to have everything in the same table. As earlier, only keeping the good rows and deleting the rest (since we put everything in the same row, a lot of rows are now useless. Treatment of part2 is now done */
 
-drop table if exists attempts_treatment3_old_runner;
-create table attempts_treatment3_old_runner as
+DROP TABLE IF EXISTS attempts_treatment3_old_runner;
+CREATE TABLE attempts_treatment3_old_runner as
 select cast(a.id as integer) as id, finished_run, a.final_lrt, pb, final_rta,
 case when final_rta='' or final_rta is null then 0 else
 cast(substr(final_rta, 1, 2) as integer)*3600+cast(substr(final_rta, 4, 2) as integer)*60+
@@ -652,8 +608,8 @@ from attempts_treatment2_runner a
 left join pb_history_runner_old b on a.id=b.id
 where a.id<>'';
 
-drop table if exists attempts_treatment3_runner;
-create table attempts_treatment3_runner as
+DROP TABLE IF EXISTS attempts_treatment3_runner;
+CREATE TABLE attempts_treatment3_runner as
 select
 	*,
 	date_started_livesplit as date_started,
@@ -664,8 +620,8 @@ from attempts_treatment3_old_runner;
 
 /* Getting the list of all PBs, also converting the PBs into number format, can be used for calculations (or graphs, etc.) */
 
-drop table if exists pb_history_runner;
-create table pb_history_runner as
+DROP TABLE IF EXISTS pb_history_runner;
+CREATE TABLE pb_history_runner as
 select a.*, cast(substr(lrt_pb, 1, 2) as integer)*3600+cast(substr(lrt_pb, 4, 2) as integer)*60+
 cast(substr(lrt_pb, 7, 2) as integer) as pb_lrt, date_started-coalesce(lag(date_started) over(order by cast(a.id as integer)), date_started)
 as days_it_took, cast(a.id as integer)-coalesce(lag(cast(a.id as integer)) over(order by cast(a.id as integer)),0) attempts_it_took,
@@ -696,12 +652,10 @@ group by a.id
 order by a.id) c on a.id=c.id
 where pb=1;
 
-/* Final table that is going to be used to get the actual data (chapter golds, etc.), we combine the 2 cleaned tables after
-treatments (splits history and attempts history, so part 1 and 2)
-Also converting the dates of the runs from part2 into date format */
+/* Final table that is going to be used to get the actual data (chapter golds, etc.), we combine the 2 cleaned tables after treatments (splits history and attempts history, so part 1 and 2) Also converting the dates of the runs from part2 into date format */
 
-drop table if exists splits_cleaned_runner_old;
-create table splits_cleaned_runner_old as
+DROP TABLE IF EXISTS splits_cleaned_runner_old;
+CREATE TABLE splits_cleaned_runner_old as
 select run_id2 as id, split_name2 as split, chapter, section, lrt3 as lrt_number, lrt4 as lrt_split,
 date_started_livesplit, finished_run, final_lrt, pb, cle2, final_rta, date_end_livesplit, time_start_livesplit, time_end_livesplit, playtime,
 date_started, time_start, date_end,
@@ -709,16 +663,16 @@ time_end, rta3 as rta_numeric, rta4 as rta_split
 from splits_treatment6_runner a
 left join attempts_treatment3_runner b on a.run_id2=b.id;
 
-drop table if exists rta_cumulative_runner;
-create table rta_cumulative_runner as
+DROP TABLE IF EXISTS rta_cumulative_runner;
+CREATE TABLE rta_cumulative_runner as
 select a.id, a.cle2, sum(b.rta_numeric) as cumulative_rta
 from splits_cleaned_runner_old a
 left join (select distinct id, cle2, rta_numeric from splits_cleaned_runner_old) b on a.cle2>=b.cle2 and a.id=b.id
 group by 1, 2
 order by 1, 2;
 
-drop table if exists splits_cleaned_runner_old2;
-create table splits_cleaned_runner_old2 as
+DROP TABLE IF EXISTS splits_cleaned_runner_old2;
+CREATE TABLE splits_cleaned_runner_old2 as
 select a.*, cumulative_rta, lag(cumulative_rta) over(partition by a.id order by a.cle2) as lag_rta, cast(substr(time_start, 1, 2) as numeric)*3600
 +cast(substr(time_start, 4, 2) as numeric)*60+cast(substr(time_start, 7, 2) as numeric) as time_start_numeric,
 cast(substr(time_end, 1, 2) as numeric)*3600
@@ -726,8 +680,8 @@ cast(substr(time_end, 1, 2) as numeric)*3600
 from splits_cleaned_runner_old a
 left join rta_cumulative_runner b on a.id=b.id and a.cle2=b.cle2;
 
-drop table if exists splits_cleaned_runner;
-create table splits_cleaned_runner as
+DROP TABLE IF EXISTS splits_cleaned_runner;
+CREATE TABLE splits_cleaned_runner as
 select id, default_split as split, chapter, section, lrt_number, lrt_split, date_started_livesplit, finished_run, final_lrt, pb, cle2,
 final_rta, date_end_livesplit, time_start_livesplit, time_end_livesplit, playtime, date_started, time_start, date_end, time_end,
 rta_numeric, rta_split, cumulative_rta, lag_rta, time_start_numeric, time_end_numeric, time_start_numeric2, time_end_numeric2,
@@ -787,15 +741,13 @@ from splits_cleaned_runner_old2 a
 left join default_split_names_runner b on a.cle2=b.cle2);
 
 /* Chapter golds part
-Here we define for each chapter, how many splits we have, so we know if a run has finished a chapter or not (obviously to count the chapter
-golds, we need to count only the chapter that are finished, because a chapter that only did the first split and reset is gonna be faster
-than a full chapter */
+Here we define for each chapter, how many splits we have, so we know if a run has finished a chapter or not (obviously to count the chapter golds, we need to count only the chapter that are finished, because a chapter that only did the first split and reset is gonna be faster than a full chapter */
 
-drop table if exists chapter_splits_runner;
-create table chapter_splits_runner (chapter varchar(255), number_of_splits integer);
+DROP TABLE IF EXISTS chapter_splits_runner;
+CREATE TABLE chapter_splits_runner (chapter VARCHAR(255), number_of_splits integer);
 
-insert into chapter_splits_runner (chapter, number_of_splits)
-values
+INSERT INTO chapter_splits_runner (chapter, number_of_splits)
+VALUES
 ('1-1', 4),
 ('1-2', 3),
 ('1-3', 7),
@@ -818,8 +770,8 @@ values
 
 /* Getting the chapter golds and chapter averages */
 
-drop table if exists chapter_golds_runner;
-create table chapter_golds_runner as
+DROP TABLE IF EXISTS chapter_golds_runner;
+CREATE TABLE chapter_golds_runner as
 select ch_golds.*, avg_chapter_time, cast(median_chapter_time as numeric) as median_chapter_time
 from (
 select aa.*, bb.id, date_started, finished_run, final_lrt, pb
@@ -871,8 +823,8 @@ order by 1) ch_med on ch_golds.chapter=ch_med.chapter;
 
 /* Putting the chapter golds and averages in LiveSplit format (previously numbers) */
 
-drop table if exists chapter_golds2_runner;
-create table chapter_golds2_runner as
+DROP TABLE IF EXISTS chapter_golds2_runner;
+CREATE TABLE chapter_golds2_runner as
 select *, case when chapter_gold<60 then (case when trunc(chapter_gold-trunc(chapter_gold), 3) =0 then
 to_char(trunc(chapter_gold, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_gold-trunc(chapter_gold), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
@@ -935,8 +887,8 @@ floor(median_chapter_time / 60) || ':' ||
 to_char(trunc(median_chapter_time, 3) % 60, 'FM00.999') end) end AS median_chapter_time2
 from chapter_golds_runner;
 
-drop table if exists chapter_golds3_runner;
-create table chapter_golds3_runner as
+DROP TABLE IF EXISTS chapter_golds3_runner;
+CREATE TABLE chapter_golds3_runner as
 select chapter, id, date_started, final_lrt, pb, chapter_gold, chapter_gold2,
 case when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3)=0 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
@@ -976,8 +928,8 @@ order by chapter;
 
 /* Chapter times of all the attempts */
 
-drop table if exists chapter_history_runner;
-create table chapter_history_runner as
+DROP TABLE IF EXISTS chapter_history_runner;
+CREATE TABLE chapter_history_runner as
 select chapter, id, date_started, finished_run, final_lrt, pb, sum(chapter_time) as chapter_time
 from(
 select a.*
@@ -991,8 +943,8 @@ order by 1;
 
 /* Putting the chapter golds in LiveSplit format (previously numbers) */
 
-drop table if exists chapter_history2_runner;
-create table chapter_history2_runner as
+DROP TABLE IF EXISTS chapter_history2_runner;
+CREATE TABLE chapter_history2_runner as
 select *, case when chapter_time<60 then (case when trunc(chapter_time-trunc(chapter_time), 3) =0 then
 to_char(trunc(chapter_time, 3) % 60, 'FM00.999')||'000'
 when trunc(chapter_time-trunc(chapter_time), 3) in (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
@@ -1016,8 +968,8 @@ to_char(trunc(chapter_time, 3) % 60, 'FM00.999') end) end AS chapter_time2, rank
 from chapter_history_runner
 order by chapter, chapter_time;
 
-drop table if exists chapter_history3_runner;
-create table chapter_history3_runner as
+DROP TABLE IF EXISTS chapter_history3_runner;
+CREATE TABLE chapter_history3_runner as
 select chapter, id, date_started, finished_run, pb, chapter_time, chapter_time2, case when chapter_time<=min or min is null then 1 else 0
 end as golded_chapter,
 case when min<60 then (case when trunc(min-trunc(min), 3) =0 then
@@ -1062,19 +1014,19 @@ group by finished_chapters_at_that_time, chapter_rank_at_that_time, finished_cha
 
 /* Section golds, same as chapters, we count the number of splits per section to only count finished sections */
 
-drop table if exists section_splits_runner;
-create table section_splits_runner (section varchar(255), number_of_splits integer, sort integer);
+DROP TABLE IF EXISTS section_splits_runner;
+CREATE TABLE section_splits_runner (section VARCHAR(255), number_of_splits integer, sort integer);
 
-insert into section_splits_runner (section, number_of_splits, sort)
-values
+INSERT INTO section_splits_runner (section, number_of_splits, sort)
+VALUES
 ('Village', 32, 1),
 ('Castle', 50, 2),
 ('Island', 41, 3);
 
 /* Sections golds and averages */
 
-drop table if exists section_golds_runner;
-create table section_golds_runner as
+DROP TABLE IF EXISTS section_golds_runner;
+CREATE TABLE section_golds_runner as
 select section_golds.*, section_avg, cast(section_median as numeric) as section_median
 from(
 select aa.*, bb.id, date_started, finished_run, final_lrt, pb
@@ -1126,8 +1078,8 @@ order by 1) section_med on section_golds.section=section_med.section;
 
 /* Putting the section golds and averages in LiveSplit format (previously numbers) */
 
-drop table if exists section_golds2_runner;
-create table section_golds2_runner as
+DROP TABLE IF EXISTS section_golds2_runner;
+CREATE TABLE section_golds2_runner as
 select *, floor(section_gold / 60) || ':' ||
 case when length(to_char(trunc(section_gold, 3) % 60, 'FM00.999'))=3
 then to_char(trunc(section_gold, 3) % 60, 'FM00.999')||'000'
@@ -1154,8 +1106,8 @@ then to_char(trunc(section_median, 3) % 60, 'FM00.999')||'0' else
 to_char(trunc(section_median, 3) % 60, 'FM00.999') end AS section_median2
 from section_golds_runner;
 
-drop table if exists section_golds3_runner;
-create table section_golds3_runner as
+DROP TABLE IF EXISTS section_golds3_runner;
+CREATE TABLE section_golds3_runner as
 select section, id, date_started, final_lrt, pb, section_gold, section_gold2,
 case when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3)=0 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
@@ -1196,8 +1148,8 @@ order by case when section='Village' then 1 when section='Castle' then 2 else 3 
 
 /* Section times of all the attempts */
 
-drop table if exists section_history_runner;
-create table section_history_runner as
+DROP TABLE IF EXISTS section_history_runner;
+CREATE TABLE section_history_runner as
 select section, id, date_started, finished_run, final_lrt, pb, sum(section_time) as section_time
 from(
 select a.*
@@ -1211,8 +1163,8 @@ order by 1;
 
 /* Putting the section golds in LiveSplit format (previously numbers) */
 
-drop table if exists section_history2_runner;
-create table section_history2_runner as
+DROP TABLE IF EXISTS section_history2_runner;
+CREATE TABLE section_history2_runner as
 select *, case when trunc(section_time-trunc(section_time), 3) =0
 then floor(section_time / 60) || ':' ||
 to_char(trunc(section_time, 3) % 60, 'FM00.999')||'000'
@@ -1228,8 +1180,8 @@ to_char(trunc(section_time, 3) % 60, 'FM00.999') end AS section_time2, rank() ov
 from section_history_runner
 order by case when section='Village' then 1 when section='Castle' then 2 else 3 end, section_time;
 
-drop table if exists section_history3_runner;
-create table section_history3_runner as
+DROP TABLE IF EXISTS section_history3_runner;
+CREATE TABLE section_history3_runner as
 select section, id, date_started, finished_run, final_lrt, pb, section_time, section_time2, case when section_time<=min or min is null
 then 1 else 0 end as golded_section,
 floor(min / 60) || ':' ||
@@ -1262,8 +1214,8 @@ group by a.rank_section, finished_sections, finished_sections_at_that_time, sect
 
 /* All golds */
 
-drop table if exists doorsplits_golds_runner;
-create table doorsplits_golds_runner as
+DROP TABLE IF EXISTS doorsplits_golds_runner;
+CREATE TABLE doorsplits_golds_runner as
 select aa.*, bb.id, date_started, finished_run, final_lrt, pb,
 case when trunc(gold-trunc(gold), 3)=0 then
 (case when gold<10 then to_char(trunc(gold, 3) % 60, 'FM0.999')||'000'
@@ -1313,8 +1265,8 @@ group by 1
 order by 1) door_med on door_med.cle2=aa.cle2
 order by cle2;
 
-drop table if exists doorsplits_golds2_runner;
-create table doorsplits_golds2_runner as
+DROP TABLE IF EXISTS doorsplits_golds2_runner;
+CREATE TABLE doorsplits_golds2_runner as
 select cle2, id, date_started, final_lrt, pb, gold, gold2, door_avg, door_median,
 case when trunc(cumulative_chapter_gold-trunc(cumulative_chapter_gold), 3)=0 then (case when cumulative_chapter_gold>=3600 then
 floor(cumulative_chapter_gold / 3600) || ':' || case when floor(cumulative_chapter_gold / 60)-(floor(cumulative_chapter_gold/3600)*60)<10 then '0' else '' end ||
@@ -1381,8 +1333,8 @@ group by a.cle2, a.split, a.gold, a.id, a.date_started, a.finished_run, a.final_
 order by a.cle2) a
 order by cle2;
 
-drop table if exists doorsplits_golds_history_runner;
-create table doorsplits_golds_history_runner as
+DROP TABLE IF EXISTS doorsplits_golds_history_runner;
+CREATE TABLE doorsplits_golds_history_runner as
 select cle2, split, gold, id, date_started, finished_run, final_lrt, pb, gold2, case when lrt_number<=min or min is null then 1 else 0
 end as golded_split,
 case when trunc(min-trunc(min), 3)=0 then
@@ -1407,8 +1359,8 @@ left join splits_cleaned_runner b on a.cle2=b.cle2 and a.id>b.id
 left join (select distinct cle2, split, gold, gold2 from doorsplits_golds_runner) c on a.cle2=c.cle2
 group by a.cle2, a.split, c.gold, c.gold2, a.lrt_number, a.id, a.date_started, a.finished_run, a.final_lrt, a.pb, a.lrt_split) a;
 
-drop table if exists doorsplits_golds_history_runner2;
-create table doorsplits_golds_history_runner2 as
+DROP TABLE IF EXISTS doorsplits_golds_history_runner2;
+CREATE TABLE doorsplits_golds_history_runner2 as
 select a.*, split_rank_at_that_time, finished_splits, finished_splits_at_that_time
 from doorsplits_golds_history_runner a
 left join (select cle2, count(*) as finished_splits from doorsplits_golds_history_runner group by 1) c on a.cle2=c.cle2
@@ -1428,8 +1380,8 @@ group by 1, 2) e on a.cle2=e.cle2 and a.id=e.id;
 
 /* Getting the pace (and best pace) of each run after each split */
 
-drop table if exists best_paces_runner;
-create table best_paces_runner as
+DROP TABLE IF EXISTS best_paces_runner;
+CREATE TABLE best_paces_runner as
 select pace.*, best_pace, /*avg_pace, median_pace,*/
 case when trunc(pace-trunc(pace), 3)=0 then (case when pace<3600 then floor(pace / 60) || ':' ||
 to_char(trunc(pace, 3) % 60, 'FM00.999')||'000'
@@ -1559,8 +1511,8 @@ and number_of_splits=cle2
 group by split, cle2
 order by cle2) best_pace on pace.cle2=best_pace.cle2;
 
-drop table if exists best_paces_history_runner;
-create table best_paces_history_runner as
+DROP TABLE IF EXISTS best_paces_history_runner;
+CREATE TABLE best_paces_history_runner as
 select cle2, id, split, number_of_splits, pace, best_pace, pace2, best_pace2, case when pace<=min or min is null then 1 else 0
 end as was_best_pace,
 case when trunc(min-trunc(min), 3)=0 then (case when min<3600 then floor(min / 60) || ':' ||
@@ -1595,8 +1547,8 @@ group by a.cle2, a.id, a.split, a.number_of_splits, a.pace, a.best_pace, a.pace2
 a.avg_pace2, a.median_pace2*/) a
 order by cle2 desc, id;
 
-drop table if exists best_paces_history_runner2;
-create table best_paces_history_runner2 as
+DROP TABLE IF EXISTS best_paces_history_runner2;
+CREATE TABLE best_paces_history_runner2 as
 select a.*, pace_rank_at_that_time, finished_paces, finished_paces_at_that_time
 from best_paces_history_runner a
 left join (select cle2, count(*) as finished_paces from best_paces_history_runner group by 1) c on a.cle2=c.cle2
@@ -1614,11 +1566,10 @@ from best_paces_history_runner a
 join best_paces_history_runner b on a.cle2=b.cle2 and a.id>=b.id
 group by 1, 2) e on a.cle2=e.cle2 and a.id=e.id;
 
-/* Checking is a gold was done on a gold hunt (bad run) by checking the delta between the pace of that run and the best pace for each
-split */
+/* Checking is a gold was done on a gold hunt (bad run) by checking the delta between the pace of that run and the best pace for each split */
 
-drop table if exists gold_hunt_detector_runner;
-create table gold_hunt_detector_runner as
+DROP TABLE IF EXISTS gold_hunt_detector_runner;
+CREATE TABLE gold_hunt_detector_runner as
 select cle2, split, gold, gold2, id, date_started, finished_run, final_lrt, pb, pace, pace2, best_pace, best_pace2,
 best_pace_delta
 from(
@@ -1631,8 +1582,8 @@ order by cle2;
 
 /* Resets history to get the % of resets for each split */
 
-drop table if exists resets_history_runner;
-create table resets_history_runner as
+DROP TABLE IF EXISTS resets_history_runner;
+CREATE TABLE resets_history_runner as
 select a.*, attempts
 from(
 select cle2, split, count(*) as runs
@@ -1642,8 +1593,8 @@ order by cle2) a cross join (select count(*) as attempts
 from attempts_treatment3_runner
 group by runner_name) b;
 
-drop table if exists resets_history2_runner;
-create table resets_history2_runner as
+DROP TABLE IF EXISTS resets_history2_runner;
+CREATE TABLE resets_history2_runner as
 select cle2, split, runs, resets, (round(resets)/round(case when lag is null then runs+resets else lag end))*100
 as percentage_resets
 from(
@@ -1654,8 +1605,8 @@ from resets_history_runner));
 
 /* Final main table that has everything */
 
-drop table if exists splits_overview_runner;
-create table splits_overview_runner as
+DROP TABLE IF EXISTS splits_overview_runner;
+CREATE TABLE splits_overview_runner as
 select *
 from (select a.id, a.split, a.chapter, a.section, a.lrt_number, a.lrt_split, a.date_started, a.finished_run, a.final_lrt, a.pb, a.cle2, a.final_rta,
 a.date_end, a.time_start_numeric3 as time_start, a.time_end_numeric3 as time_end, a.playtime, a.rta_numeric, a.rta_split, e.gold2, e.gold, pace,
@@ -1767,8 +1718,8 @@ order by id, cle2;
 
 /* RNG splits (like Lago) to get the % of patterns (like % of early dives, etc.) */
 
-drop table if exists rng_splits_runner;
-create table rng_splits_runner as
+DROP TABLE IF EXISTS rng_splits_runner;
+CREATE TABLE rng_splits_runner as
 select pattern, substr(pattern, 4, length(pattern)-3) as pattern2, runs, total, percentage
 from(select pattern, runs, total, percentage
 from (select a.*, total, round(runs)/round(total)*100 as percentage
@@ -1933,8 +1884,8 @@ order by pattern);
 
 /* Same but to get the consecutive patterns (like how many early dives in a row */
 
-drop table if exists consecutive_patterns_runner;
-create table consecutive_patterns_runner as
+DROP TABLE IF EXISTS consecutive_patterns_runner;
+CREATE TABLE consecutive_patterns_runner as
 select *
 from (
 select lago_pattern, max(rank) as maximum_consecutive_patterns
@@ -2113,8 +2064,8 @@ order by lago_pattern;
 
 /* All chapter golds with doorsplits golds combined per chapter */
 
-drop table if exists chapter_golds_sheet_runner;
-create table chapter_golds_sheet_runner as
+DROP TABLE IF EXISTS chapter_golds_sheet_runner;
+CREATE TABLE chapter_golds_sheet_runner as
 select a.chapter, a.id, a.date_started, a.final_lrt, a.pb, a.chapter_gold2,
 case when cumulative_chapter_gold2<60 then (case when trunc(cumulative_chapter_gold2-trunc(cumulative_chapter_gold2), 3) =0 then
 to_char(trunc(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000'
@@ -2153,8 +2104,8 @@ left join (select distinct id, chapter, chapter_gold_at_that_time
 
 /* All section golds with doorsplits golds combined per section + chapter golds combined per section */
 
-drop table if exists section_golds_sheet_runner;
-create table section_golds_sheet_runner as
+DROP TABLE IF EXISTS section_golds_sheet_runner;
+CREATE TABLE section_golds_sheet_runner as
 select a.section, a.id, a.date_started, a.final_lrt, a.pb, a.section_gold2,
 case when trunc(cumulative_chapter_gold3-trunc(cumulative_chapter_gold3), 3)=0 then (case when cumulative_chapter_gold3>=3600 then
 floor(cumulative_chapter_gold3 / 3600) || ':' || case when floor(cumulative_chapter_gold3 / 60)-(floor(cumulative_chapter_gold3/3600)*60)<10 then '0' else '' end ||
@@ -2237,8 +2188,8 @@ order by case when a.section='Village' then 1 when a.section='Castle' then 2 els
 
 /* Getting the history of PBs by the day of the week */
 
-drop table if exists weekday_data_runner;
-create table weekday_data_runner as
+DROP TABLE IF EXISTS weekday_data_runner;
+CREATE TABLE weekday_data_runner as
 select a.*, golds, chapter_golds, section_golds, best_paces,
 attempts/case when number_of_pbs=0 then null else number_of_pbs end as attempts_to_get_a_pb,
 round((round(golds, 4)/round(attempts, 4))*100, 2)||'%' as golds_ratio,
