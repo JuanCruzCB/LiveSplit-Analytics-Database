@@ -6,20 +6,12 @@ import pandas as pd
 from pandas import DataFrame
 
 from db.database_manager import DatabaseManager
-from db.utils import calculate_best_time, format_time, parse_time
-
-
-class ConstantQuery(StrEnum):
-    RELEVANT_TABLE_NAMES = """
-    SELECT table_name
-    FROM information_schema.tables
-    WHERE table_schema = 'public'
-        AND table_name NOT LIKE '%treatment%'
-        AND table_name NOT LIKE '%cleaned%'
-        AND table_name NOT LIKE '%info%'
-        AND table_name NOT LIKE '%notepad%'
-    ORDER BY table_name;
-    """
+from db.utils import (
+    add_best_and_cumulative_best_columns,
+    calculate_best_time,
+    format_time,
+    parse_time,
+)
 
 
 class OrderColumns(StrEnum):
@@ -39,7 +31,7 @@ class QueryRunner:
     ):
         self._db = db_manager
         self._allowed_runners = allowed_runners
-        self._runner = main_runner_name
+        self._main_runner = main_runner_name
         self._output_dir = Path(__file__).parent.parent.parent / "output"
         self._output_dir.mkdir(exist_ok=True)
 
@@ -56,33 +48,34 @@ class QueryRunner:
     def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
         return self._db.update_runners_tables(splits=splits)
 
-    @staticmethod
-    def _add_best_and_cumulative_best_columns(golds: DataFrame) -> DataFrame:
-        golds["Best gold"] = golds.apply(
-            lambda row: calculate_best_time(row[1:]),
-            axis=1,
-        )
-        golds["Best gold seconds"] = golds["Best gold"].map(parse_time)
-        golds["Cumulative best seconds"] = golds["Best gold seconds"].cumsum()
-        golds["Cumulative best"] = golds["Cumulative best seconds"].apply(format_time)
-        golds = golds.drop(columns=["Best gold seconds", "Cumulative best seconds"])
+    def _get_golds(
+        self,
+        division_type_query: str,
+        golds_query: str,
+        *,
+        add_best_and_cumulative: bool = True,
+    ) -> DataFrame:
+        division_names = self._db.execute(division_type_query)
+        division_names.loc[len(division_names)] = "Total"
 
-        best_gold_idx = golds.columns.get_loc("Best gold")
-        cumulative_best_idx = golds.columns.get_loc("Cumulative best")
+        dfs = []
+        dfs.append(division_names)
+        for runner in self._allowed_runners:
+            runner_golds = self._db.execute(golds_query.format(runner=runner))
 
-        golds.iloc[golds.index[-1], best_gold_idx] = ""  # type: ignore  # noqa: PGH003
-        golds.iloc[golds.index[-1], cumulative_best_idx] = ""  # type: ignore  # noqa: PGH003
+            runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
+            sum_of_best = format_time(runner_golds["Times in seconds"].sum())
+            runner_golds.loc[len(runner_golds)] = sum_of_best
+            runner_golds = runner_golds.drop(columns=["Times in seconds"])
 
-        return golds
+            dfs.append(runner_golds)
 
-    @staticmethod
-    def _add_best_column(df: DataFrame) -> DataFrame:
-        df["Best"] = df.apply(
-            lambda row: calculate_best_time(row[1:]),
-            axis=1,
-        )
+        overall_df = pd.concat(dfs, axis=1)
+        overall_df.columns = overall_df.columns.str.capitalize()
+        if add_best_and_cumulative:
+            overall_df = add_best_and_cumulative_best_columns(overall_df)
 
-        return df
+        return overall_df
 
     def get_runners_doorsplit_golds(self) -> DataFrame:
         """
@@ -90,34 +83,21 @@ class QueryRunner:
         and each column contains all the doorsplit golds of that runner.
         The last row contains the doorsplits sum of best of that runner.
         """
-        dfs = []
-        split_names = self._db.execute(
-            query=f"""
+        return self._get_golds(
+            division_type_query=f"""
             SELECT split
-            FROM default_split_names_{self._runner};
-            """  # noqa: S608
+            FROM default_split_names_{self._main_runner};
+            """,  # noqa: S608
+            golds_query="""
+            SELECT gold2 AS {runner}
+            FROM (
+                SELECT DISTINCT cle2, gold2
+                FROM doorsplits_golds_{runner}
+                ORDER BY cle2
+            );
+            """,
+            add_best_and_cumulative=False,
         )
-        split_names.loc[len(split_names)] = "Total"
-        dfs.append(split_names)
-        for runner in self._allowed_runners:
-            runner_golds = self._db.execute(
-                query=f"""
-                SELECT gold2 AS {runner}
-                FROM (
-                    SELECT DISTINCT cle2, gold2
-                    FROM doorsplits_golds_{runner}
-                    ORDER BY cle2
-                );
-                """  # noqa: S608
-            )
-            runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
-            sum_of_best = runner_golds["Times in seconds"].sum()
-            sum_of_best_formatted = format_time(sum_of_best)
-            runner_golds = runner_golds.drop(columns=["Times in seconds"])
-            runner_golds.loc[len(runner_golds)] = sum_of_best_formatted
-            dfs.append(runner_golds)
-
-        return pd.concat(dfs, axis=1)
 
     def get_runners_chapter_golds(self) -> DataFrame:
         """
@@ -128,37 +108,21 @@ class QueryRunner:
         In addition, there's a column with the best chapter gold for each
         chapter, and a column with the cumulative best chapters.
         """
-        dfs = []
-        chapter_names = self._db.execute(
-            query=f"""
+        return self._get_golds(
+            division_type_query=f"""
             SELECT DISTINCT chapter
-            FROM split_name_info3_{self._runner}
+            FROM split_name_info3_{self._main_runner}
             ORDER BY chapter
-            """  # noqa: S608
+            """,  # noqa: S608
+            golds_query="""
+            SELECT chapter_gold2 AS {runner}
+            FROM (
+                SELECT DISTINCT chapter, chapter_gold2
+                FROM chapter_golds2_{runner}
+                ORDER BY chapter
+            );
+            """,
         )
-        chapter_names.loc[len(chapter_names)] = "Total"
-        dfs.append(chapter_names)
-        for runner in self._allowed_runners:
-            runner_golds = self._db.execute(
-                query=f"""
-                SELECT chapter_gold2 AS {runner}
-                FROM (
-                    SELECT DISTINCT chapter, chapter_gold2
-                    FROM chapter_golds2_{runner}
-                    ORDER BY chapter
-                );
-                """  # noqa: S608
-            )
-            runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
-            sum_of_best = runner_golds["Times in seconds"].sum()
-            sum_of_best_formatted = format_time(sum_of_best)
-            runner_golds = runner_golds.drop(columns=["Times in seconds"])
-            runner_golds.loc[len(runner_golds)] = sum_of_best_formatted
-            dfs.append(runner_golds)
-
-        overall_df = pd.concat(dfs, axis=1)
-        overall_df = QueryRunner._add_best_and_cumulative_best_columns(overall_df)
-        return overall_df
 
     def get_runners_chapter_golds_by_doors(self) -> DataFrame:
         """
@@ -170,37 +134,21 @@ class QueryRunner:
         In addition, there's a column with the best chapter gold for each
         chapter, and a column with the cumulative best chapters.
         """
-        dfs = []
-        chapter_names = self._db.execute(
-            query=f"""
+        return self._get_golds(
+            division_type_query=f"""
             SELECT DISTINCT chapter
-            FROM split_name_info3_{self._runner}
+            FROM split_name_info3_{self._main_runner}
             ORDER BY chapter
-            """  # noqa: S608
+            """,  # noqa: S608
+            golds_query="""
+            SELECT doorsplit_combined_gold AS {runner}
+            FROM (
+                SELECT DISTINCT chapter, doorsplit_combined_gold
+                FROM chapter_golds_sheet_{runner}
+                ORDER BY chapter
+            );
+            """,
         )
-        chapter_names.loc[len(chapter_names)] = "Total"
-        dfs.append(chapter_names)
-        for runner in self._allowed_runners:
-            runner_golds = self._db.execute(
-                query=f"""
-                SELECT doorsplit_combined_gold AS {runner}
-                FROM (
-                    SELECT DISTINCT chapter, doorsplit_combined_gold
-                    FROM chapter_golds_sheet_{runner}
-                    ORDER BY chapter
-                );
-                """  # noqa: S608
-            )
-            runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
-            sum_of_best = runner_golds["Times in seconds"].sum()
-            sum_of_best_formatted = format_time(sum_of_best)
-            runner_golds = runner_golds.drop(columns=["Times in seconds"])
-            runner_golds.loc[len(runner_golds)] = sum_of_best_formatted
-            dfs.append(runner_golds)
-
-        overall_df = pd.concat(dfs, axis=1)
-        overall_df = QueryRunner._add_best_and_cumulative_best_columns(overall_df)
-        return overall_df
 
     def get_runners_section_golds(self) -> DataFrame:
         """
@@ -211,42 +159,26 @@ class QueryRunner:
         In addition, there's a column with the best section gold for each
         section, and a column with the cumulative best sections.
         """
-        dfs = []
-        section_names = self._db.execute(
-            query=f"""
+        return self._get_golds(
+            division_type_query=f"""
             SELECT section
-            FROM section_splits_{self._runner};
-            """  # noqa: S608
-        )
-        section_names.loc[len(section_names)] = "Total"
-        dfs.append(section_names)
-        for runner in self._allowed_runners:
-            runner_golds = self._db.execute(
-                query=f"""
-                SELECT section_gold2 AS {runner}
-                FROM (
-                    SELECT DISTINCT
-                        section,
-                        section_gold2,
-                        CASE
-                            WHEN section = 'Village' THEN 1
-                            WHEN section = 'Castle' THEN 2
-                            ELSE 3 END AS index
-                    FROM section_golds3_{runner}
-                )
-                ORDER BY index;
-                """  # noqa: S608
+            FROM section_splits_{self._main_runner};
+            """,  # noqa: S608
+            golds_query="""
+            SELECT section_gold2 AS {runner}
+            FROM (
+                SELECT DISTINCT
+                    section,
+                    section_gold2,
+                    CASE
+                        WHEN section = 'Village' THEN 1
+                        WHEN section = 'Castle' THEN 2
+                        ELSE 3 END AS index
+                FROM section_golds3_{runner}
             )
-            runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
-            sum_of_best = runner_golds["Times in seconds"].sum()
-            sum_of_best_formatted = format_time(sum_of_best)
-            runner_golds = runner_golds.drop(columns=["Times in seconds"])
-            runner_golds.loc[len(runner_golds)] = sum_of_best_formatted
-            dfs.append(runner_golds)
-
-        overall_df = pd.concat(dfs, axis=1)
-        overall_df = QueryRunner._add_best_and_cumulative_best_columns(overall_df)
-        return overall_df
+            ORDER BY index;
+            """,
+        )
 
     def get_runners_section_golds_by_chapters(self) -> DataFrame:
         """
@@ -258,42 +190,26 @@ class QueryRunner:
         In addition, there's a column with the best section gold for each
         section, and a column with the cumulative best sections.
         """
-        dfs = []
-        section_names = self._db.execute(
-            query=f"""
+        return self._get_golds(
+            division_type_query=f"""
             SELECT section
-            FROM section_splits_{self._runner};
-            """  # noqa: S608
-        )
-        section_names.loc[len(section_names)] = "Total"
-        dfs.append(section_names)
-        for runner in self._allowed_runners:
-            runner_golds = self._db.execute(
-                query=f"""
-                SELECT chapter_combined_gold AS {runner}
-                FROM (
-                    SELECT DISTINCT
-                        section,
-                        chapter_combined_gold,
-                        CASE
-                            WHEN section = 'Village' THEN 1
-                            WHEN section = 'Castle' THEN 2
-                            ELSE 3 END AS index
-                    FROM section_golds_sheet_{runner}
-                )
-                ORDER BY index;
-                """  # noqa: S608
+            FROM section_splits_{self._main_runner};
+            """,  # noqa: S608
+            golds_query="""
+            SELECT chapter_combined_gold AS {runner}
+            FROM (
+                SELECT DISTINCT
+                    section,
+                    chapter_combined_gold,
+                    CASE
+                        WHEN section = 'Village' THEN 1
+                        WHEN section = 'Castle' THEN 2
+                        ELSE 3 END AS index
+                FROM section_golds_sheet_{runner}
             )
-            runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
-            sum_of_best = runner_golds["Times in seconds"].sum()
-            sum_of_best_formatted = format_time(sum_of_best)
-            runner_golds = runner_golds.drop(columns=["Times in seconds"])
-            runner_golds.loc[len(runner_golds)] = sum_of_best_formatted
-            dfs.append(runner_golds)
-
-        overall_df = pd.concat(dfs, axis=1)
-        overall_df = QueryRunner._add_best_and_cumulative_best_columns(overall_df)
-        return overall_df
+            ORDER BY index;
+            """,
+        )
 
     def get_runners_section_golds_by_doors(self) -> DataFrame:
         """
@@ -305,42 +221,26 @@ class QueryRunner:
         In addition, there's a column with the best section gold for each
         section, and a column with the cumulative best sections.
         """
-        dfs = []
-        section_names = self._db.execute(
-            query=f"""
+        return self._get_golds(
+            division_type_query=f"""
             SELECT section
-            FROM section_splits_{self._runner};
-            """  # noqa: S608
-        )
-        section_names.loc[len(section_names)] = "Total"
-        dfs.append(section_names)
-        for runner in self._allowed_runners:
-            runner_golds = self._db.execute(
-                query=f"""
-                SELECT doorsplit_combined_gold AS {runner}
-                FROM (
-                    SELECT DISTINCT
-                        section,
-                        doorsplit_combined_gold,
-                        CASE
-                            WHEN section = 'Village' THEN 1
-                            WHEN section = 'Castle' THEN 2
-                            ELSE 3 END AS index
-                    FROM section_golds_sheet_{runner}
-                )
-                ORDER BY index;
-                """  # noqa: S608
+            FROM section_splits_{self._main_runner};
+            """,  # noqa: S608
+            golds_query="""
+            SELECT doorsplit_combined_gold AS {runner}
+            FROM (
+                SELECT DISTINCT
+                    section,
+                    doorsplit_combined_gold,
+                    CASE
+                        WHEN section = 'Village' THEN 1
+                        WHEN section = 'Castle' THEN 2
+                        ELSE 3 END AS index
+                FROM section_golds_sheet_{runner}
             )
-            runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
-            sum_of_best = runner_golds["Times in seconds"].sum()
-            sum_of_best_formatted = format_time(sum_of_best)
-            runner_golds = runner_golds.drop(columns=["Times in seconds"])
-            runner_golds.loc[len(runner_golds)] = sum_of_best_formatted
-            dfs.append(runner_golds)
-
-        overall_df = pd.concat(dfs, axis=1)
-        overall_df = QueryRunner._add_best_and_cumulative_best_columns(overall_df)
-        return overall_df
+            ORDER BY index;
+            """,
+        )
 
     def get_runners_best_paces(self) -> DataFrame:
         """
@@ -350,14 +250,15 @@ class QueryRunner:
         In addition, there's a column with the overall best pace for each
         chapter.
         """
-        dfs = []
         chapter_names = self._db.execute(
             query=f"""
             SELECT DISTINCT chapter
-            FROM split_name_info3_{self._runner}
+            FROM split_name_info3_{self._main_runner}
             ORDER BY chapter
             """  # noqa: S608
         )
+
+        dfs = []
         dfs.append(chapter_names)
         for runner in self._allowed_runners:
             runners_best_paces = self._db.execute(
@@ -374,7 +275,11 @@ class QueryRunner:
             dfs.append(runners_best_paces)
 
         overall_df = pd.concat(dfs, axis=1)
-        overall_df = QueryRunner._add_best_column(overall_df)
+        overall_df["Best"] = overall_df.apply(
+            lambda row: calculate_best_time(row[1:]),
+            axis=1,
+        )
+        overall_df.columns = overall_df.columns.str.capitalize()
         return overall_df
 
     def get_runners_rng_patterns(self) -> DataFrame:
@@ -383,13 +288,14 @@ class QueryRunner:
         percentage of different RNG patterns that runner has gotten overall
         and also the maximum amount of times in a row they've gotten each pattern.
         """
-        dfs = []
         pattern_names = self._db.execute(
             query=f"""
-            SELECT pattern2 as rng_pattern
-            FROM rng_splits_{self._runner}
+            SELECT pattern2 as pattern
+            FROM rng_splits_{self._main_runner}
             """  # noqa: S608
         )
+
+        dfs = []
         dfs.append(pattern_names)
         for runner in self._allowed_runners:
             runners_percentages = self._db.execute(
@@ -425,7 +331,9 @@ class QueryRunner:
             )
             dfs.append(runners_max_in_a_row)
 
-        return pd.concat(dfs, axis=1)
+        overall_df = pd.concat(dfs, axis=1)
+        overall_df.columns = overall_df.columns.str.capitalize()
+        return overall_df
 
     def get_runners_general_stats(self) -> DataFrame:
         """
@@ -436,8 +344,9 @@ class QueryRunner:
         4) Their total playtime, in days and hours.
         """
         dfs = []
-        stats = DataFrame({"Stat": ["Last update", "PB", "Attempts", "Total playtime"]})
-        dfs.append(stats)
+        dfs.append(
+            DataFrame({"Stat": ["Last update", "PB", "Attempts", "Total playtime"]})
+        )
         for runner in self._allowed_runners:
             match runner:
                 case "sawken":
@@ -478,7 +387,9 @@ class QueryRunner:
             )
             dfs.append(runner_stats)
 
-        return pd.concat(dfs, axis=1)
+        overall_df = pd.concat(dfs, axis=1)
+        overall_df.columns = overall_df.columns.str.capitalize()
+        return overall_df
 
     def get_runners_resets(self) -> DataFrame:
         """
@@ -486,13 +397,14 @@ class QueryRunner:
         all doorsplits. As in, what percentage of the runs that get to that split
         end up with the runner resetting on that split.
         """
-        dfs = []
         split_names = self._db.execute(
             query=f"""
             SELECT split
-            FROM default_split_names_{self._runner};
+            FROM default_split_names_{self._main_runner};
             """  # noqa: S608
         )
+
+        dfs = []
         dfs.append(split_names)
         for runner in self._allowed_runners:
             runner_resets = self._db.execute(
@@ -504,14 +416,15 @@ class QueryRunner:
             runner_resets = runner_resets.map(lambda percent: max(percent, 0))
             dfs.append(runner_resets)
 
-        return pd.concat(dfs, axis=1)
+        overall_df = pd.concat(dfs, axis=1)
+        overall_df.columns = overall_df.columns.str.capitalize()
+        return overall_df
 
     def get_runners_weekday_data(self) -> DataFrame:
         """
         Returns a DataFrame with many different stats related to how
         the runner performs on different days of the week.
         """
-        dfs = []
         weekdays = [
             "Monday",
             "Tuesday",
@@ -536,13 +449,16 @@ class QueryRunner:
         repeated_stats = []
         for stat in stat_types:
             repeated_stats.extend([stat] * 7)
-        day_and_stat_type = DataFrame(
-            {
-                "Day": weekdays * len(stat_types),
-                "Stat type": repeated_stats,
-            }
+
+        dfs = []
+        dfs.append(
+            DataFrame(
+                {
+                    "Day": weekdays * len(stat_types),
+                    "Stat type": repeated_stats,
+                }
+            )
         )
-        dfs.append(day_and_stat_type)
         for runner in self._allowed_runners:
             runner_weekday = self._db.execute(
                 query=f"""
@@ -602,7 +518,9 @@ class QueryRunner:
             )
             dfs.append(runner_weekday)
 
-        return pd.concat(dfs, axis=1)
+        overall_df = pd.concat(dfs, axis=1)
+        overall_df.columns = overall_df.columns.str.capitalize()
+        return overall_df
 
     """
     SECONDARY QUERIES
@@ -631,7 +549,16 @@ class QueryRunner:
         return data
 
     def export_relevant_table_names(self) -> None:
-        relevant_tables = self._db.execute(ConstantQuery.RELEVANT_TABLE_NAMES.value)
+        relevant_tables = self._db.execute("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+                AND table_name NOT LIKE '%treatment%'
+                AND table_name NOT LIKE '%cleaned%'
+                AND table_name NOT LIKE '%info%'
+                AND table_name NOT LIKE '%notepad%'
+            ORDER BY table_name;
+        """)
         with Path(self._output_dir / "relevant_tables.txt").open("w") as f:
             f.write("\n".join(relevant_tables["table_name"].to_list()))
 
@@ -643,11 +570,11 @@ class QueryRunner:
             return self.execute(
                 query=f"""
                 SELECT ds_golds.cle2, ds_golds.split, ds_golds.gold2, ds_golds.date_started
-                FROM doorsplits_golds2_{self._runner} AS ds_golds
-                INNER JOIN default_split_names_{self._runner} AS split_names on ds_golds.cle2 = split_names.cle2
+                FROM doorsplits_golds2_{self._main_runner} AS ds_golds
+                INNER JOIN default_split_names_{self._main_runner} AS split_names on ds_golds.cle2 = split_names.cle2
                 ORDER BY cle2
                 """,  # noqa: S608
-                excel_name=f"{self._runner}_doorsplit_golds_v1",
+                excel_name=f"{self._main_runner}_doorsplit_golds_v1",
             )
 
         return self.execute(
@@ -677,16 +604,16 @@ class QueryRunner:
                         rank() over (partition by cle2 order by lrt_number) AS rang
                     FROM (
                         SELECT *
-                        FROM splits_overview_{self._runner}) aa) a
+                        FROM splits_overview_{self._main_runner}) aa) a
                         WHERE rang = 1
                     )
                     WHERE tied_gold <= (SELECT tied FROM tied_golds2)
             ORDER BY cle2, id;
             """,  # noqa: S608
             params={"ties": int(ties)},
-            excel_name=f"{self._runner}_doorsplits_golds_v2_with_ties"
+            excel_name=f"{self._main_runner}_doorsplits_golds_v2_with_ties"
             if ties
-            else f"{self._runner}_doorsplits_golds_v2_without_ties",
+            else f"{self._main_runner}_doorsplits_golds_v2_without_ties",
         )
 
     def chapter_golds(self, version: int = 2) -> DataFrame:
@@ -697,9 +624,9 @@ class QueryRunner:
             return self.execute(
                 query=f"""
                 SELECT chapter, chapter_gold2, date_started
-                FROM chapter_golds2_{self._runner}
+                FROM chapter_golds2_{self._main_runner}
                 """,  # noqa: S608
-                excel_name=f"{self._runner}_chapter_golds_v1",
+                excel_name=f"{self._main_runner}_chapter_golds_v1",
             )
         return self.execute(
             query=f"""
@@ -722,14 +649,14 @@ class QueryRunner:
                     date_started2,
                     time_start,
                     row_number() over (partition by id, chapter order by cle2) AS rang
-                FROM splits_overview_{self._runner}
+                FROM splits_overview_{self._main_runner}
                 WHERE chapter_time2=chapter_gold2
                 ORDER BY chapter, id
             ) a
             WHERE rang = 1
             ORDER BY chapter, id;
             """,  # noqa: S608
-            excel_name=f"{self._runner}_chapter_golds_v2",
+            excel_name=f"{self._main_runner}_chapter_golds_v2",
         )
 
     def section_golds(self, version: int = 2) -> DataFrame:
@@ -740,9 +667,9 @@ class QueryRunner:
             return self.execute(
                 query=f"""
                 SELECT section, section_gold2, date_started
-                FROM section_golds3_{self._runner}
+                FROM section_golds3_{self._main_runner}
                 """,  # noqa: S608
-                excel_name=f"{self._runner}_section_golds_v1",
+                excel_name=f"{self._main_runner}_section_golds_v1",
             )
         return self.execute(
             query=f"""
@@ -765,7 +692,7 @@ class QueryRunner:
                     date_started2,
                     time_start,
                     row_number() over (partition by id, section order by cle2) AS rang
-                FROM splits_overview_{self._runner}
+                FROM splits_overview_{self._main_runner}
                 WHERE section_time2 = section_gold2
                 ORDER BY section, id
             ) a
@@ -778,7 +705,7 @@ class QueryRunner:
                 END,
                 id;
             """,  # noqa: S608
-            excel_name=f"{self._runner}_section_golds_v2",
+            excel_name=f"{self._main_runner}_section_golds_v2",
         )
 
     def doorsplits_pb_analysis(self) -> DataFrame:
@@ -795,11 +722,11 @@ class QueryRunner:
                 split_rank_at_that_time,
                 finished_splits,
                 finished_splits_at_that_time
-            FROM splits_overview_{self._runner}
-            WHERE id IN (SELECT max(id) FROM pb_history_{self._runner})
+            FROM splits_overview_{self._main_runner}
+            WHERE id IN (SELECT max(id) FROM pb_history_{self._main_runner})
             ORDER BY cle2;
             """,  # noqa: S608
-            excel_name=f"{self._runner}_doorsplits_pb_analysis",
+            excel_name=f"{self._main_runner}_doorsplits_pb_analysis",
         )
 
     def chapter_pb_analysis(self) -> DataFrame:
@@ -815,11 +742,11 @@ class QueryRunner:
                 chapter_rank_at_that_time,
                 finished_chapters,
                 finished_chapters_at_that_time
-            FROM splits_overview_{self._runner}
-            WHERE id IN (SELECT max(id) FROM pb_history_{self._runner})
+            FROM splits_overview_{self._main_runner}
+            WHERE id IN (SELECT max(id) FROM pb_history_{self._main_runner})
             ORDER BY chapter;
             """,  # noqa: S608
-            excel_name=f"{self._runner}_chapter_pb_analysis",
+            excel_name=f"{self._main_runner}_chapter_pb_analysis",
         )
 
     def section_pb_analysis(self) -> DataFrame:
@@ -835,8 +762,8 @@ class QueryRunner:
                 section_rank_at_that_time,
                 finished_sections,
                 finished_sections_at_that_time
-            FROM splits_overview_{self._runner}
-            WHERE id IN (SELECT max(id) FROM pb_history_{self._runner})
+            FROM splits_overview_{self._main_runner}
+            WHERE id IN (SELECT max(id) FROM pb_history_{self._main_runner})
             ORDER BY
                 CASE
                     WHEN section = 'Village' THEN 1
@@ -844,7 +771,7 @@ class QueryRunner:
                     ELSE 3
                 END;
             """,  # noqa: S608
-            excel_name=f"{self._runner}_section_pb_analysis",
+            excel_name=f"{self._main_runner}_section_pb_analysis",
         )
 
     def best_paces_pb_analysis(self) -> DataFrame:
@@ -861,11 +788,11 @@ class QueryRunner:
                 pace_rank_at_that_time,
                 finished_paces,
                 finished_paces_at_that_time
-            FROM splits_overview_{self._runner}
-            WHERE id IN (SELECT max(id) FROM pb_history_{self._runner})
+            FROM splits_overview_{self._main_runner}
+            WHERE id IN (SELECT max(id) FROM pb_history_{self._main_runner})
             ORDER BY cle2;
             """,  # noqa: S608
-            excel_name=f"{self._runner}_best_paces_pb_analysis",
+            excel_name=f"{self._main_runner}_best_paces_pb_analysis",
         )
 
     def best_paces_eoc_pb_analysis(self) -> DataFrame:
@@ -882,12 +809,12 @@ class QueryRunner:
                 pace_rank_at_that_time,
                 finished_paces,
                 finished_paces_at_that_time
-            FROM splits_overview_{self._runner}
-            WHERE id IN (SELECT max(id) FROM pb_history_{self._runner})
+            FROM splits_overview_{self._main_runner}
+            WHERE id IN (SELECT max(id) FROM pb_history_{self._main_runner})
             AND split LIKE '%{{%'
             ORDER BY cle2;
             """,  # noqa: S608
-            excel_name=f"{self._runner}_best_paces_eoc_pb_analysis",
+            excel_name=f"{self._main_runner}_best_paces_eoc_pb_analysis",
         )
 
     def doorsplits_of_chapter_gold(self, chapter: str) -> DataFrame:
@@ -897,12 +824,12 @@ class QueryRunner:
         return self.execute(
             query=f"""
             SELECT cle2, split, chapter, lrt_split, gold2, chapter_gold2, date_started
-            FROM splits_overview_{self._runner}
+            FROM splits_overview_{self._main_runner}
             WHERE chapter = %(chapter)s AND chapter_time = chapter_gold
             ORDER BY cle2;
             """,  # noqa: S608
             params={"chapter": chapter},
-            excel_name=f"{self._runner}_chapter_{chapter.replace('-', '_')}_components",
+            excel_name=f"{self._main_runner}_chapter_{chapter.replace('-', '_')}_components",
         )
 
     def split_history(
@@ -923,13 +850,13 @@ class QueryRunner:
         return self.execute(
             query=f"""
             SELECT split, lrt_split, date_started
-            FROM splits_overview_{self._runner}
+            FROM splits_overview_{self._main_runner}
             WHERE split = %(split_name)s
             ORDER BY {order_by.value}
             {"DESC" if desc else ""};
             """,  # noqa: S608
             params={"split_name": split_name},
-            excel_name=f"{self._runner}_{split_name_formatted}_history",
+            excel_name=f"{self._main_runner}_{split_name_formatted}_history",
         )
 
     def compare_runners_doorsplit_golds(self, other_runner: str) -> DataFrame:
@@ -937,19 +864,19 @@ class QueryRunner:
             query=f"""
             SELECT
             runner1.cle2 AS split_number,
-            runner1.gold AS {self._runner}_door_gold,
+            runner1.gold AS {self._main_runner}_door_gold,
             runner2.gold AS {other_runner}_door_gold,
-            runner1.gold2 AS {self._runner}_door_gold2,
+            runner1.gold2 AS {self._main_runner}_door_gold2,
             runner2.gold2 AS {other_runner}_door_gold2,
             runner1.gold - runner2.gold AS difference
             FROM
-                (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_{self._runner}) runner1
+                (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_{self._main_runner}) runner1
             FULL JOIN
                 (SELECT DISTINCT cle2, gold, gold2 FROM doorsplits_golds2_{other_runner}) runner2
             ON runner1.cle2 = runner2.cle2
             ORDER BY runner1.cle2;
             """,  # noqa: S608
-            excel_name=f"doorsplit_golds_comparison_{self._runner}_vs_{other_runner}",
+            excel_name=f"doorsplit_golds_comparison_{self._main_runner}_vs_{other_runner}",
         )
 
     def compare_runners_doorsplit_medians(self, other_runner: str) -> DataFrame:
@@ -957,19 +884,19 @@ class QueryRunner:
             query=f"""
             SELECT
             runner1.cle2 AS split_number,
-            runner1.door_median AS {self._runner}_door_median,
+            runner1.door_median AS {self._main_runner}_door_median,
             runner2.door_median AS {other_runner}_door_median,
-            runner1.door_median2 AS {self._runner}_door_median2,
+            runner1.door_median2 AS {self._main_runner}_door_median2,
             runner2.door_median2 AS {other_runner}_door_median2,
             runner1.door_median - runner2.door_median AS difference
             FROM
-            (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_{self._runner}) runner1
+            (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_{self._main_runner}) runner1
             FULL JOIN
             (SELECT DISTINCT cle2, door_median, door_median2 FROM doorsplits_golds2_{other_runner}) runner2
             ON runner1.cle2 = runner2.cle2
             ORDER BY runner1.cle2;
             """,  # noqa: S608
-            excel_name=f"doorsplit_medians_comparison_{self._runner}_vs_{other_runner}",
+            excel_name=f"doorsplit_medians_comparison_{self._main_runner}_vs_{other_runner}",
         )
 
     def attempts_per_week(self) -> DataFrame:
@@ -981,10 +908,10 @@ class QueryRunner:
                 WHEN EXTRACT(week from date) > 50 AND EXTRACT(month from date) = 1 THEN EXTRACT(year from date) - 1
                 ELSE EXTRACT(year from date) end * 100 + EXTRACT(week from date) AS week, count(distinct id) AS runs
             FROM dates a
-            LEFT JOIN attempts_treatment3_{self._runner} b on a.date = b.date_started
+            LEFT JOIN attempts_treatment3_{self._main_runner} b on a.date = b.date_started
             WHERE EXTRACT(year from date) = EXTRACT(year from current_date) AND date <= current_date
             GROUP BY 1
             ORDER BY 1;
             """,  # noqa: S608
-            excel_name=f"attempts_per_week_{self._runner}",
+            excel_name=f"attempts_per_week_{self._main_runner}",
         )
