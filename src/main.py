@@ -79,7 +79,7 @@ def main() -> None:
         storage_file=config.last_updates_file, default_files=splits.get_splits()
     )
     db = DatabaseManager(
-        individual_sql_script=config.individual_sql_file,
+        sql_script=config.sql_script,
         db_config=config.db_config,
         main_runner_name=config.allowed_runners[0],
         last_updates_tracker=last_updates,
