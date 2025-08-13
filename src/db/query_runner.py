@@ -553,21 +553,7 @@ class QueryRunner:
         with Path(self._output_dir / "relevant_tables.txt").open("w") as f:
             f.write("\n".join(relevant_tables["table_name"].to_list()))
 
-    def doorsplit_golds(self, version: int = 2, *, ties: bool = False) -> DataFrame:
-        """
-        Get all doorsplit golds (version 1 or 2).
-        """
-        if version == 1:
-            return self.execute(
-                query=f"""
-                SELECT ds_golds.cle2, ds_golds.split, ds_golds.gold2, ds_golds.date_started
-                FROM doorsplits_golds2_{self._main_runner} AS ds_golds
-                INNER JOIN default_split_names_{self._main_runner} AS split_names on ds_golds.cle2 = split_names.cle2
-                ORDER BY cle2;
-                """,  # noqa: S608
-                excel_name=f"{self._main_runner}_doorsplit_golds_v1",
-            )
-
+    def doorsplit_golds(self, *, ties: bool = False) -> DataFrame:
         return self.execute(
             query=f"""
             WITH tied_golds2 (tied) AS (values (%(ties)s))
@@ -607,18 +593,7 @@ class QueryRunner:
             else f"{self._main_runner}_doorsplits_golds_v2_without_ties",
         )
 
-    def chapter_golds(self, version: int = 2) -> DataFrame:
-        """
-        Get chapter golds (version 1 or 2).
-        """
-        if version == 1:
-            return self.execute(
-                query=f"""
-                SELECT chapter, chapter_gold2, date_started
-                FROM chapter_golds2_{self._main_runner};
-                """,  # noqa: S608
-                excel_name=f"{self._main_runner}_chapter_golds_v1",
-            )
+    def chapter_golds(self) -> DataFrame:
         return self.execute(
             query=f"""
             SELECT
@@ -650,18 +625,7 @@ class QueryRunner:
             excel_name=f"{self._main_runner}_chapter_golds_v2",
         )
 
-    def section_golds(self, version: int = 2) -> DataFrame:
-        """
-        Get section golds (version 1 or 2).
-        """
-        if version == 1:
-            return self.execute(
-                query=f"""
-                SELECT section, section_gold2, date_started
-                FROM section_golds3_{self._main_runner};
-                """,  # noqa: S608
-                excel_name=f"{self._main_runner}_section_golds_v1",
-            )
+    def section_golds(self) -> DataFrame:
         return self.execute(
             query=f"""
             SELECT
