@@ -539,19 +539,26 @@ class QueryRunner:
             data.to_excel(self._output_dir / f"{excel_name}.xlsx", index=False)
         return data
 
-    def export_relevant_table_names(self) -> None:
-        relevant_tables = self._db.execute("""
+    def export_table_names(self, *, only_relevant_tables: bool = False) -> None:
+        if only_relevant_tables:
+            extra_conditions = """
+            AND table_name NOT LIKE '%treatment%'
+            AND table_name NOT LIKE '%cleaned%'
+            AND table_name NOT LIKE '%info%'
+            AND table_name NOT LIKE '%notepad%'
+            """
+        else:
+            extra_conditions = ""
+
+        tables = self._db.execute(f"""
             SELECT table_name
             FROM information_schema.tables
-            WHERE table_schema = 'public'
-                AND table_name NOT LIKE '%treatment%'
-                AND table_name NOT LIKE '%cleaned%'
-                AND table_name NOT LIKE '%info%'
-                AND table_name NOT LIKE '%notepad%'
+            WHERE table_schema = 'public' {extra_conditions}
             ORDER BY table_name;
-        """)
-        with Path(self._output_dir / "relevant_tables.txt").open("w") as f:
-            f.write("\n".join(relevant_tables["table_name"].to_list()))
+            """)  # noqa: S608
+
+        with Path(self._output_dir / "tables.txt").open("w") as f:
+            f.write("\n".join(tables["table_name"].to_list()))
 
     def doorsplit_golds(self, *, ties: bool = False) -> DataFrame:
         return self.execute(
