@@ -115,7 +115,7 @@ class SheetManager:
         self._update_sheet_with_copy(
             tab_name="Doors",
             starting_cell="B3",
-            data=doorsplit_golds.drop(columns=["Split"]),
+            data=doorsplit_golds.drop(doorsplit_golds.columns[0], axis=1),
         )
 
     def upload_runners_chapter_golds(
@@ -124,12 +124,12 @@ class SheetManager:
         self._update_sheet_with_copy(
             tab_name="Chapters",
             starting_cell="B3",
-            data=chapter_golds.drop(columns=["Chapter"]),
+            data=chapter_golds.drop(chapter_golds.columns[0], axis=1),
         )
         self._update_sheet_without_copy(
             tab_name="Chapters",
             starting_cell="B25",
-            data=chapter_golds_by_doors.drop(columns=["Chapter"]),
+            data=chapter_golds_by_doors.drop(chapter_golds_by_doors.columns[0], axis=1),
         )
 
     def upload_runners_section_golds(
@@ -141,17 +141,19 @@ class SheetManager:
         self._update_sheet_with_copy(
             tab_name="Sections",
             starting_cell="B3",
-            data=section_golds.drop(columns=["Section"]),
+            data=section_golds.drop(section_golds.columns[0], axis=1),
         )
         self._update_sheet_without_copy(
             tab_name="Sections",
             starting_cell="B9",
-            data=section_golds_by_chapters.drop(columns=["Section"]),
+            data=section_golds_by_chapters.drop(
+                section_golds_by_chapters.columns[0], axis=1
+            ),
         )
         self._update_sheet_without_copy(
             tab_name="Sections",
             starting_cell="B15",
-            data=section_golds_by_doors.drop(columns=["Section"]),
+            data=section_golds_by_doors.drop(section_golds_by_doors.columns[0], axis=1),
         )
 
     def upload_runners_best_paces(
@@ -161,7 +163,7 @@ class SheetManager:
         self._update_sheet_with_copy(
             tab_name="Paces",
             starting_cell="B3",
-            data=best_paces.drop(columns=["Chapter"]),
+            data=best_paces.drop(best_paces.columns[0], axis=1),
         )
 
     def upload_runners_rng_patterns(
@@ -170,7 +172,7 @@ class SheetManager:
     ) -> None:
         rng_patterns = rng_patterns.map(
             lambda x: float(x) if isinstance(x, Decimal) else x
-        ).drop(columns=["Pattern"])
+        ).drop(rng_patterns.columns[0], axis=1)
 
         self._update_sheet_with_copy(
             tab_name="RNG Patterns",
@@ -182,7 +184,7 @@ class SheetManager:
         self,
         general_stats: DataFrame,
     ) -> None:
-        general_stats = general_stats.drop(columns=["Stat"])
+        general_stats = general_stats.drop(general_stats.columns[0], axis=1)
         general_stats.iloc[0] = general_stats.iloc[0].apply(
             lambda date_str: datetime.strptime(date_str, self.BAD_DATE_FORMAT)
             .replace(tzinfo=UTC)
@@ -202,12 +204,12 @@ class SheetManager:
         resets: DataFrame,
     ) -> None:
         resets = resets.map(lambda x: float(x) if isinstance(x, Decimal) else x).drop(
-            columns=["Split"]
+            resets.columns[0], axis=1
         )
         self._update_sheet_without_copy(
             tab_name="Resets",
             starting_cell="B3",
-            data=resets.map(lambda x: float(x) if isinstance(x, Decimal) else x),
+            data=resets,
         )
 
     def upload_runners_weekday_data(
@@ -219,7 +221,7 @@ class SheetManager:
         ].tolist()
         for i in indexes_with_playtime:
             weekday_data.iloc[i] = weekday_data.iloc[i].apply(get_hours_minutes_str)
-        weekday_data = weekday_data.drop(columns=["Day", "Stat type"])
+        weekday_data = weekday_data.iloc[:, 2:]  # Drop first two columns
         self._update_sheet_without_copy(
             tab_name="Weekday",
             starting_cell="C2",

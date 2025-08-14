@@ -717,7 +717,6 @@ SELECT section, id, date_started, finished_run, final_lrt, pb, SUM(lrt_number) A
 FROM splits_cleaned_runner
 GROUP BY section, id, date_started, finished_run, final_lrt, pb) a
 JOIN splits_per_section b ON a.section=b.section AND a.number_of_splits=b.number_of_splits)
---WHERE id>=10500
 GROUP BY 1
 ORDER BY 1) section_avg ON section_golds.section=section_avg.section
 LEFT JOIN (SELECT section, PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY section_time) AS section_median
@@ -728,7 +727,6 @@ SELECT section, id, date_started, finished_run, final_lrt, pb, SUM(lrt_number) A
 FROM splits_cleaned_runner
 GROUP BY section, id, date_started, finished_run, final_lrt, pb) a
 JOIN splits_per_section b ON a.section=b.section AND a.number_of_splits=b.number_of_splits)
---WHERE id>=10500
 GROUP BY 1
 ORDER BY 1) section_med ON section_golds.section=section_med.section;
 
@@ -906,7 +904,6 @@ FROM(
 SELECT cle2, id, date_started, finished_run, final_lrt, pb, SUM(lrt_number) AS lrt_time
 FROM splits_cleaned_runner
 GROUP BY cle2, id, date_started, finished_run, final_lrt, pb) a)
---WHERE id>=10500
 GROUP BY 1
 ORDER BY 1) door_avg ON door_avg.cle2=aa.cle2
 LEFT JOIN (SELECT cle2, PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS door_median
@@ -916,7 +913,6 @@ FROM(
 SELECT cle2, id, date_started, finished_run, final_lrt, pb, SUM(lrt_number) AS lrt_time
 FROM splits_cleaned_runner
 GROUP BY cle2, id, date_started, finished_run, final_lrt, pb) a)
---WHERE id>=10500
 GROUP BY 1
 ORDER BY 1) door_med ON door_med.cle2=aa.cle2
 ORDER BY cle2;
