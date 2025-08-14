@@ -10,7 +10,7 @@ class LastUpdatesTracker:
     """
 
     DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
-    DEFAULT_TIMESTAMP = "1/1/2025 00:00:00"
+    DEFAULT_TIMESTAMP = "1/1/2000 00:00:00"
 
     def __init__(self, storage_file: Path, default_files: list[Path]) -> None:
         self._storage_file = storage_file

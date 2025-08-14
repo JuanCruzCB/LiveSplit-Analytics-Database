@@ -84,10 +84,10 @@ class QueryRunner:
         The last row contains the doorsplits sum of best of that runner.
         """
         return self._get_golds(
-            division_type_query=f"""
+            division_type_query="""
             SELECT split
-            FROM default_split_names_{self._main_runner};
-            """,  # noqa: S608
+            FROM default_split_names;
+            """,
             golds_query="""
             SELECT gold2 AS {runner}
             FROM (
@@ -160,10 +160,10 @@ class QueryRunner:
         section, and a column with the cumulative best sections.
         """
         return self._get_golds(
-            division_type_query=f"""
+            division_type_query="""
             SELECT section
-            FROM section_splits_{self._main_runner};
-            """,  # noqa: S608
+            FROM splits_per_section;
+            """,
             golds_query="""
             SELECT section_gold2 AS {runner}
             FROM (
@@ -191,10 +191,10 @@ class QueryRunner:
         section, and a column with the cumulative best sections.
         """
         return self._get_golds(
-            division_type_query=f"""
+            division_type_query="""
             SELECT section
-            FROM section_splits_{self._main_runner};
-            """,  # noqa: S608
+            FROM splits_per_section;
+            """,
             golds_query="""
             SELECT chapter_combined_gold AS {runner}
             FROM (
@@ -222,10 +222,10 @@ class QueryRunner:
         section, and a column with the cumulative best sections.
         """
         return self._get_golds(
-            division_type_query=f"""
+            division_type_query="""
             SELECT section
-            FROM section_splits_{self._main_runner};
-            """,  # noqa: S608
+            FROM splits_per_section;
+            """,
             golds_query="""
             SELECT doorsplit_combined_gold AS {runner}
             FROM (
@@ -389,10 +389,10 @@ class QueryRunner:
         end up with the runner resetting on that split.
         """
         split_names = self._db.execute(
-            query=f"""
+            query="""
             SELECT split
-            FROM default_split_names_{self._main_runner};
-            """  # noqa: S608
+            FROM default_split_names;
+            """
         )
 
         dfs = []
