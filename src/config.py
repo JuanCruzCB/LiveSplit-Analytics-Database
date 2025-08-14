@@ -8,6 +8,7 @@ PROJECT_FOLDER = Path(__file__).parent.parent
 YAML_CONFIG_FILE = PROJECT_FOLDER / "config" / "config.yaml"
 LAST_UPDATES_FILE = PROJECT_FOLDER / "config" / "last_table_updates.json"
 SQL_SCRIPT = PROJECT_FOLDER / "sql scripts" / "splits_database_builder.sql"
+UTILITY_SQL_SCRIPT = PROJECT_FOLDER / "sql scripts" / "utils.sql"
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config:
     sql_script: Path
+    utility_sql_script: Path
     last_updates_file: Path
     other_runners_splits_folder: Path
     main_runner_splits_file: Path
@@ -30,6 +32,7 @@ class Config:
         """
         paths = [
             self.sql_script,
+            self.utility_sql_script,
             self.other_runners_splits_folder,
             self.main_runner_splits_file,
             self.service_account_secrets_file,
@@ -73,6 +76,7 @@ def load_config() -> Config:
 
     cfg = Config(
         sql_script=SQL_SCRIPT,
+        utility_sql_script=UTILITY_SQL_SCRIPT,
         last_updates_file=LAST_UPDATES_FILE,
         other_runners_splits_folder=other_runners_splits_folder,
         main_runner_splits_file=main_runner_splits_file,

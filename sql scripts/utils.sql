@@ -1,4 +1,4 @@
-/* Table with default split names. TODO: This needs to be customizable. */
+/* Default split names for the game. TODO: This needs to be customizable. */
 
 DROP TABLE IF EXISTS default_split_names;
 CREATE TABLE default_split_names (split VARCHAR(255), cle2 INTEGER);
@@ -129,8 +129,8 @@ VALUES
 	('-Saddler', 122),
 	('{End} Jetski', 123);
 
-/* Chapter golds part
-Here we define for each chapter, how many splits we have, so we know if a run has finished a chapter OR NOT (obviously to count the chapter golds, we need to count only the chapter that are finished, because a chapter that only did the first split AND reset is gonna be faster than a full chapter */
+
+/* Define for each chapter how many splits that chapter has, so we know if a run finished a chapter or not (obviously to count the chapter golds, we need to count only the chapters that were finished, because a chapter that only did the first split and reset is gonna be faster than a full chapter). */
 
 DROP TABLE IF EXISTS splits_per_chapter;
 CREATE TABLE splits_per_chapter (chapter VARCHAR(255), number_of_splits INTEGER);
@@ -158,7 +158,7 @@ VALUES
     ('6-1', 4);
 
 
-/* Section golds, same AS chapters, we count the number of splits per section to only count finished sections */
+/* Section golds, same as chapters, we count the number of splits per section to only count finished sections. */
 
 DROP TABLE IF EXISTS splits_per_section;
 CREATE TABLE splits_per_section (section VARCHAR(255), number_of_splits INTEGER, sort INTEGER);
@@ -169,7 +169,8 @@ VALUES
 ('Castle', 50, 2),
 ('Island', 41, 3);
 
-/* Table with the rng names for each pattern. TODO: This needs to be customizable. */
+
+/* RNG names for each pattern. TODO: This needs to be customizable. */
 
 DROP TABLE IF EXISTS rng;
 CREATE TABLE rng (pattern VARCHAR(255));
@@ -236,7 +237,8 @@ VALUES
 	('93-d Bad key card'),
 	('93-e Terrible key card');
 
-/* Table with all the dates between two dates */
+
+/* All the dates between 2020 and 2030. */
 
 DROP TABLE IF EXISTS dates;
 CREATE TABLE dates AS
@@ -246,7 +248,8 @@ SELECT (generate_series(
     INTERVAL '1 day'
 ))::date AS date;
 
-/* Table with all the decimals (2 digits) from 0 to 1 */
+
+/* All the decimals (2 digits) from 0 to 1. */
 
 DROP TABLE IF EXISTS decimal_values;
 CREATE TABLE decimal_values (decimal_value DECIMAL);

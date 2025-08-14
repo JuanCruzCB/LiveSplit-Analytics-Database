@@ -80,6 +80,7 @@ def main() -> None:
     )
     db = DatabaseManager(
         sql_script=config.sql_script,
+        utility_sql_script=config.utility_sql_script,
         db_config=config.db_config,
         main_runner_name=config.allowed_runners[0],
         last_updates_tracker=last_updates,
@@ -92,6 +93,7 @@ def main() -> None:
 
     try:
         qr.open_db_connection()
+        qr.create_utility_tables()
         if qr.update_runners_tables(splits=splits.get_splits_last_modtime()):
             all_data = get_all_database_data(qr)
             update_google_sheet(sheet, all_data)
