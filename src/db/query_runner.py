@@ -817,7 +817,7 @@ class QueryRunner:
             SELECT split, lrt_split, date_started
             FROM splits_overview_{self._main_runner}
             WHERE split = %(split_name)s
-            ORDER BY {order_by.value}{"DESC" if desc else ""};
+            ORDER BY {order_by.value} {"DESC" if desc else ""};
             """,  # noqa: S608
             params={"split_name": split_name},
             excel_name=f"{self._main_runner}_{split_name_formatted}_history",

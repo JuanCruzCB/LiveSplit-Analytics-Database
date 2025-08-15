@@ -9,7 +9,7 @@ COPY splits_runner FROM 'path' WITH DELIMITER ','; /* NOTE: The path to the spli
 
 DROP TABLE IF EXISTS notepad_splits_runner;
 CREATE TABLE notepad_splits_runner AS
-SELECT ltrim(notepad_info, ' ') AS notepad_info
+SELECT LTRIM(notepad_info, ' ') AS notepad_info
 FROM (SELECT *, ROW_NUMBER() OVER () AS cle
 FROM splits_runner) a
 WHERE cle >
@@ -27,7 +27,7 @@ WHERE notepad_info LIKE '%<AutoSplitterSettings%');
 
 DROP TABLE IF EXISTS notepad_attempts_runner;
 CREATE TABLE notepad_attempts_runner AS
-SELECT ltrim(notepad_info, ' ') AS notepad_info, 'runner' AS runner_name
+SELECT LTRIM(notepad_info, ' ') AS notepad_info, 'runner' AS runner_name
 FROM (SELECT *, ROW_NUMBER() OVER () AS cle
 FROM splits_runner) a
 WHERE cle >
@@ -48,25 +48,25 @@ SELECT
 /* Retrieving the run id FROM the notepad info, it's only present WHERE the row contains <Time id="4">, this means it's the run id number 4, for the parts that don't contain that, we simply leave it blank, for the rest, it will depend ON the length of the variable, if it's run id = 150 the length will be 1 extra compared to run id = 50 because there's obviously one more digit, so depending ON that, there's different cases, I went up to 6 digits, so until run id = 999999. */
 
 CASE WHEN notepad_info NOT LIKE '%Time id%' THEN ''
-WHEN LENGTH(notepad_info)=13 THEN substr(substr(notepad_info, 11, 1), 1, 1)
-WHEN LENGTH(notepad_info)=14 THEN substr(substr(notepad_info, 11, 2), 1, 2)
-WHEN LENGTH(notepad_info)=15 THEN substr(substr(notepad_info, 11, 3), 1, 3)
-WHEN LENGTH(notepad_info)=16 THEN substr(substr(notepad_info, 11, 4), 1, 4)
-WHEN LENGTH(notepad_info)=17 THEN substr(substr(notepad_info, 11, 5), 1, 5)
-WHEN LENGTH(notepad_info)=18 THEN substr(substr(notepad_info, 11, 6), 1, 6)
+WHEN LENGTH(notepad_info)=13 THEN SUBSTR(SUBSTR(notepad_info, 11, 1), 1, 1)
+WHEN LENGTH(notepad_info)=14 THEN SUBSTR(SUBSTR(notepad_info, 11, 2), 1, 2)
+WHEN LENGTH(notepad_info)=15 THEN SUBSTR(SUBSTR(notepad_info, 11, 3), 1, 3)
+WHEN LENGTH(notepad_info)=16 THEN SUBSTR(SUBSTR(notepad_info, 11, 4), 1, 4)
+WHEN LENGTH(notepad_info)=17 THEN SUBSTR(SUBSTR(notepad_info, 11, 5), 1, 5)
+WHEN LENGTH(notepad_info)=18 THEN SUBSTR(SUBSTR(notepad_info, 11, 6), 1, 6)
 ELSE '' END AS run_id,
 
 /* Retrieving the split name, this one will only show once at the top for each split THEN will list of the times for each run for this specific split */
 
 CASE WHEN notepad_info NOT LIKE '%<Name>%' THEN ''
-ELSE substr(substr(notepad_info, 7, LENGTH(notepad_info)-6), 1, LENGTH(notepad_info)-13) END AS split_name,
+ELSE SUBSTR(SUBSTR(notepad_info, 7, LENGTH(notepad_info)-6), 1, LENGTH(notepad_info)-13) END AS split_name,
 
 /* Retrieving the lrt time of the split */
 
 CASE WHEN notepad_info NOT LIKE '%<GameTime>%' THEN ''
-ELSE substr(substr(notepad_info, 11, LENGTH(notepad_info)-10), 1, LENGTH(notepad_info)-21) END AS lrt,
+ELSE SUBSTR(SUBSTR(notepad_info, 11, LENGTH(notepad_info)-10), 1, LENGTH(notepad_info)-21) END AS lrt,
 CASE WHEN notepad_info NOT LIKE '%<RealTime>%' THEN ''
-ELSE substr(substr(notepad_info, 11, LENGTH(notepad_info)-10), 1, LENGTH(notepad_info)-21) END AS rta_split,
+ELSE SUBSTR(SUBSTR(notepad_info, 11, LENGTH(notepad_info)-10), 1, LENGTH(notepad_info)-21) END AS rta_split,
 notepad_info AS info, ROW_NUMBER() OVER () AS cle /* This ROW_NUMBER can be useful to have a unique key for each row */
 FROM notepad_splits_runner;
 
@@ -169,15 +169,15 @@ SELECT *,
 
 /* Converting the LRT times FROM character (wrong format) to numbers */
 
-CASE WHEN lrt2='' THEN 0 ELSE CAST(substr(lrt2, 1, 2) AS INTEGER) END AS hours,
-CASE WHEN lrt2='' THEN 0 ELSE CAST(substr(lrt2, 4, 2) AS INTEGER) END AS minutes,
-CASE WHEN lrt2='' THEN 0 ELSE CAST(substr(lrt2, 7, 2) AS INTEGER) END AS seconds,
-CASE WHEN lrt2='' OR LENGTH(lrt2)=8 THEN 0 ELSE CAST(substr(lrt2, 10, 7) AS DECIMAL) END AS milliseconds,
+CASE WHEN lrt2='' THEN 0 ELSE CAST(SUBSTR(lrt2, 1, 2) AS INTEGER) END AS hours,
+CASE WHEN lrt2='' THEN 0 ELSE CAST(SUBSTR(lrt2, 4, 2) AS INTEGER) END AS minutes,
+CASE WHEN lrt2='' THEN 0 ELSE CAST(SUBSTR(lrt2, 7, 2) AS INTEGER) END AS seconds,
+CASE WHEN lrt2='' OR LENGTH(lrt2)=8 THEN 0 ELSE CAST(SUBSTR(lrt2, 10, 7) AS DECIMAL) END AS milliseconds,
 
-CASE WHEN rta2='' THEN 0 ELSE CAST(substr(rta2, 1, 2) AS INTEGER) END AS hours_rta,
-CASE WHEN rta2='' THEN 0 ELSE CAST(substr(rta2, 4, 2) AS INTEGER) END AS minutes_rta,
-CASE WHEN rta2='' THEN 0 ELSE CAST(substr(rta2, 7, 2) AS INTEGER) END AS seconds_rta,
-CASE WHEN rta2='' OR LENGTH(rta2)=8 THEN 0 ELSE CAST(substr(rta2, 10, 7) AS DECIMAL) END AS milliseconds_rta
+CASE WHEN rta2='' THEN 0 ELSE CAST(SUBSTR(rta2, 1, 2) AS INTEGER) END AS hours_rta,
+CASE WHEN rta2='' THEN 0 ELSE CAST(SUBSTR(rta2, 4, 2) AS INTEGER) END AS minutes_rta,
+CASE WHEN rta2='' THEN 0 ELSE CAST(SUBSTR(rta2, 7, 2) AS INTEGER) END AS seconds_rta,
+CASE WHEN rta2='' OR LENGTH(rta2)=8 THEN 0 ELSE CAST(SUBSTR(rta2, 10, 7) AS DECIMAL) END AS milliseconds_rta
 FROM splits_treatment4_runner
 
 /* At this point we only keep the rows that have the information AND we already have everything IN the same row (run id, lrt time AND split name) so we can delete all the rest */
@@ -190,29 +190,29 @@ SELECT *,
 
 /* Also adding the LRT time with the same format AS IN LiveSplit, NOT used for calculations (for that we use the number format create IN the table above) but it's just easier to read */
 
-CASE WHEN lrt3-TRUNC(lrt3)=0 THEN (CASE WHEN lrt3<10 THEN substr(lrt2, 8, 5)||'.000'
-WHEN lrt3<60 THEN substr(lrt2, 7, 6)||'.000'
-WHEN lrt3<600 THEN substr(lrt2, 5, 8)||'.000'
-WHEN lrt3<3600 THEN substr(lrt2, 4, 9)||'.000'
+CASE WHEN lrt3-TRUNC(lrt3)=0 THEN (CASE WHEN lrt3<10 THEN SUBSTR(lrt2, 8, 5)||'.000'
+WHEN lrt3<60 THEN SUBSTR(lrt2, 7, 6)||'.000'
+WHEN lrt3<600 THEN SUBSTR(lrt2, 5, 8)||'.000'
+WHEN lrt3<3600 THEN SUBSTR(lrt2, 4, 9)||'.000'
 WHEN lrt3<36000 THEN lrt2
 ELSE '' END)
-ELSE (CASE WHEN lrt3<10 THEN substr(lrt2, 8, 5)
-WHEN lrt3<60 THEN substr(lrt2, 7, 6)
-WHEN lrt3<600 THEN substr(lrt2, 5, 8)
-WHEN lrt3<3600 THEN substr(lrt2, 4, 9)
+ELSE (CASE WHEN lrt3<10 THEN SUBSTR(lrt2, 8, 5)
+WHEN lrt3<60 THEN SUBSTR(lrt2, 7, 6)
+WHEN lrt3<600 THEN SUBSTR(lrt2, 5, 8)
+WHEN lrt3<3600 THEN SUBSTR(lrt2, 4, 9)
 WHEN lrt3<36000 THEN lrt2
 ELSE '' END) END AS lrt4,
 
-CASE WHEN rta3-TRUNC(rta3)=0 THEN (CASE WHEN rta3<10 THEN substr(rta2, 8, 5)||'.000'
-WHEN rta3<60 THEN substr(rta2, 7, 6)||'.000'
-WHEN rta3<600 THEN substr(rta2, 5, 8)||'.000'
-WHEN rta3<3600 THEN substr(rta2, 4, 9)||'.000'
+CASE WHEN rta3-TRUNC(rta3)=0 THEN (CASE WHEN rta3<10 THEN SUBSTR(rta2, 8, 5)||'.000'
+WHEN rta3<60 THEN SUBSTR(rta2, 7, 6)||'.000'
+WHEN rta3<600 THEN SUBSTR(rta2, 5, 8)||'.000'
+WHEN rta3<3600 THEN SUBSTR(rta2, 4, 9)||'.000'
 WHEN rta3<36000 THEN rta2
 ELSE '' END)
-ELSE (CASE WHEN rta3<10 THEN substr(rta2, 8, 5)
-WHEN rta3<60 THEN substr(rta2, 7, 6)
-WHEN rta3<600 THEN substr(rta2, 5, 8)
-WHEN rta3<3600 THEN substr(rta2, 4, 9)
+ELSE (CASE WHEN rta3<10 THEN SUBSTR(rta2, 8, 5)
+WHEN rta3<60 THEN SUBSTR(rta2, 7, 6)
+WHEN rta3<600 THEN SUBSTR(rta2, 5, 8)
+WHEN rta3<3600 THEN SUBSTR(rta2, 4, 9)
 WHEN rta3<36000 THEN rta2
 ELSE '' END) END AS rta4
 FROM splits_treatment5_runner;
@@ -224,28 +224,28 @@ CREATE TABLE attempts_treatment_runner AS
 SELECT *,
 
 /* Retrieving the run id */
-CASE WHEN position ('started' IN notepad_info)=17 THEN substr(substr(notepad_info, 1, 14), 14, 1)
-WHEN position ('started' IN notepad_info)=18 THEN substr(substr(notepad_info, 1, 15), 14, 2)
-WHEN position ('started' IN notepad_info)=19 THEN substr(substr(notepad_info, 1, 16), 14, 3)
-WHEN position ('started' IN notepad_info)=20 THEN substr(substr(notepad_info, 1, 17), 14, 4)
-WHEN position ('started' IN notepad_info)=21 THEN substr(substr(notepad_info, 1, 18), 14, 5)
+CASE WHEN position ('started' IN notepad_info)=17 THEN SUBSTR(SUBSTR(notepad_info, 1, 14), 14, 1)
+WHEN position ('started' IN notepad_info)=18 THEN SUBSTR(SUBSTR(notepad_info, 1, 15), 14, 2)
+WHEN position ('started' IN notepad_info)=19 THEN SUBSTR(SUBSTR(notepad_info, 1, 16), 14, 3)
+WHEN position ('started' IN notepad_info)=20 THEN SUBSTR(SUBSTR(notepad_info, 1, 17), 14, 4)
+WHEN position ('started' IN notepad_info)=21 THEN SUBSTR(SUBSTR(notepad_info, 1, 18), 14, 5)
 ELSE '' END AS run_id,
 
 /* Getting the dates */
 
-substr(substr(notepad_info, position('started' IN notepad_info), 19), 10) AS date,
-substr(substr(notepad_info, position('ended' IN notepad_info), 17), 8) AS date_end,
-substr(substr(notepad_info, position('started' IN notepad_info), 28), 21) AS time_start,
-substr(substr(notepad_info, position('ended' IN notepad_info), 26), 19) AS time_end,
+SUBSTR(SUBSTR(notepad_info, position('started' IN notepad_info), 19), 10) AS date,
+SUBSTR(SUBSTR(notepad_info, position('ended' IN notepad_info), 17), 8) AS date_end,
+SUBSTR(SUBSTR(notepad_info, position('started' IN notepad_info), 28), 21) AS time_start,
+SUBSTR(SUBSTR(notepad_info, position('ended' IN notepad_info), 26), 19) AS time_end,
 
 /* Finished run OR NOT for each run id */
 
-CASE WHEN substr(notepad_info, LENGTH(notepad_info)-1, 2)='">' THEN 1 ELSE 0 END AS finished_run,
+CASE WHEN SUBSTR(notepad_info, LENGTH(notepad_info)-1, 2)='">' THEN 1 ELSE 0 END AS finished_run,
 
 /* Getting the LRT for each finished run */
 
-CASE WHEN substr(notepad_info, 1, 2)='<G' THEN substr(notepad_info, 11, 8) ELSE '' END AS lrt,
-CASE WHEN substr(notepad_info, 1, 2)='<R' THEN substr(notepad_info, 11, 8) ELSE '' END AS rta
+CASE WHEN SUBSTR(notepad_info, 1, 2)='<G' THEN SUBSTR(notepad_info, 11, 8) ELSE '' END AS lrt,
+CASE WHEN SUBSTR(notepad_info, 1, 2)='<R' THEN SUBSTR(notepad_info, 11, 8) ELSE '' END AS rta
 FROM notepad_attempts_runner;
 
 /* The finished runs will have their LRT time 2 rows after the run id, so need to put everything IN the same row AS done earlier */
@@ -260,7 +260,7 @@ DROP TABLE IF EXISTS attempts_treatment2_runner;
 CREATE TABLE attempts_treatment2_runner AS
 SELECT *
 FROM attempts_treatment2_runner_old
-WHERE id <> '' AND to_date(substr(date_started, 7, 4) || '-' || substr(date_started, 1, 2) || '-' || substr(date_started, 4, 2), 'YYYY-MM-DD') >= '2024-10-15'; -- TODO: This date needs to be customizable
+WHERE id <> '' AND to_date(SUBSTR(date_started, 7, 4) || '-' || SUBSTR(date_started, 1, 2) || '-' || SUBSTR(date_started, 4, 2), 'YYYY-MM-DD') >= '2024-10-15'; -- TODO: This date needs to be customizable
 
 /* Getting the list of all finished runs AND for each finished run, was it a PB WHEN it was done OR NOT? (which also means getting the LRT PB at that time too) */
 
@@ -283,22 +283,22 @@ DROP TABLE IF EXISTS attempts_treatment3_old_runner;
 CREATE TABLE attempts_treatment3_old_runner AS
 SELECT CAST(a.id AS INTEGER) AS id, finished_run, a.final_lrt, pb, final_rta,
 CASE WHEN final_rta='' OR final_rta IS NULL THEN 0 ELSE
-CAST(substr(final_rta, 1, 2) AS INTEGER)*3600+CAST(substr(final_rta, 4, 2) AS INTEGER)*60+
-CAST(substr(final_rta, 7, 2) AS INTEGER) END AS rta_number,
-to_date(substr(date_started, 7, 4)||'-'||substr(date_started, 1, 2)||'-'||substr(date_started, 4, 2), 'YYYY-MM-DD') AS
+CAST(SUBSTR(final_rta, 1, 2) AS INTEGER)*3600+CAST(SUBSTR(final_rta, 4, 2) AS INTEGER)*60+
+CAST(SUBSTR(final_rta, 7, 2) AS INTEGER) END AS rta_number,
+to_date(SUBSTR(date_started, 7, 4)||'-'||SUBSTR(date_started, 1, 2)||'-'||SUBSTR(date_started, 4, 2), 'YYYY-MM-DD') AS
 date_started_livesplit,
-to_date(substr(date_end, 7, 4)||'-'||substr(date_end, 1, 2)||'-'||substr(date_end, 4, 2), 'YYYY-MM-DD') AS
+to_date(SUBSTR(date_end, 7, 4)||'-'||SUBSTR(date_end, 1, 2)||'-'||SUBSTR(date_end, 4, 2), 'YYYY-MM-DD') AS
 date_end_livesplit, time_start AS time_start_livesplit, time_end AS time_end_livesplit,
-CAST(substr(time_start, 1, 2) AS INTEGER)*3600+CAST(substr(time_start, 4, 2) AS INTEGER)*60+
-CAST(substr(time_start, 7, 2) AS INTEGER) AS time_start_number,
-CAST(substr(time_end, 1, 2) AS INTEGER)*3600+CAST(substr(time_end, 4, 2) AS INTEGER)*60+
-CAST(substr(time_end, 7, 2) AS INTEGER) AS time_end_number,
-CASE WHEN date_started<>date_end THEN 86400+CAST(substr(time_end, 1, 2) AS INTEGER)*3600+CAST(substr(time_end, 4, 2) AS INTEGER)*60+
-CAST(substr(time_end, 7, 2) AS INTEGER)-(CAST(substr(time_start, 1, 2) AS INTEGER)*3600+CAST(substr(time_start, 4, 2) AS INTEGER)*60+
-CAST(substr(time_start, 7, 2) AS INTEGER)) ELSE
-CAST(substr(time_end, 1, 2) AS INTEGER)*3600+CAST(substr(time_end, 4, 2) AS INTEGER)*60+
-CAST(substr(time_end, 7, 2) AS INTEGER)-(CAST(substr(time_start, 1, 2) AS INTEGER)*3600+CAST(substr(time_start, 4, 2) AS INTEGER)*60+
-CAST(substr(time_start, 7, 2) AS INTEGER)) END AS playtime, 'runner' AS runner_name
+CAST(SUBSTR(time_start, 1, 2) AS INTEGER)*3600+CAST(SUBSTR(time_start, 4, 2) AS INTEGER)*60+
+CAST(SUBSTR(time_start, 7, 2) AS INTEGER) AS time_start_number,
+CAST(SUBSTR(time_end, 1, 2) AS INTEGER)*3600+CAST(SUBSTR(time_end, 4, 2) AS INTEGER)*60+
+CAST(SUBSTR(time_end, 7, 2) AS INTEGER) AS time_end_number,
+CASE WHEN date_started<>date_end THEN 86400+CAST(SUBSTR(time_end, 1, 2) AS INTEGER)*3600+CAST(SUBSTR(time_end, 4, 2) AS INTEGER)*60+
+CAST(SUBSTR(time_end, 7, 2) AS INTEGER)-(CAST(SUBSTR(time_start, 1, 2) AS INTEGER)*3600+CAST(SUBSTR(time_start, 4, 2) AS INTEGER)*60+
+CAST(SUBSTR(time_start, 7, 2) AS INTEGER)) ELSE
+CAST(SUBSTR(time_end, 1, 2) AS INTEGER)*3600+CAST(SUBSTR(time_end, 4, 2) AS INTEGER)*60+
+CAST(SUBSTR(time_end, 7, 2) AS INTEGER)-(CAST(SUBSTR(time_start, 1, 2) AS INTEGER)*3600+CAST(SUBSTR(time_start, 4, 2) AS INTEGER)*60+
+CAST(SUBSTR(time_start, 7, 2) AS INTEGER)) END AS playtime, 'runner' AS runner_name
 FROM attempts_treatment2_runner a
 LEFT JOIN pb_history_runner_old b ON a.id=b.id
 WHERE a.id<>'';
@@ -317,8 +317,8 @@ FROM attempts_treatment3_old_runner;
 
 DROP TABLE IF EXISTS pb_history_runner;
 CREATE TABLE pb_history_runner AS
-SELECT a.*, CAST(substr(lrt_pb, 1, 2) AS INTEGER)*3600+CAST(substr(lrt_pb, 4, 2) AS INTEGER)*60+
-CAST(substr(lrt_pb, 7, 2) AS INTEGER) AS pb_lrt, date_started-COALESCE(LAG(date_started) OVER(ORDER BY CAST(a.id AS INTEGER)), date_started)
+SELECT a.*, CAST(SUBSTR(lrt_pb, 1, 2) AS INTEGER)*3600+CAST(SUBSTR(lrt_pb, 4, 2) AS INTEGER)*60+
+CAST(SUBSTR(lrt_pb, 7, 2) AS INTEGER) AS pb_lrt, date_started-COALESCE(LAG(date_started) OVER(ORDER BY CAST(a.id AS INTEGER)), date_started)
 AS days_it_took, CAST(a.id AS INTEGER)-COALESCE(LAG(CAST(a.id AS INTEGER)) OVER(ORDER BY CAST(a.id AS INTEGER)),0) attempts_it_took,
 total_playtime-COALESCE(LAG(total_playtime) OVER(ORDER BY CAST(a.id AS INTEGER)), 0) total_playtime_it_took,
 days_attempts-COALESCE(LAG(days_attempts) OVER(ORDER BY CAST (a.id AS INTEGER)), 0) AS days_of_attempts_it_took
@@ -368,10 +368,10 @@ ORDER BY 1, 2;
 
 DROP TABLE IF EXISTS splits_cleaned_runner_old2;
 CREATE TABLE splits_cleaned_runner_old2 AS
-SELECT a.*, cumulative_rta, LAG(cumulative_rta) OVER(PARTITION BY a.id ORDER BY a.cle2) AS lag_rta, CAST(substr(time_start, 1, 2) AS NUMERIC)*3600
-+CAST(substr(time_start, 4, 2) AS NUMERIC)*60+CAST(substr(time_start, 7, 2) AS NUMERIC) AS time_start_numeric,
-CAST(substr(time_end, 1, 2) AS NUMERIC)*3600
-+CAST(substr(time_end, 4, 2) AS NUMERIC)*60+CAST(substr(time_end, 7, 2) AS NUMERIC) AS time_end_numeric, 'runner' AS runner_name
+SELECT a.*, cumulative_rta, LAG(cumulative_rta) OVER(PARTITION BY a.id ORDER BY a.cle2) AS lag_rta, CAST(SUBSTR(time_start, 1, 2) AS NUMERIC)*3600
++CAST(SUBSTR(time_start, 4, 2) AS NUMERIC)*60+CAST(SUBSTR(time_start, 7, 2) AS NUMERIC) AS time_start_numeric,
+CAST(SUBSTR(time_end, 1, 2) AS NUMERIC)*3600
++CAST(SUBSTR(time_end, 4, 2) AS NUMERIC)*60+CAST(SUBSTR(time_end, 7, 2) AS NUMERIC) AS time_end_numeric, 'runner' AS runner_name
 FROM splits_cleaned_runner_old a
 LEFT JOIN rta_cumulative_runner b ON a.id=b.id AND a.cle2=b.cle2;
 
@@ -1341,9 +1341,9 @@ ELSE '' END AS key_card_pattern,
 CASE WHEN extract(dow FROM a.date_started)=0 THEN 7 ELSE extract(dow FROM a.date_started) END AS weekday,
 h.lrt_pb AS pb_at_that_time, golded_split, golded_chapter, golded_section, was_best_pace, cumulative_chapter_gold, cumulative_chapter_gold_num, cumulative_section_gold,
 cumulative_door_gold, cumulative_door_gold_num, gold_at_that_time, chapter_gold_at_that_time, section_gold_at_that_time, best_pace_at_that_time,
-best_pace_at_that_time2, CASE WHEN CAST(substr(a.time_start, 1, 2) AS NUMERIC)>CAST(substr(a.time_start_numeric3, 1, 2) AS NUMERIC)
+best_pace_at_that_time2, CASE WHEN CAST(SUBSTR(a.time_start, 1, 2) AS NUMERIC)>CAST(SUBSTR(a.time_start_numeric3, 1, 2) AS NUMERIC)
 THEN a.date_started+1 ELSE a.date_started END AS date_started2,
-CASE WHEN CAST(substr(a.time_end, 1, 2) AS NUMERIC)<CAST(substr(a.time_end_numeric3, 1, 2) AS NUMERIC)
+CASE WHEN CAST(SUBSTR(a.time_end, 1, 2) AS NUMERIC)<CAST(SUBSTR(a.time_end_numeric3, 1, 2) AS NUMERIC)
 THEN a.date_end-1 ELSE a.date_end END AS date_end2, door_avg, door_median, door_avg2, door_median2, median_chapter_time, median_chapter_time2,
 /*avg_pace, median_pace, avg_pace2, median_pace2,*/ section_median, section_median2, section_avg2, avg_chapter_time2, 'runner' AS runner_name, rank_chapter, chapter_rank_at_that_time, finished_chapters,
 finished_chapters_at_that_time, rank_section, section_rank_at_that_time, finished_sections, finished_sections_at_that_time, rank_split, split_rank_at_that_time, finished_splits, finished_splits_at_that_time,
@@ -1372,7 +1372,7 @@ ORDER BY id, cle2;
 
 DROP TABLE IF EXISTS rng_splits_runner;
 CREATE TABLE rng_splits_runner AS
-SELECT pattern, substr(pattern, 4, LENGTH(pattern)-3) AS pattern2, runs, total, percentage
+SELECT pattern, SUBSTR(pattern, 4, LENGTH(pattern)-3) AS pattern2, runs, total, percentage
 FROM(SELECT pattern, runs, total, percentage
 FROM (SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
 FROM(

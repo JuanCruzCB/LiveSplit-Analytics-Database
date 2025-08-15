@@ -1,9 +1,9 @@
 /* Default split names for the game. TODO: This needs to be customizable. */
 
 DROP TABLE IF EXISTS default_split_names;
-CREATE TABLE default_split_names (split VARCHAR(255), cle2 INTEGER);
+CREATE TABLE default_split_names (split_name VARCHAR(255), split_number INTEGER);
 
-INSERT INTO default_split_names (split, cle2)
+INSERT INTO default_split_names (split_name, split_number)
 VALUES
 	('-Start', 1),
 	('-Village', 2),
@@ -130,8 +130,6 @@ VALUES
 	('{End} Jetski', 123);
 
 
-/* Define for each chapter how many splits that chapter has, so we know if a run finished a chapter or not (obviously to count the chapter golds, we need to count only the chapters that were finished, because a chapter that only did the first split and reset is gonna be faster than a full chapter). */
-
 DROP TABLE IF EXISTS splits_per_chapter;
 CREATE TABLE splits_per_chapter (chapter VARCHAR(255), number_of_splits INTEGER);
 
@@ -158,12 +156,10 @@ VALUES
     ('6-1', 4);
 
 
-/* Section golds, same as chapters, we count the number of splits per section to only count finished sections. */
-
 DROP TABLE IF EXISTS splits_per_section;
-CREATE TABLE splits_per_section (section VARCHAR(255), number_of_splits INTEGER, sort INTEGER);
+CREATE TABLE splits_per_section (_section VARCHAR(255), number_of_splits INTEGER, sort INTEGER);
 
-INSERT INTO splits_per_section (section, number_of_splits, sort)
+INSERT INTO splits_per_section (_section, number_of_splits, sort)
 VALUES
 ('Village', 32, 1),
 ('Castle', 50, 2),
