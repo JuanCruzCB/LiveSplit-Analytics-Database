@@ -32,15 +32,15 @@ SELECT LTRIM(file_line, ' ') AS file_line_stripped
 FROM splits_file_indexed
 WHERE line_number >
 (
-	SELECT line_number_offset
-	FROM splits_file_indexed_offset
-	WHERE file_line LIKE '%</AttemptHistory>%'
+    SELECT line_number_offset
+    FROM splits_file_indexed_offset
+    WHERE file_line LIKE '%</AttemptHistory>%'
 )
 AND line_number <
 (
-	SELECT line_number
-	FROM splits_file_indexed
-	WHERE file_line LIKE '%<AutoSplitterSettings%'
+    SELECT line_number
+    FROM splits_file_indexed
+    WHERE file_line LIKE '%<AutoSplitterSettings%'
 );
 
 /* Extracting the run id, the split_name name, the LRT time and the RTA time for the whole segment history of each segment.
@@ -55,28 +55,28 @@ We can achieve each one of these cases by using a regular expression. In the fir
 DROP TABLE IF EXISTS segments_data2_runner;
 CREATE TABLE segments_data2_runner AS
 SELECT
-	CASE
-		WHEN file_line_stripped LIKE '%Time id%'
-			THEN SUBSTRING(file_line_stripped FROM '="(.*?)">')
-		ELSE ''
-	END AS run_id,
-	CASE
-		WHEN file_line_stripped LIKE '%<Name>%'
-			THEN SUBSTRING(file_line_stripped FROM '>(.*?)</')
-		ELSE ''
-	END AS split_name,
-	CASE
-		WHEN file_line_stripped LIKE '%<GameTime>%'
-			THEN SUBSTRING(file_line_stripped FROM '>(.*?)</')
-		ELSE ''
-	END AS lrt_time,
-	CASE
-		WHEN file_line_stripped LIKE '%<RealTime>%'
-			THEN SUBSTRING(file_line_stripped FROM '>(.*?)</')
-		ELSE ''
-	END AS rta_time,
-	file_line_stripped,
-	ROW_NUMBER() OVER() AS line_number
+    CASE
+        WHEN file_line_stripped LIKE '%Time id%'
+            THEN SUBSTRING(file_line_stripped FROM '="(.*?)">')
+        ELSE ''
+    END AS run_id,
+    CASE
+        WHEN file_line_stripped LIKE '%<Name>%'
+            THEN SUBSTRING(file_line_stripped FROM '>(.*?)</')
+        ELSE ''
+    END AS split_name,
+    CASE
+        WHEN file_line_stripped LIKE '%<GameTime>%'
+            THEN SUBSTRING(file_line_stripped FROM '>(.*?)</')
+        ELSE ''
+    END AS lrt_time,
+    CASE
+        WHEN file_line_stripped LIKE '%<RealTime>%'
+            THEN SUBSTRING(file_line_stripped FROM '>(.*?)</')
+        ELSE ''
+    END AS rta_time,
+    file_line_stripped,
+    ROW_NUMBER() OVER() AS line_number
 FROM segments_data1_runner;
 
 /* Converting the run id as an int: sometimes (rare) some run ids have no time at all for a specific split_name (because it was deleted by the runner) so it will show the id without a time and then the run id in this case will not be for example 100 but 100" so it will mess up the INTEGER conversion, so for these rare cases we force them to be 0. We also force the other blank rows to be 0. This doesn't cause any issues because run ids always start from 1 and never from 0 in the file.
@@ -86,15 +86,15 @@ The LRT time of each split_name is showing 2 rows below the row that has the run
 DROP TABLE IF EXISTS segments_data3_runner;
 CREATE TABLE segments_data3_runner AS
 SELECT
-	*,
-	CASE
-		WHEN (file_line_stripped LIKE '%<Time id=%' AND file_line_stripped LIKE '% />%') OR run_id = ''
-			THEN 0
-		ELSE CAST(run_id AS INTEGER)
-	END AS run_id_int,
-	LEAD(lrt_time) OVER(ORDER BY line_number) AS lrt_lead1,
-	LEAD(lrt_time, 2) OVER(ORDER BY line_number) AS lrt_lead2,
-	LEAD(rta_time) OVER(ORDER BY line_number) AS rta_lead
+    *,
+    CASE
+        WHEN (file_line_stripped LIKE '%<Time id=%' AND file_line_stripped LIKE '% />%') OR run_id = ''
+            THEN 0
+        ELSE CAST(run_id AS INTEGER)
+    END AS run_id_int,
+    LEAD(lrt_time) OVER(ORDER BY line_number) AS lrt_lead1,
+    LEAD(lrt_time, 2) OVER(ORDER BY line_number) AS lrt_lead2,
+    LEAD(rta_time) OVER(ORDER BY line_number) AS rta_lead
 FROM segments_data2_runner;
 
 /* Now putting back the LRT times that are 2 rows below the row we want (or 1 row below if no RTA time) in the same row as the other info (run id, etc.) and ignoring the other intermediate unnecessary columns. */
@@ -102,19 +102,19 @@ FROM segments_data2_runner;
 DROP TABLE IF EXISTS segments_data4_runner;
 CREATE TABLE segments_data4_runner AS
 SELECT
-	file_line_stripped,
-	line_number,
-	split_name,
-	run_id_int AS run_id,
-	CASE
-		WHEN run_id_int = 0 THEN ''
-		WHEN run_id_int < 0 THEN lrt_lead1
-		ELSE lrt_lead2
-	END AS lrt_time,
-	CASE
-		WHEN run_id_int <= 0 THEN ''
-		ELSE rta_lead
-	END AS rta_time
+    file_line_stripped,
+    line_number,
+    split_name,
+    run_id_int AS run_id,
+    CASE
+        WHEN run_id_int = 0 THEN ''
+        WHEN run_id_int < 0 THEN lrt_lead1
+        ELSE lrt_lead2
+    END AS lrt_time,
+    CASE
+        WHEN run_id_int <= 0 THEN ''
+        ELSE rta_lead
+    END AS rta_time
 FROM segments_data3_runner;
 
 /* Now that we have the run ids and the LRT + RTA times in the same row, we just need to get the split_name names on this same row as well. For this we select the minimum row number for each split_name using the line_number column, which tells us on which row the new split_name starts (and the previous split_name ends 1 row before that). */
@@ -122,17 +122,17 @@ FROM segments_data3_runner;
 DROP TABLE IF EXISTS split_names_data1_runner;
 CREATE TABLE split_names_data1_runner AS
 SELECT DISTINCT
-	split_name,
-	split_name_occurrence,
-	MIN(line_number) AS starts_at_row
+    split_name,
+    split_name_occurrence,
+    MIN(line_number) AS starts_at_row
 FROM
 (
-	SELECT DISTINCT
-		split_name,
-		ROW_NUMBER() OVER(PARTITION BY split_name) AS split_name_occurrence,
-		line_number
-	FROM segments_data4_runner
-	WHERE split_name <> ''
+    SELECT DISTINCT
+        split_name,
+        ROW_NUMBER() OVER(PARTITION BY split_name) AS split_name_occurrence,
+        line_number
+    FROM segments_data4_runner
+    WHERE split_name <> ''
 )
 GROUP BY 1, 2
 ORDER BY 3;
@@ -142,9 +142,9 @@ ORDER BY 3;
 DROP TABLE IF EXISTS split_names_data2_runner;
 CREATE TABLE split_names_data2_runner AS
 SELECT
-	*,
-	LEAD(starts_at_row) OVER(ORDER BY starts_at_row) - 1 AS ends_at_row,
-	ROW_NUMBER() OVER() AS split_number
+    *,
+    LEAD(starts_at_row) OVER(ORDER BY starts_at_row) - 1 AS ends_at_row,
+    ROW_NUMBER() OVER() AS split_number
 FROM split_names_data1_runner;
 
 /* Getting the chapter name and _section name each split_name belongs to using the split_number column. For example, we know that 1-1 has only 4 splits, so if split_number is between 1 and 4, we know it's one of the first 4 splits and therefore that split_name is in chapter 1-1, etc.
@@ -154,33 +154,33 @@ Then doing the same for sections, technically we didn't need to create a split_n
 DROP TABLE IF EXISTS split_names_data3_runner;
 CREATE TABLE split_names_data3_runner AS
 SELECT
-	*,
-	CASE
-		WHEN split_number <= 4 THEN '1-1'
-		WHEN split_number <= 7 THEN '1-2'
-		WHEN split_number <= 14 THEN '1-3'
-		WHEN split_number <= 20 THEN '2-1'
-		WHEN split_number <= 26 THEN '2-2'
-		WHEN split_number <= 32 THEN '2-3'
-		WHEN split_number <= 39 THEN '3-1'
-		WHEN split_number <= 45 THEN '3-2'
-		WHEN split_number <= 48 THEN '3-3'
-		WHEN split_number <= 52 THEN '3-4'
-		WHEN split_number <= 70 THEN '4-1'
-		WHEN split_number <= 74 THEN '4-2'
-		WHEN split_number <= 78 THEN '4-3'
-		WHEN split_number <= 82 THEN '4-4'
-		WHEN split_number <= 98 THEN '5-1'
-		WHEN split_number <= 105 THEN '5-2'
-		WHEN split_number <= 112 THEN '5-3'
-		WHEN split_number <= 119 THEN '5-4'
-		ELSE '6-1'
-	END AS chapter,
-	CASE
-		WHEN split_number <= 32 THEN 'Village'
-		WHEN split_number <= 82 THEN 'Castle'
-		ELSE 'Island'
-	END AS _section
+    *,
+    CASE
+        WHEN split_number <= 4 THEN '1-1'
+        WHEN split_number <= 7 THEN '1-2'
+        WHEN split_number <= 14 THEN '1-3'
+        WHEN split_number <= 20 THEN '2-1'
+        WHEN split_number <= 26 THEN '2-2'
+        WHEN split_number <= 32 THEN '2-3'
+        WHEN split_number <= 39 THEN '3-1'
+        WHEN split_number <= 45 THEN '3-2'
+        WHEN split_number <= 48 THEN '3-3'
+        WHEN split_number <= 52 THEN '3-4'
+        WHEN split_number <= 70 THEN '4-1'
+        WHEN split_number <= 74 THEN '4-2'
+        WHEN split_number <= 78 THEN '4-3'
+        WHEN split_number <= 82 THEN '4-4'
+        WHEN split_number <= 98 THEN '5-1'
+        WHEN split_number <= 105 THEN '5-2'
+        WHEN split_number <= 112 THEN '5-3'
+        WHEN split_number <= 119 THEN '5-4'
+        ELSE '6-1'
+    END AS chapter,
+    CASE
+        WHEN split_number <= 32 THEN 'Village'
+        WHEN split_number <= 82 THEN 'Castle'
+        ELSE 'Island'
+    END AS _section
 FROM split_names_data2_runner;
 
 /* Now that the split_name names are finished (+chapter and _section names added) we join that table with the table we had that has run ids and LRT times on the same row, now it will have the split_name names (+chapter and _section names) on the same row too, because as explained above, the split_name name on the original file only shows once at the top and then just lists the time history without displaying the split_name name again, so we need that for each row.
@@ -190,25 +190,25 @@ Just like we did for run ids and LRT times, we make the split_name name empty on
 DROP TABLE IF EXISTS segments_data5_runner;
 CREATE TABLE segments_data5_runner AS
 SELECT
-	file_line_stripped,
-	line_number,
-	run_id,
-	split_number,
-	lrt_time,
-	rta_time,
-	CASE
-		WHEN lrt_time = '' THEN ''
-		ELSE splits.split_name
-	END AS split_name,
-	chapter,
-	_section
+    file_line_stripped,
+    line_number,
+    run_id,
+    split_number,
+    lrt_time,
+    rta_time,
+    CASE
+        WHEN lrt_time = '' THEN ''
+        ELSE splits.split_name
+    END AS split_name,
+    chapter,
+    _section
 FROM segments_data4_runner segs
 LEFT JOIN split_names_data3_runner splits ON
-	segs.line_number >= splits.starts_at_row AND
-	segs.line_number <= CASE
-							WHEN splits.ends_at_row IS NULL THEN 10000000
-							ELSE splits.ends_at_row
-						END
+    segs.line_number >= splits.starts_at_row AND
+    segs.line_number <= CASE
+                            WHEN splits.ends_at_row IS NULL THEN 10000000
+                            ELSE splits.ends_at_row
+                        END
 ORDER BY line_number;
 
 /* Converting the LRT times from text format to number format (decimal). At this point we only keep the rows that have useful information and we already have everything in the same row (run id, lrt time and split_name name) so we can delete the rest */
@@ -216,55 +216,55 @@ ORDER BY line_number;
 DROP TABLE IF EXISTS segments_data6_runner;
 CREATE TABLE segments_data6_runner AS
 SELECT
-	file_line_stripped,
-	line_number,
-	run_id,
-	split_number,
-	lrt_time,
-	rta_time,
-	ROUND(lrt_hours * 3600 + lrt_minutes * 60 + lrt_seconds + lrt_milliseconds / 10000000, 7) AS lrt_time_dec,
-	ROUND(rta_hours * 3600 + rta_minutes * 60 + rta_seconds + rta_milliseconds / 10000000, 7) AS rta_time_dec,
-	split_name,
-	chapter,
-	_section
+    file_line_stripped,
+    line_number,
+    run_id,
+    split_number,
+    lrt_time,
+    rta_time,
+    ROUND(lrt_hours * 3600 + lrt_minutes * 60 + lrt_seconds + lrt_milliseconds / 10000000, 7) AS lrt_time_dec,
+    ROUND(rta_hours * 3600 + rta_minutes * 60 + rta_seconds + rta_milliseconds / 10000000, 7) AS rta_time_dec,
+    split_name,
+    chapter,
+    _section
 FROM
 (
-	SELECT
-		*,
-		CASE
-			WHEN lrt_time = '' THEN 0
-			ELSE CAST(SUBSTR(lrt_time, 1, 2) AS INTEGER)
-		END AS lrt_hours,
-		CASE
-			WHEN lrt_time = '' THEN 0
-			ELSE CAST(SUBSTR(lrt_time, 4, 2) AS INTEGER)
-		END AS lrt_minutes,
-		CASE
-			WHEN lrt_time = '' THEN 0
-			ELSE CAST(SUBSTR(lrt_time, 7, 2) AS INTEGER)
-		END AS lrt_seconds,
-		CASE
-			WHEN lrt_time = '' OR LENGTH(lrt_time) = 8 THEN 0
-			ELSE CAST(SUBSTR(lrt_time, 10, 7) AS DECIMAL)
-		END AS lrt_milliseconds,
-		CASE
-			WHEN rta_time = '' THEN 0
-			ELSE CAST(SUBSTR(rta_time, 1, 2) AS INTEGER)
-		END AS rta_hours,
-		CASE
-			WHEN rta_time = '' THEN 0
-			ELSE CAST(SUBSTR(rta_time, 4, 2) AS INTEGER)
-		END AS rta_minutes,
-		CASE
-			WHEN rta_time = '' THEN 0
-			ELSE CAST(SUBSTR(rta_time, 7, 2) AS INTEGER)
-		END AS rta_seconds,
-		CASE
-			WHEN rta_time = '' OR LENGTH(rta_time) = 8 THEN 0
-			ELSE CAST(SUBSTR(rta_time, 10, 7) AS DECIMAL)
-		END AS rta_milliseconds
-	FROM segments_data5_runner
-	WHERE split_name <> ''
+    SELECT
+        *,
+        CASE
+            WHEN lrt_time = '' THEN 0
+            ELSE CAST(SUBSTR(lrt_time, 1, 2) AS INTEGER)
+        END AS lrt_hours,
+        CASE
+            WHEN lrt_time = '' THEN 0
+            ELSE CAST(SUBSTR(lrt_time, 4, 2) AS INTEGER)
+        END AS lrt_minutes,
+        CASE
+            WHEN lrt_time = '' THEN 0
+            ELSE CAST(SUBSTR(lrt_time, 7, 2) AS INTEGER)
+        END AS lrt_seconds,
+        CASE
+            WHEN lrt_time = '' OR LENGTH(lrt_time) = 8 THEN 0
+            ELSE CAST(SUBSTR(lrt_time, 10, 7) AS DECIMAL)
+        END AS lrt_milliseconds,
+        CASE
+            WHEN rta_time = '' THEN 0
+            ELSE CAST(SUBSTR(rta_time, 1, 2) AS INTEGER)
+        END AS rta_hours,
+        CASE
+            WHEN rta_time = '' THEN 0
+            ELSE CAST(SUBSTR(rta_time, 4, 2) AS INTEGER)
+        END AS rta_minutes,
+        CASE
+            WHEN rta_time = '' THEN 0
+            ELSE CAST(SUBSTR(rta_time, 7, 2) AS INTEGER)
+        END AS rta_seconds,
+        CASE
+            WHEN rta_time = '' OR LENGTH(rta_time) = 8 THEN 0
+            ELSE CAST(SUBSTR(rta_time, 10, 7) AS DECIMAL)
+        END AS rta_milliseconds
+    FROM segments_data5_runner
+    WHERE split_name <> ''
 );
 
 /* Also adding the LRT time with the same format as in LiveSplit (Edit Splits window), not used for calculations (for that we use the *_dec times) but it's just easier to read. */
@@ -297,13 +297,13 @@ DROP TABLE IF EXISTS segments_data8_runner;
 CREATE TABLE segments_data8_runner AS
 SELECT
     file_line_stripped,
-	line_number,
-	run_id,
-	split_number,
-	lrt_time,
-	rta_time,
-	lrt_time_dec,
-	rta_time_dec,
+    line_number,
+    run_id,
+    split_number,
+    lrt_time,
+    rta_time,
+    lrt_time_dec,
+    rta_time_dec,
     CASE
         WHEN (lrt_time_dec - TRUNC(lrt_time_dec)) = 0 THEN CONCAT(lrt_time_temp, '.000')
         ELSE lrt_time_temp
@@ -312,9 +312,9 @@ SELECT
         WHEN (rta_time_dec - TRUNC(rta_time_dec)) = 0 THEN CONCAT(rta_time_temp, '.000')
         ELSE rta_time_temp
     END AS rta_time_readable,
-	split_name,
-	chapter,
-	_section
+    split_name,
+    chapter,
+    _section
 FROM segments_data7_runner;
 
 --#endregion
@@ -329,15 +329,15 @@ SELECT LTRIM(file_line, ' ') AS file_line_stripped, 'runner' AS runner_name
 FROM splits_file_indexed
 WHERE line_number >
 (
-	SELECT line_number
-	FROM splits_file_indexed
-	WHERE file_line LIKE '%<AttemptHistory>%'
+    SELECT line_number
+    FROM splits_file_indexed
+    WHERE file_line LIKE '%<AttemptHistory>%'
 )
 AND line_number <
 (
-	SELECT line_number
-	FROM splits_file_indexed
-	WHERE file_line LIKE '%</AttemptHistory>%'
+    SELECT line_number
+    FROM splits_file_indexed
+    WHERE file_line LIKE '%</AttemptHistory>%'
 );
 
 
@@ -384,15 +384,15 @@ FROM attempts_data1_runner;
 DROP TABLE IF EXISTS attempts_data3_runner;
 CREATE TABLE attempts_data3_runner AS
 SELECT
-	run_id,
-	finished_run,
-	LEAD(final_rta_time, 1) OVER () AS final_rta_time,
-	LEAD(final_lrt_time, 2) OVER () AS final_lrt_time,
-	date_started,
-	time_started,
-	date_ended,
-	time_ended,
-	runner_name
+    run_id,
+    finished_run,
+    LEAD(final_rta_time, 1) OVER () AS final_rta_time,
+    LEAD(final_lrt_time, 2) OVER () AS final_lrt_time,
+    date_started,
+    time_started,
+    date_ended,
+    time_ended,
+    runner_name
 FROM attempts_data2_runner;
 
 /* Remove useless rows and also remove data from runs that are "too old" (this will be customizable eventually, but also optional). */
@@ -401,7 +401,7 @@ DROP TABLE IF EXISTS attempts_data4_runner;
 CREATE TABLE attempts_data4_runner AS
 SELECT
     run_id,
-	final_lrt_time,
+    final_lrt_time,
     final_rta_time,
     finished_run,
     date_started,
@@ -412,8 +412,8 @@ SELECT
 FROM attempts_data3_runner
 WHERE run_id <> '' AND TO_DATE
 (
-	SUBSTR(date_started, 7, 4) || '-' || SUBSTR(date_started, 1, 2) || '-' || SUBSTR(date_started, 4, 2),
-	'YYYY-MM-DD'
+    SUBSTR(date_started, 7, 4) || '-' || SUBSTR(date_started, 1, 2) || '-' || SUBSTR(date_started, 4, 2),
+    'YYYY-MM-DD'
 ) >= '2024-10-15'; -- TODO: This date needs to be customizable
 
 /* Getting the list of all finished runs and for each finished run, if it was a PB when it was done or not (which also means getting the LRT PB at that time too). */
@@ -421,25 +421,25 @@ WHERE run_id <> '' AND TO_DATE
 DROP TABLE IF EXISTS pb_history1_runner;
 CREATE TABLE pb_history1_runner AS
 SELECT
-	finished_runs.run_id,
-	finished_runs.final_lrt_time,
-	MIN(pbs.final_lrt_time) AS lrt_pb,
-	CASE
-		WHEN finished_runs.final_lrt_time = MIN(pbs.final_lrt_time)
-			THEN 1
-		ELSE 0
-	END AS pb
+    finished_runs.run_id,
+    finished_runs.final_lrt_time,
+    MIN(pbs.final_lrt_time) AS lrt_pb,
+    CASE
+        WHEN finished_runs.final_lrt_time = MIN(pbs.final_lrt_time)
+            THEN 1
+        ELSE 0
+    END AS pb
 FROM
 (
-	SELECT *
-	FROM attempts_data4_runner
-	WHERE final_lrt_time <> ''
+    SELECT *
+    FROM attempts_data4_runner
+    WHERE final_lrt_time <> ''
 ) finished_runs
 INNER JOIN
 (
-	SELECT *
-	FROM attempts_data4_runner
-	WHERE final_lrt_time <> ''
+    SELECT *
+    FROM attempts_data4_runner
+    WHERE final_lrt_time <> ''
 ) pbs
 
 ON CAST(finished_runs.run_id AS INTEGER) >= CAST(pbs.run_id AS INTEGER)
@@ -451,31 +451,31 @@ ORDER BY CAST(finished_runs.run_id AS INTEGER);
 DROP TABLE IF EXISTS attempts_data5_runner;
 CREATE TABLE attempts_data5_runner AS
 SELECT
-	CAST(attempts.run_id AS INTEGER),
-	attempts.final_lrt_time,
-	final_rta_time,
-	CASE
-		WHEN final_rta_time = '' OR final_rta_time IS NULL
-			THEN 0
-		ELSE
-			CAST(SUBSTR(final_rta_time, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(final_rta_time, 4, 2) AS INTEGER) * 60 +
-			CAST(SUBSTR(final_rta_time, 7, 2) AS INTEGER)
-	END AS final_rta_time_int,
-	finished_run,
-	pb,
-	TO_DATE(SUBSTR(date_started, 7, 4) || '-' || SUBSTR(date_started, 1, 2) || '-' || SUBSTR(date_started, 4, 2), 'YYYY-MM-DD') AS date_started,
-	time_started,
-	CAST(SUBSTR(time_started, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_started, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_started, 7, 2) AS INTEGER) AS time_started_int,
-	TO_DATE(SUBSTR(date_ended, 7, 4) || '-' || SUBSTR(date_ended, 1, 2) || '-' || SUBSTR(date_ended, 4, 2), 'YYYY-MM-DD') AS date_ended,
-	time_ended,
-	CAST(SUBSTR(time_ended, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_ended, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_ended, 7, 2) AS INTEGER) AS time_ended_int,
-	CASE
-		WHEN date_started <> date_ended
-			THEN 86400 + CAST(SUBSTR(time_ended, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_ended, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_ended, 7, 2) AS INTEGER) - (CAST(SUBSTR(time_started, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_started, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_started, 7, 2) AS INTEGER))
-		ELSE
-			CAST(SUBSTR(time_ended, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_ended, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_ended, 7, 2) AS INTEGER) - (CAST(SUBSTR(time_started, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_started, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_started, 7, 2) AS INTEGER))
-	END AS attempt_duration,
-	'runner' AS runner_name
+    CAST(attempts.run_id AS INTEGER),
+    attempts.final_lrt_time,
+    final_rta_time,
+    CASE
+        WHEN final_rta_time = '' OR final_rta_time IS NULL
+            THEN 0
+        ELSE
+            CAST(SUBSTR(final_rta_time, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(final_rta_time, 4, 2) AS INTEGER) * 60 +
+            CAST(SUBSTR(final_rta_time, 7, 2) AS INTEGER)
+    END AS final_rta_time_int,
+    finished_run,
+    pb,
+    TO_DATE(SUBSTR(date_started, 7, 4) || '-' || SUBSTR(date_started, 1, 2) || '-' || SUBSTR(date_started, 4, 2), 'YYYY-MM-DD') AS date_started,
+    time_started,
+    CAST(SUBSTR(time_started, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_started, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_started, 7, 2) AS INTEGER) AS time_started_int,
+    TO_DATE(SUBSTR(date_ended, 7, 4) || '-' || SUBSTR(date_ended, 1, 2) || '-' || SUBSTR(date_ended, 4, 2), 'YYYY-MM-DD') AS date_ended,
+    time_ended,
+    CAST(SUBSTR(time_ended, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_ended, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_ended, 7, 2) AS INTEGER) AS time_ended_int,
+    CASE
+        WHEN date_started <> date_ended
+            THEN 86400 + CAST(SUBSTR(time_ended, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_ended, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_ended, 7, 2) AS INTEGER) - (CAST(SUBSTR(time_started, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_started, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_started, 7, 2) AS INTEGER))
+        ELSE
+            CAST(SUBSTR(time_ended, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_ended, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_ended, 7, 2) AS INTEGER) - (CAST(SUBSTR(time_started, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(time_started, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(time_started, 7, 2) AS INTEGER))
+    END AS attempt_duration,
+    'runner' AS runner_name
 FROM attempts_data4_runner attempts
 LEFT JOIN pb_history1_runner pbs ON attempts.run_id = pbs.run_id
 WHERE attempts.run_id <> '';
@@ -485,69 +485,69 @@ WHERE attempts.run_id <> '';
 DROP TABLE IF EXISTS pb_history2_runner;
 CREATE TABLE pb_history2_runner AS
 SELECT
-	a.*,
-	CAST(SUBSTR(lrt_pb, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(lrt_pb, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(lrt_pb, 7, 2) AS INTEGER) AS pb_lrt, date_started - COALESCE(LAG(date_started) OVER(ORDER BY CAST(a.run_id AS INTEGER)), date_started) AS days_it_took,
-	CAST(a.run_id AS INTEGER) - COALESCE(LAG(CAST(a.run_id AS INTEGER)) OVER(ORDER BY CAST(a.run_id AS INTEGER)), 0) attempts_it_took, total_playtime - COALESCE(LAG(total_playtime) OVER(ORDER BY CAST(a.run_id AS INTEGER)), 0) total_playtime_it_took, days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY CAST (a.run_id AS INTEGER)), 0) AS days_of_attempts_it_took
+    a.*,
+    CAST(SUBSTR(lrt_pb, 1, 2) AS INTEGER) * 3600 + CAST(SUBSTR(lrt_pb, 4, 2) AS INTEGER) * 60 + CAST(SUBSTR(lrt_pb, 7, 2) AS INTEGER) AS pb_lrt, date_started - COALESCE(LAG(date_started) OVER(ORDER BY CAST(a.run_id AS INTEGER)), date_started) AS days_it_took,
+    CAST(a.run_id AS INTEGER) - COALESCE(LAG(CAST(a.run_id AS INTEGER)) OVER(ORDER BY CAST(a.run_id AS INTEGER)), 0) attempts_it_took, total_playtime - COALESCE(LAG(total_playtime) OVER(ORDER BY CAST(a.run_id AS INTEGER)), 0) total_playtime_it_took, days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY CAST (a.run_id AS INTEGER)), 0) AS days_of_attempts_it_took
 FROM
 (
-	SELECT
-		finished_runs.run_id,
-		finished_runs.final_lrt_time,
-		finished_runs.date_started,
-		MIN(pbs.final_lrt_time) AS lrt_pb,
-		CASE
-			WHEN finished_runs.final_lrt_time=MIN(pbs.final_lrt_time)
-				THEN 1
-			ELSE 0
-		END AS pb
-	FROM
-	(
-		SELECT *
-		FROM attempts_data5_runner
-		WHERE final_lrt_time <> '' AND date_started >= '2024-10-14' -- TODO: Avoid hardcoded date
-	) finished_runs
-	JOIN
-	(
-		SELECT *
-		FROM attempts_data5_runner
-		WHERE final_lrt_time <> '' AND date_started >= '2024-10-14' -- TODO: Avoid hardcoded date
-	) pbs
+    SELECT
+        finished_runs.run_id,
+        finished_runs.final_lrt_time,
+        finished_runs.date_started,
+        MIN(pbs.final_lrt_time) AS lrt_pb,
+        CASE
+            WHEN finished_runs.final_lrt_time=MIN(pbs.final_lrt_time)
+                THEN 1
+            ELSE 0
+        END AS pb
+    FROM
+    (
+        SELECT *
+        FROM attempts_data5_runner
+        WHERE final_lrt_time <> '' AND date_started >= '2024-10-14' -- TODO: Avoid hardcoded date
+    ) finished_runs
+    JOIN
+    (
+        SELECT *
+        FROM attempts_data5_runner
+        WHERE final_lrt_time <> '' AND date_started >= '2024-10-14' -- TODO: Avoid hardcoded date
+    ) pbs
 
-	ON CAST(finished_runs.run_id AS INTEGER) >= CAST(pbs.run_id AS INTEGER)
-	GROUP BY
-		finished_runs.run_id,
-		finished_runs.final_lrt_time,
-		finished_runs.date_started
-	ORDER BY CAST(finished_runs.run_id AS INTEGER)
+    ON CAST(finished_runs.run_id AS INTEGER) >= CAST(pbs.run_id AS INTEGER)
+    GROUP BY
+        finished_runs.run_id,
+        finished_runs.final_lrt_time,
+        finished_runs.date_started
+    ORDER BY CAST(finished_runs.run_id AS INTEGER)
 ) a
 LEFT JOIN
 (
-	SELECT
-		a.run_id,
-		a.attempt_duration,
-		SUM(b.attempt_duration) AS total_playtime
-	FROM attempts_data5_runner a
-	LEFT JOIN attempts_data5_runner b
+    SELECT
+        a.run_id,
+        a.attempt_duration,
+        SUM(b.attempt_duration) AS total_playtime
+    FROM attempts_data5_runner a
+    LEFT JOIN attempts_data5_runner b
 
-	ON a.run_id >= b.run_id
-	GROUP BY
-		a.run_id,
-		a.attempt_duration
-	ORDER BY a.run_id
+    ON a.run_id >= b.run_id
+    GROUP BY
+        a.run_id,
+        a.attempt_duration
+    ORDER BY a.run_id
 ) b
 
 ON a.run_id=b.run_id
 LEFT JOIN
 (
-	SELECT
-		a.run_id,
-		COUNT(DISTINCT b.date_started) - 1 AS days_attempts
-	FROM attempts_data5_runner a
-	LEFT JOIN attempts_data5_runner b
+    SELECT
+        a.run_id,
+        COUNT(DISTINCT b.date_started) - 1 AS days_attempts
+    FROM attempts_data5_runner a
+    LEFT JOIN attempts_data5_runner b
 
-	ON a.run_id >= b.run_id
-	GROUP BY a.run_id
-	ORDER BY a.run_id
+    ON a.run_id >= b.run_id
+    GROUP BY a.run_id
+    ORDER BY a.run_id
 ) c
 
 ON a.run_id = c.run_id
@@ -587,17 +587,17 @@ ON segments.run_id = attempts.run_id;
 DROP TABLE IF EXISTS cumulative_rta_runner;
 CREATE TABLE cumulative_rta_runner AS
 SELECT
-	overview.run_id,
-	overview.split_number,
-	SUM(durations.rta_time_dec) AS cumulative_rta
+    overview.run_id,
+    overview.split_number,
+    SUM(durations.rta_time_dec) AS cumulative_rta
 FROM splits_overview1_runner overview
 LEFT JOIN
 (
-	SELECT DISTINCT
-		run_id,
-		split_number,
-		rta_time_dec
-	FROM splits_overview1_runner
+    SELECT DISTINCT
+        run_id,
+        split_number,
+        rta_time_dec
+    FROM splits_overview1_runner
 ) durations
 ON overview.split_number >= durations.split_number AND overview.run_id = durations.run_id
 GROUP BY 1, 2
@@ -608,12 +608,12 @@ ORDER BY 1, 2;
 DROP TABLE IF EXISTS splits_overview2_runner;
 CREATE TABLE splits_overview2_runner AS
 SELECT
-	overview.*,
-	cumulative_rta,
-	LAG(cumulative_rta) OVER(PARTITION BY overview.run_id ORDER BY overview.split_number) AS lag_rta,
-	CAST(SUBSTR(time_started, 1, 2) AS NUMERIC) * 3600 + CAST(SUBSTR(time_started, 4, 2) AS NUMERIC) * 60 + CAST(SUBSTR(time_started, 7, 2) AS NUMERIC) AS time_start_numeric,
-	CAST(SUBSTR(time_ended, 1, 2) AS NUMERIC) * 3600 + CAST(SUBSTR(time_ended, 4, 2) AS NUMERIC) * 60 + CAST(SUBSTR(time_ended, 7, 2) AS NUMERIC) AS time_end_numeric,
-	'runner' AS runner_name
+    overview.*,
+    cumulative_rta,
+    LAG(cumulative_rta) OVER(PARTITION BY overview.run_id ORDER BY overview.split_number) AS lag_rta,
+    CAST(SUBSTR(time_started, 1, 2) AS NUMERIC) * 3600 + CAST(SUBSTR(time_started, 4, 2) AS NUMERIC) * 60 + CAST(SUBSTR(time_started, 7, 2) AS NUMERIC) AS time_start_numeric,
+    CAST(SUBSTR(time_ended, 1, 2) AS NUMERIC) * 3600 + CAST(SUBSTR(time_ended, 4, 2) AS NUMERIC) * 60 + CAST(SUBSTR(time_ended, 7, 2) AS NUMERIC) AS time_end_numeric,
+    'runner' AS runner_name
 FROM splits_overview1_runner overview
 LEFT JOIN cumulative_rta_runner cumulative
 ON overview.run_id = cumulative.run_id AND overview.split_number = cumulative.split_number;
@@ -623,55 +623,55 @@ ON overview.run_id = cumulative.run_id AND overview.split_number = cumulative.sp
 DROP TABLE IF EXISTS splits_overview3_runner;
 CREATE TABLE splits_overview3_runner AS
 SELECT
-	run_id,
-	default_split_name AS split_name,
-	chapter,
-	_section,
-	lrt_time_dec,
-	lrt_time_readable,
-	date_started,
-	finished_run,
-	final_lrt_time,
-	pb,
-	split_number,
-	final_rta_time,
-	date_ended,
-	time_started,
-	time_ended,
-	attempt_duration,
-	rta_time_dec,
-	rta_time_readable,
-	cumulative_rta,
-	lag_rta,
-	time_start_numeric,
-	time_end_numeric,
-	time_start_numeric2,
-	time_end_numeric2,
-	CASE WHEN split_number = 1 THEN time_started ELSE
-	CASE WHEN FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)<10
-	THEN '0'||FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)
-	ELSE ''||FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END) END
-	||':'||
-	CASE WHEN FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-	- FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))<10
-	THEN '0'||FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-	- FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))
-	ELSE ''||FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-	- FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))) END
-	||':'||
-	CASE WHEN FLOOR(60*(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-	- FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))-
-	FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-	- FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))))<10
-	THEN '0'||FLOOR(60*(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-	- FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))-
-	FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-	- FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))))
-	ELSE ''||FLOOR(60*(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-	- FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))-
-	FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-	- FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))))) END END AS time_start_numeric3,
-	CASE WHEN split_number = 123 THEN time_ended ELSE
+    run_id,
+    default_split_name AS split_name,
+    chapter,
+    _section,
+    lrt_time_dec,
+    lrt_time_readable,
+    date_started,
+    finished_run,
+    final_lrt_time,
+    pb,
+    split_number,
+    final_rta_time,
+    date_ended,
+    time_started,
+    time_ended,
+    attempt_duration,
+    rta_time_dec,
+    rta_time_readable,
+    cumulative_rta,
+    lag_rta,
+    time_start_numeric,
+    time_end_numeric,
+    time_start_numeric2,
+    time_end_numeric2,
+    CASE WHEN split_number = 1 THEN time_started ELSE
+    CASE WHEN FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)<10
+    THEN '0'||FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)
+    ELSE ''||FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END) END
+    ||':'||
+    CASE WHEN FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
+    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))<10
+    THEN '0'||FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
+    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))
+    ELSE ''||FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
+    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))) END
+    ||':'||
+    CASE WHEN FLOOR(60*(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
+    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))-
+    FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
+    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))))<10
+    THEN '0'||FLOOR(60*(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
+    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))-
+    FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
+    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))))
+    ELSE ''||FLOOR(60*(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
+    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))-
+    FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
+    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))))) END END AS time_start_numeric3,
+    CASE WHEN split_number = 123 THEN time_ended ELSE
 CASE WHEN FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END)<10
 THEN '0'||FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END)
 ELSE ''||FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END) END
@@ -697,24 +697,24 @@ FLOOR(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 EL
 - FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END))))) END END AS time_end_numeric3
 FROM
 (
-	SELECT
-		overview.*,
-		defaults.split_name AS default_split_name,
-		CASE
-			WHEN overview.split_number = 1
-				THEN time_start_numeric
-			WHEN time_start_numeric < 86400 AND time_start_numeric + lag_rta >= 86400
-				THEN time_start_numeric + lag_rta - 86400
-			ELSE time_start_numeric + lag_rta
-		END AS time_start_numeric2,
-		CASE
-			WHEN time_start_numeric < 86400 AND time_start_numeric + cumulative_rta >= 86400
-				THEN time_start_numeric + cumulative_rta - 86400
-			ELSE time_start_numeric + cumulative_rta
-		END AS time_end_numeric2
-	FROM splits_overview2_runner overview
-	LEFT JOIN default_split_names defaults
-	ON overview.split_number = defaults.split_number
+    SELECT
+        overview.*,
+        defaults.split_name AS default_split_name,
+        CASE
+            WHEN overview.split_number = 1
+                THEN time_start_numeric
+            WHEN time_start_numeric < 86400 AND time_start_numeric + lag_rta >= 86400
+                THEN time_start_numeric + lag_rta - 86400
+            ELSE time_start_numeric + lag_rta
+        END AS time_start_numeric2,
+        CASE
+            WHEN time_start_numeric < 86400 AND time_start_numeric + cumulative_rta >= 86400
+                THEN time_start_numeric + cumulative_rta - 86400
+            ELSE time_start_numeric + cumulative_rta
+        END AS time_end_numeric2
+    FROM splits_overview2_runner overview
+    LEFT JOIN default_split_names defaults
+    ON overview.split_number = defaults.split_number
 );
 
 --#region DOORS
@@ -723,24 +723,24 @@ FROM
 
 DROP TABLE IF EXISTS doorsplit_golds1_runner;
 CREATE TABLE doorsplit_golds1_runner AS
-SELECT aa.*, bb.run_id, date_started, finished_run, final_lrt_time, pb,
-CASE WHEN TRUNC(gold-TRUNC(gold), 3)=0 THEN
-(CASE WHEN gold<10 THEN TO_CHAR(TRUNC(gold, 3) % 60, 'FM0.999')||'000'
-WHEN gold<60 THEN TO_CHAR(TRUNC(gold, 3) % 60, 'FM00.999')||'000'
-ELSE FLOOR(gold / 60) || ':' || TO_CHAR(TRUNC(gold, 3) % 60, 'FM00.999')||'000' END)
-WHEN TRUNC(gold-TRUNC(gold), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN (CASE WHEN gold<10 THEN TO_CHAR(TRUNC(gold, 3) % 60, 'FM0.999')||'00'
-WHEN gold<60 THEN TO_CHAR(TRUNC(gold, 3) % 60, 'FM00.999')||'00'
-ELSE FLOOR(gold / 60) || ':' || TO_CHAR(TRUNC(gold, 3) % 60, 'FM00.999')||'00' END)
-WHEN TRUNC(gold-TRUNC(gold), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN (CASE WHEN gold<10 THEN TO_CHAR(TRUNC(gold, 3) % 60, 'FM0.999')||'0'
-WHEN gold<60 THEN TO_CHAR(TRUNC(gold, 3) % 60, 'FM00.999')||'0'
-ELSE FLOOR(gold / 60) || ':' || TO_CHAR(TRUNC(gold, 3) % 60, 'FM00.999')||'0' END)
-ELSE (CASE WHEN gold<10 THEN TO_CHAR(TRUNC(gold, 3) % 60, 'FM0.999')
-WHEN gold<60 THEN TO_CHAR(TRUNC(gold, 3) % 60, 'FM00.999')
-ELSE FLOOR(gold / 60) || ':' || TO_CHAR(TRUNC(gold, 3) % 60, 'FM00.999') END) END AS gold2, CAST(door_avg AS NUMERIC) AS door_avg,
-CAST(door_median AS NUMERIC) AS door_median
-FROM (
+SELECT
+    aa.*,
+    bb.run_id,
+    date_started,
+    finished_run,
+    final_lrt_time,
+    pb,
+    CASE
+        WHEN gold < 10
+            THEN TO_CHAR(gold, 'FM0.000')
+        WHEN gold < 60
+            THEN TO_CHAR(gold, 'FM00.000')
+        ELSE
+            FLOOR(gold / 60) || ':' || TO_CHAR(gold % 60, 'FM00.000')
+    END AS gold2,
+    CAST(door_avg AS NUMERIC) AS door_avg,
+    CAST(door_median AS NUMERIC) AS door_median
+    FROM (
 SELECT split_number, split_name, MIN(split_time) AS gold
 FROM(SELECT split_name, run_id, split_number, SUM(lrt_time_dec) AS split_time
 FROM splits_overview3_runner
@@ -774,66 +774,50 @@ ORDER BY split_number;
 
 DROP TABLE IF EXISTS doorsplit_golds2_runner;
 CREATE TABLE doorsplit_golds2_runner AS
-SELECT split_number, run_id, date_started, final_lrt_time, pb, gold, gold2, door_avg, door_median,
-CASE WHEN TRUNC(cumulative_chapter_gold-TRUNC(cumulative_chapter_gold), 3)=0 THEN (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000'
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000' END)
-WHEN TRUNC(cumulative_chapter_gold-TRUNC(cumulative_chapter_gold), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00'
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00' END)
-WHEN TRUNC(cumulative_chapter_gold-TRUNC(cumulative_chapter_gold), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-          FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0'
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0' END)
-ELSE (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999') END) END AS cumulative_door_gold, cumulative_chapter_gold AS cumulative_door_gold_num,
-CASE WHEN TRUNC(door_avg-TRUNC(door_avg), 3)=0 THEN
-(CASE WHEN door_avg<10 THEN TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM0.999')||'000'
-WHEN door_avg<60 THEN TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM00.999')||'000'
-ELSE FLOOR(door_avg / 60) || ':' || TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM00.999')||'000' END)
-WHEN TRUNC(door_avg-TRUNC(door_avg), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN (CASE WHEN door_avg<10 THEN TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM0.999')||'00'
-WHEN door_avg<60 THEN TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM00.999')||'00'
-ELSE FLOOR(door_avg / 60) || ':' || TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM00.999')||'00' END)
-WHEN TRUNC(door_avg-TRUNC(door_avg), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN (CASE WHEN door_avg<10 THEN TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM0.999')||'0'
-WHEN door_avg<60 THEN TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM00.999')||'0'
-ELSE FLOOR(door_avg / 60) || ':' || TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM00.999')||'0' END)
-ELSE (CASE WHEN door_avg<10 THEN TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM0.999')
-WHEN door_avg<60 THEN TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM00.999')
-ELSE FLOOR(door_avg / 60) || ':' || TO_CHAR(TRUNC(door_avg, 3) % 60, 'FM00.999') END) END AS door_avg2,
-CASE WHEN TRUNC(door_median-TRUNC(door_median), 3)=0 THEN
-(CASE WHEN door_median<10 THEN TO_CHAR(TRUNC(door_median, 3) % 60, 'FM0.999')||'000'
-WHEN door_median<60 THEN TO_CHAR(TRUNC(door_median, 3) % 60, 'FM00.999')||'000'
-ELSE FLOOR(door_median / 60) || ':' || TO_CHAR(TRUNC(door_median, 3) % 60, 'FM00.999')||'000' END)
-WHEN TRUNC(door_median-TRUNC(door_median), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN (CASE WHEN door_median<10 THEN TO_CHAR(TRUNC(door_median, 3) % 60, 'FM0.999')||'00'
-WHEN door_median<60 THEN TO_CHAR(TRUNC(door_median, 3) % 60, 'FM00.999')||'00'
-ELSE FLOOR(door_median / 60) || ':' || TO_CHAR(TRUNC(door_median, 3) % 60, 'FM00.999')||'00' END)
-WHEN TRUNC(door_median-TRUNC(door_median), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN (CASE WHEN door_median<10 THEN TO_CHAR(TRUNC(door_median, 3) % 60, 'FM0.999')||'0'
-WHEN door_median<60 THEN TO_CHAR(TRUNC(door_median, 3) % 60, 'FM00.999')||'0'
-ELSE FLOOR(door_median / 60) || ':' || TO_CHAR(TRUNC(door_median, 3) % 60, 'FM00.999')||'0' END)
-ELSE (CASE WHEN door_median<10 THEN TO_CHAR(TRUNC(door_median, 3) % 60, 'FM0.999')
-WHEN door_median<60 THEN TO_CHAR(TRUNC(door_median, 3) % 60, 'FM00.999')
-ELSE FLOOR(door_median / 60) || ':' || TO_CHAR(TRUNC(door_median, 3) % 60, 'FM00.999') END) END AS door_median2
+SELECT
+    split_number,
+    run_id,
+    date_started,
+    final_lrt_time,
+    pb,
+    gold,
+    gold2,
+    door_avg,
+    door_median,
+    CASE
+        WHEN cumulative_chapter_gold < 10
+            THEN TO_CHAR(cumulative_chapter_gold, 'FM0.000')
+        WHEN cumulative_chapter_gold < 60
+            THEN TO_CHAR(cumulative_chapter_gold, 'FM00.000')
+        WHEN cumulative_chapter_gold < 3600
+            THEN FLOOR(cumulative_chapter_gold / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
+        ELSE
+            FLOOR(cumulative_chapter_gold / 3600) || ':' || FLOOR((cumulative_chapter_gold - 3600) / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
+    END AS cumulative_door_gold,
+    cumulative_chapter_gold AS cumulative_door_gold_num,
+    CASE
+        WHEN door_avg < 10
+            THEN TO_CHAR(door_avg, 'FM0.000')
+        WHEN door_avg < 60
+            THEN TO_CHAR(door_avg, 'FM00.000')
+        WHEN door_avg < 3600
+            THEN FLOOR(door_avg / 60) || ':' || TO_CHAR(door_avg % 60, 'FM00.000')
+        ELSE
+            FLOOR(door_avg / 3600) || ':' || FLOOR((door_avg - 3600) / 60) || ':' || TO_CHAR(door_avg % 60, 'FM00.000')
+    END AS door_avg2,
+    CASE
+        WHEN door_median < 10
+            THEN TO_CHAR(door_median, 'FM0.000')
+        WHEN door_median < 60
+            THEN TO_CHAR(door_median, 'FM00.000')
+        WHEN door_median < 3600
+            THEN FLOOR(door_median / 60) || ':' || TO_CHAR(door_median % 60, 'FM00.000')
+        ELSE
+            FLOOR(door_median / 3600) || ':' || FLOOR((door_median - 3600) / 60) || ':' || TO_CHAR(door_median % 60, 'FM00.000')
+    END AS door_median2
 FROM(
 SELECT a.split_number, a.split_name, a.gold, a.run_id, a.date_started, a.finished_run, a.final_lrt_time, a.pb, a.gold2, a.door_avg, a.door_median,
-	SUM(b.gold) AS cumulative_chapter_gold
+    SUM(b.gold) AS cumulative_chapter_gold
 FROM doorsplit_golds1_runner a
 LEFT JOIN (SELECT DISTINCT split_number, gold FROM doorsplit_golds1_runner) b ON a.split_number>=b.split_number
 GROUP BY a.split_number, a.split_name, a.gold, a.run_id, a.date_started, a.finished_run, a.final_lrt_time, a.pb, a.gold2, a.door_avg, a.door_median
@@ -844,23 +828,29 @@ ORDER BY split_number;
 
 DROP TABLE IF EXISTS doorsplit_golds_history1_runner;
 CREATE TABLE doorsplit_golds_history1_runner AS
-SELECT split_number, split_name, gold, run_id, date_started, finished_run, final_lrt_time, pb, gold2, CASE WHEN lrt_time_dec<=min OR min IS NULL THEN 1 ELSE 0
-END AS golded_split,
-CASE WHEN TRUNC(min-TRUNC(min), 3)=0 THEN
-(CASE WHEN min<10 THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM0.999')||'000'
-WHEN min<60 THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'000'
-ELSE FLOOR(min / 60) || ':' || TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'000' END)
-WHEN TRUNC(min-TRUNC(min), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN (CASE WHEN min<10 THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM0.999')||'00'
-WHEN min<60 THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'00'
-ELSE FLOOR(min / 60) || ':' || TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'00' END)
-WHEN TRUNC(min-TRUNC(min), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN (CASE WHEN min<10 THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM0.999')||'0'
-WHEN min<60 THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'0'
-ELSE FLOOR(min / 60) || ':' || TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'0' END)
-ELSE (CASE WHEN min<10 THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM0.999')
-WHEN min<60 THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')
-ELSE FLOOR(min / 60) || ':' || TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999') END) END AS gold_at_that_time, lrt_time_dec AS lrt_number8, RANK() OVER (PARTITION BY split_number ORDER BY lrt_time_dec) AS rank_split
+SELECT
+    split_number,
+    split_name,
+    gold,
+    run_id,
+    date_started,
+    finished_run,
+    final_lrt_time,
+    pb,
+    gold2,
+    CASE
+        WHEN lrt_time_dec <= min OR min IS NULL
+            THEN 1
+        ELSE 0
+    END AS golded_split,
+    CASE
+        WHEN min < 10
+            THEN TO_CHAR(min, 'FM0.000')
+        WHEN min < 60
+            THEN TO_CHAR(min, 'FM00.000')
+        ELSE
+            FLOOR(min / 60) || ':' || TO_CHAR(min % 60, 'FM00.000')
+    END AS gold_at_that_time, lrt_time_dec AS lrt_number8, RANK() OVER (PARTITION BY split_number ORDER BY lrt_time_dec) AS rank_split
 FROM (SELECT a.split_number, a.split_name, c.gold, c.gold2, a.lrt_time_dec, a.run_id, a.date_started, a.finished_run, a.final_lrt_time, a.pb, a.lrt_time_readable, MIN(b.lrt_time_dec) AS min,
 MIN(b.lrt_time_readable) AS min2
 FROM splits_overview3_runner a
@@ -898,72 +888,61 @@ GROUP BY 1, 2) e ON a.split_number=e.split_number AND a.run_id=e.run_id;
 DROP TABLE IF EXISTS chapter_history1_runner;
 CREATE TABLE chapter_history1_runner AS
 SELECT
-	chapter,
-	run_id,
-	date_started,
-	finished_run,
-	final_lrt_time,
-	pb,
-	SUM(chapter_time) AS chapter_time
+    chapter,
+    run_id,
+    date_started,
+    finished_run,
+    final_lrt_time,
+    pb,
+    SUM(chapter_time) AS chapter_time
 FROM
 (
-	SELECT a.*
-	FROM
-	(
-		SELECT
-			chapter,
-			run_id,
-			date_started,
-			finished_run,
-			final_lrt_time,
-			pb,
-			SUM(lrt_time_dec) AS chapter_time,
-			COUNT(*) AS number_of_splits
-		FROM splits_overview3_runner
-		GROUP BY
-			chapter,
-			run_id,
-			date_started,
-			finished_run,
-			final_lrt_time,
-			pb
-	) a
-	JOIN splits_per_chapter b
-	ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
+    SELECT a.*
+    FROM
+    (
+        SELECT
+            chapter,
+            run_id,
+            date_started,
+            finished_run,
+            final_lrt_time,
+            pb,
+            SUM(lrt_time_dec) AS chapter_time,
+            COUNT(*) AS number_of_splits
+        FROM splits_overview3_runner
+        GROUP BY
+            chapter,
+            run_id,
+            date_started,
+            finished_run,
+            final_lrt_time,
+            pb
+    ) a
+    JOIN splits_per_chapter b
+    ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
 )
 GROUP BY
-	chapter,
-	run_id,
-	date_started,
-	finished_run,
-	final_lrt_time,
-	pb
+    chapter,
+    run_id,
+    date_started,
+    finished_run,
+    final_lrt_time,
+    pb
 ORDER BY 1;
 
-/* Putting the chapter golds IN LiveSplit format (previously numbers) */
+/* Putting the chapter golds in LiveSplit format (previously numbers) */
 
 DROP TABLE IF EXISTS chapter_history2_runner;
 CREATE TABLE chapter_history2_runner AS
-SELECT *, CASE WHEN chapter_time<60 THEN (CASE WHEN TRUNC(chapter_time-TRUNC(chapter_time), 3) =0 THEN
-TO_CHAR(TRUNC(chapter_time, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(chapter_time-TRUNC(chapter_time), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN TO_CHAR(TRUNC(chapter_time, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(chapter_time-TRUNC(chapter_time), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN TO_CHAR(TRUNC(chapter_time, 3) % 60, 'FM00.999')||'0'
-ELSE
-TO_CHAR(TRUNC(chapter_time, 3) % 60, 'FM00.999') END)
-ELSE (CASE WHEN TRUNC(chapter_time-TRUNC(chapter_time), 3) =0
-THEN FLOOR(chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(chapter_time, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(chapter_time-TRUNC(chapter_time), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN FLOOR(chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(chapter_time, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(chapter_time-TRUNC(chapter_time), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN FLOOR(chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(chapter_time, 3) % 60, 'FM00.999')||'0'
-ELSE
-FLOOR(chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(chapter_time, 3) % 60, 'FM00.999') END) END AS chapter_time2, RANK() OVER (PARTITION BY chapter ORDER BY chapter_time) AS rank_chapter
+SELECT
+    *,
+    CASE
+        WHEN chapter_time < 60
+            THEN TO_CHAR(chapter_time, 'FM00.000')
+        ELSE
+            FLOOR(chapter_time / 60) || ':' || TO_CHAR(chapter_time % 60, 'FM00.000')
+    END AS chapter_time2,
+    RANK() OVER (PARTITION BY chapter ORDER BY chapter_time) AS rank_chapter
 FROM chapter_history1_runner
 ORDER BY chapter, chapter_time;
 
@@ -971,191 +950,242 @@ ORDER BY chapter, chapter_time;
 
 DROP TABLE IF EXISTS chapter_history3_runner;
 CREATE TABLE chapter_history3_runner AS
-SELECT chapter, run_id, date_started, finished_run, pb, chapter_time, chapter_time2, CASE WHEN chapter_time<=min OR min IS NULL THEN 1 ELSE 0
-END AS golded_chapter,
-CASE WHEN min<60 THEN (CASE WHEN TRUNC(min-TRUNC(min), 3) =0 THEN
-TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(min-TRUNC(min), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(min-TRUNC(min), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'0'
-ELSE
-TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999') END)
-ELSE (CASE WHEN TRUNC(min-TRUNC(min), 3) =0
-THEN FLOOR(min / 60) || ':' ||
-TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(min-TRUNC(min), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN FLOOR(min / 60) || ':' ||
-TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(min-TRUNC(min), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN FLOOR(min / 60) || ':' ||
-TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'0'
-ELSE
-FLOOR(min / 60) || ':' ||
-TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999') END) END AS chapter_gold_at_that_time, rank_chapter, chapter_rank_at_that_time, finished_chapters, finished_chapters_at_that_time
-FROM (SELECT a.rank_chapter, a.chapter, a.run_id, a.date_started, a.finished_run, a.pb, a.chapter_time, a.chapter_time2, MIN(b.chapter_time) AS min,
-MIN(b.chapter_time2) AS min2, finished_chapters, chapter_rank_at_that_time, finished_chapters_at_that_time
-FROM chapter_history2_runner a
-LEFT JOIN chapter_history2_runner b ON a.chapter=b.chapter AND a.run_id>b.run_id
-LEFT JOIN (SELECT chapter, COUNT(*) AS finished_chapters FROM chapter_history2_runner GROUP BY 1) c ON a.chapter=c.chapter
-LEFT JOIN (SELECT *
-FROM (SELECT a.*, b.chapter_time AS chapter_time3, b.run_id AS id2,
-RANK() OVER (PARTITION BY a.chapter, a.run_id ORDER BY b.chapter_time) AS chapter_rank_at_that_time
-FROM chapter_history2_runner a
-JOIN chapter_history2_runner b ON a.chapter=b.chapter AND a.run_id>=b.run_id) a
-WHERE run_id=id2) d ON a.chapter=d.chapter AND a.run_id=d.run_id
+SELECT
+    chapter,
+    run_id,
+    date_started,
+    finished_run,
+    pb,
+    chapter_time,
+    chapter_time2,
+    CASE
+        WHEN chapter_time <= min OR min IS NULL
+            THEN 1
+        ELSE 0
+    END AS golded_chapter,
+    CASE
+        WHEN min < 60
+            THEN TO_CHAR(min, 'FM00.000')
+        ELSE
+            FLOOR(min / 60) || ':' || TO_CHAR(min % 60, 'FM00.000')
+    END AS chapter_gold_at_that_time,
+    rank_chapter,
+    chapter_rank_at_that_time,
+    finished_chapters,
+    finished_chapters_at_that_time
+FROM
+(
+    SELECT
+        a.rank_chapter,
+        a.chapter,
+        a.run_id,
+        a.date_started,
+        a.finished_run,
+        a.pb,
+        a.chapter_time,
+        a.chapter_time2,
+        MIN(b.chapter_time) AS min,
+        MIN(b.chapter_time2) AS min2,
+        finished_chapters,
+        chapter_rank_at_that_time,
+        finished_chapters_at_that_time
+    FROM chapter_history2_runner a
+    LEFT JOIN chapter_history2_runner b
+    ON a.chapter = b.chapter AND a.run_id > b.run_id
 
-LEFT JOIN (
+    LEFT JOIN
+    (
+        SELECT
+            chapter,
+            COUNT(*) AS finished_chapters
+        FROM chapter_history2_runner
+        GROUP BY 1
+    ) c ON a.chapter = c.chapter
 
-SELECT a.chapter, a.run_id, COUNT(*) AS finished_chapters_at_that_time
-FROM chapter_history2_runner a
-JOIN chapter_history2_runner b ON a.chapter=b.chapter AND a.run_id>=b.run_id
-GROUP BY 1, 2) e ON a.chapter=e.chapter AND a.run_id=e.run_id
-GROUP BY finished_chapters_at_that_time, chapter_rank_at_that_time, finished_chapters, a.rank_chapter, a.chapter, a.run_id, a.date_started, a.finished_run, a.pb, a.chapter_time, a.chapter_time2) a;
+    LEFT JOIN
+    (
+        SELECT *
+        FROM
+        (
+            SELECT
+                a.*,
+                b.chapter_time AS chapter_time3,
+                b.run_id AS id2,
+                RANK() OVER (PARTITION BY a.chapter, a.run_id ORDER BY b.chapter_time) AS chapter_rank_at_that_time
+            FROM chapter_history2_runner a
+            JOIN chapter_history2_runner b
+            ON a.chapter = b.chapter AND a.run_id >= b.run_id
+        ) a
+        WHERE run_id = id2
+    ) d ON a.chapter = d.chapter AND a.run_id = d.run_id
+    LEFT JOIN
+    (
+        SELECT
+            a.chapter,
+            a.run_id,
+            COUNT(*) AS finished_chapters_at_that_time
+        FROM chapter_history2_runner a
+        JOIN chapter_history2_runner b
+        ON a.chapter = b.chapter AND a.run_id >= b.run_id
+        GROUP BY 1, 2
+    ) e ON a.chapter = e.chapter AND a.run_id = e.run_id
+GROUP BY
+    finished_chapters_at_that_time,
+    chapter_rank_at_that_time,
+    finished_chapters,
+    a.rank_chapter,
+    a.chapter,
+    a.run_id,
+    a.date_started,
+    a.finished_run,
+    a.pb,
+    a.chapter_time,
+    a.chapter_time2
+) a;
 
 /* Getting the chapter golds AND chapter averages */
 
 DROP TABLE IF EXISTS chapter_golds1_runner;
 CREATE TABLE chapter_golds1_runner AS
 SELECT
-	ch_golds.*,
-	avg_chapter_time,
-	CAST(median_chapter_time AS NUMERIC) AS median_chapter_time
+    ch_golds.*,
+    avg_chapter_time,
+    CAST(median_chapter_time AS NUMERIC) AS median_chapter_time
 FROM
 (
-	SELECT
-		aa.*,
-		bb.run_id,
-		date_started,
-		finished_run,
-		final_lrt_time,
-		pb
-	FROM
-	(
-		SELECT
-			chapter,
-			MIN(chapter_time) AS chapter_gold
-		FROM
-		(
-			SELECT a.*
-			FROM
-			(
-				SELECT
-					chapter,
-					run_id,
-					SUM(lrt_time_dec) AS chapter_time,
-					COUNT(*) AS number_of_splits
-				FROM splits_overview3_runner
-				GROUP BY chapter, run_id
-				ORDER BY 1
-			) a
-			JOIN splits_per_chapter b
-			ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
-		)
-		GROUP BY 1
-		ORDER BY 1
-	) aa
-	LEFT JOIN
-	(
-		SELECT *
-		FROM
-		(
-			SELECT a.*
-			FROM
-			(
-				SELECT
-					chapter,
-					run_id,
-					date_started,
-					finished_run,
-					final_lrt_time,
-					pb,
-					SUM(lrt_time_dec) AS chapter_time,
-					COUNT(*) AS number_of_splits
-				FROM splits_overview3_runner
-				GROUP BY
-					chapter,
-					run_id,
-					date_started,
-					finished_run,
-					final_lrt_time,
-					pb
-				ORDER BY 1
-			) a
-			JOIN splits_per_chapter b
-			ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
-		)
-	) bb
-	ON aa.chapter_gold = bb.chapter_time
+    SELECT
+        aa.*,
+        bb.run_id,
+        date_started,
+        finished_run,
+        final_lrt_time,
+        pb
+    FROM
+    (
+        SELECT
+            chapter,
+            MIN(chapter_time) AS chapter_gold
+        FROM
+        (
+            SELECT a.*
+            FROM
+            (
+                SELECT
+                    chapter,
+                    run_id,
+                    SUM(lrt_time_dec) AS chapter_time,
+                    COUNT(*) AS number_of_splits
+                FROM splits_overview3_runner
+                GROUP BY chapter, run_id
+                ORDER BY 1
+            ) a
+            JOIN splits_per_chapter b
+            ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
+        )
+        GROUP BY 1
+        ORDER BY 1
+    ) aa
+    LEFT JOIN
+    (
+        SELECT *
+        FROM
+        (
+            SELECT a.*
+            FROM
+            (
+                SELECT
+                    chapter,
+                    run_id,
+                    date_started,
+                    finished_run,
+                    final_lrt_time,
+                    pb,
+                    SUM(lrt_time_dec) AS chapter_time,
+                    COUNT(*) AS number_of_splits
+                FROM splits_overview3_runner
+                GROUP BY
+                    chapter,
+                    run_id,
+                    date_started,
+                    finished_run,
+                    final_lrt_time,
+                    pb
+                ORDER BY 1
+            ) a
+            JOIN splits_per_chapter b
+            ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
+        )
+    ) bb
+    ON aa.chapter_gold = bb.chapter_time
 ) ch_golds
 LEFT JOIN
 (
-	SELECT
-		chapter,
-		AVG(chapter_time) AS avg_chapter_time
-	FROM
-	(
-		SELECT a.*
-		FROM
-		(
-			SELECT
-				chapter,
-				run_id,
-				date_started,
-				finished_run,
-				final_lrt_time,
-				pb,
-				SUM(lrt_time_dec) AS chapter_time,
-				COUNT(*) AS number_of_splits
-			FROM splits_overview3_runner
-			GROUP BY
-				chapter,
-				run_id,
-				date_started,
-				finished_run,
-				final_lrt_time,
-				pb
-		) a
-		JOIN splits_per_chapter b
-		ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
-	)
-	GROUP BY 1
-	ORDER BY 1
+    SELECT
+        chapter,
+        AVG(chapter_time) AS avg_chapter_time
+    FROM
+    (
+        SELECT a.*
+        FROM
+        (
+            SELECT
+                chapter,
+                run_id,
+                date_started,
+                finished_run,
+                final_lrt_time,
+                pb,
+                SUM(lrt_time_dec) AS chapter_time,
+                COUNT(*) AS number_of_splits
+            FROM splits_overview3_runner
+            GROUP BY
+                chapter,
+                run_id,
+                date_started,
+                finished_run,
+                final_lrt_time,
+                pb
+        ) a
+        JOIN splits_per_chapter b
+        ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
+    )
+    GROUP BY 1
+    ORDER BY 1
 ) ch_average
 ON ch_golds.chapter = ch_average.chapter
 LEFT JOIN
 (
-	SELECT
-		chapter,
-		PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY chapter_time) AS median_chapter_time
-	FROM
-	(
-		SELECT a.*
-		FROM
-		(
-			SELECT
-				chapter,
-				run_id,
-				date_started,
-				finished_run,
-				final_lrt_time,
-				pb,
-				SUM(lrt_time_dec) AS chapter_time,
-				COUNT(*) AS number_of_splits
-			FROM splits_overview3_runner
-			GROUP BY
-				chapter,
-				run_id,
-				date_started,
-				finished_run,
-				final_lrt_time,
-				pb
-		) a
-		JOIN splits_per_chapter b
-		ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
-	)
-	GROUP BY 1
-	ORDER BY 1
+    SELECT
+        chapter,
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY chapter_time) AS median_chapter_time
+    FROM
+    (
+        SELECT a.*
+        FROM
+        (
+            SELECT
+                chapter,
+                run_id,
+                date_started,
+                finished_run,
+                final_lrt_time,
+                pb,
+                SUM(lrt_time_dec) AS chapter_time,
+                COUNT(*) AS number_of_splits
+            FROM splits_overview3_runner
+            GROUP BY
+                chapter,
+                run_id,
+                date_started,
+                finished_run,
+                final_lrt_time,
+                pb
+        ) a
+        JOIN splits_per_chapter b
+        ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
+    )
+    GROUP BY 1
+    ORDER BY 1
 ) ch_median
 ON ch_golds.chapter = ch_median.chapter;
 
@@ -1163,99 +1193,50 @@ ON ch_golds.chapter = ch_median.chapter;
 
 DROP TABLE IF EXISTS chapter_golds2_runner;
 CREATE TABLE chapter_golds2_runner AS
-SELECT *, CASE WHEN chapter_gold<60 THEN (CASE WHEN TRUNC(chapter_gold-TRUNC(chapter_gold), 3) =0 THEN
-TO_CHAR(TRUNC(chapter_gold, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(chapter_gold-TRUNC(chapter_gold), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN TO_CHAR(TRUNC(chapter_gold, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(chapter_gold-TRUNC(chapter_gold), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN TO_CHAR(TRUNC(chapter_gold, 3) % 60, 'FM00.999')||'0'
-ELSE
-TO_CHAR(TRUNC(chapter_gold, 3) % 60, 'FM00.999') END)
-ELSE (CASE WHEN TRUNC(chapter_gold-TRUNC(chapter_gold), 3) =0
-THEN FLOOR(chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(chapter_gold, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(chapter_gold-TRUNC(chapter_gold), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN FLOOR(chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(chapter_gold, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(chapter_gold-TRUNC(chapter_gold), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN FLOOR(chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(chapter_gold, 3) % 60, 'FM00.999')||'0'
-ELSE
-FLOOR(chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(chapter_gold, 3) % 60, 'FM00.999') END) END AS chapter_gold2,
-CASE WHEN avg_chapter_time<60 THEN (CASE WHEN TRUNC(avg_chapter_time-TRUNC(avg_chapter_time), 3) =0 THEN
-TO_CHAR(TRUNC(avg_chapter_time, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(avg_chapter_time-TRUNC(avg_chapter_time), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN TO_CHAR(TRUNC(avg_chapter_time, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(avg_chapter_time-TRUNC(avg_chapter_time), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN TO_CHAR(TRUNC(avg_chapter_time, 3) % 60, 'FM00.999')||'0'
-ELSE
-TO_CHAR(TRUNC(avg_chapter_time, 3) % 60, 'FM00.999') END)
-ELSE (CASE WHEN TRUNC(avg_chapter_time-TRUNC(avg_chapter_time), 3) =0
-THEN FLOOR(avg_chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(avg_chapter_time, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(avg_chapter_time-TRUNC(avg_chapter_time), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN FLOOR(avg_chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(avg_chapter_time, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(avg_chapter_time-TRUNC(avg_chapter_time), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN FLOOR(avg_chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(avg_chapter_time, 3) % 60, 'FM00.999')||'0'
-ELSE
-FLOOR(avg_chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(avg_chapter_time, 3) % 60, 'FM00.999') END) END AS avg_chapter_time2,
-CASE WHEN median_chapter_time<60 THEN (CASE WHEN TRUNC(median_chapter_time-TRUNC(median_chapter_time), 3) =0 THEN
-TO_CHAR(TRUNC(median_chapter_time, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(median_chapter_time-TRUNC(median_chapter_time), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN TO_CHAR(TRUNC(median_chapter_time, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(median_chapter_time-TRUNC(median_chapter_time), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN TO_CHAR(TRUNC(median_chapter_time, 3) % 60, 'FM00.999')||'0'
-ELSE
-TO_CHAR(TRUNC(median_chapter_time, 3) % 60, 'FM00.999') END)
-ELSE (CASE WHEN TRUNC(median_chapter_time-TRUNC(median_chapter_time), 3) =0
-THEN FLOOR(median_chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(median_chapter_time, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(median_chapter_time-TRUNC(median_chapter_time), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN FLOOR(median_chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(median_chapter_time, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(median_chapter_time-TRUNC(median_chapter_time), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN FLOOR(median_chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(median_chapter_time, 3) % 60, 'FM00.999')||'0'
-ELSE
-FLOOR(median_chapter_time / 60) || ':' ||
-TO_CHAR(TRUNC(median_chapter_time, 3) % 60, 'FM00.999') END) END AS median_chapter_time2
+SELECT
+    *,
+    CASE
+        WHEN chapter_gold < 60
+            THEN TO_CHAR(chapter_gold, 'FM00.000')
+        ELSE
+            FLOOR(chapter_gold / 60) || ':' || TO_CHAR(chapter_gold % 60, 'FM00.000')
+    END AS chapter_gold2,
+    CASE
+        WHEN avg_chapter_time < 60
+            THEN TO_CHAR(avg_chapter_time, 'FM00.000')
+        ELSE
+            FLOOR(avg_chapter_time / 60) || ':' || TO_CHAR(avg_chapter_time % 60, 'FM00.000')
+    END AS avg_chapter_time2,
+    CASE
+        WHEN median_chapter_time < 60
+            THEN TO_CHAR(median_chapter_time, 'FM00.000')
+        ELSE
+            FLOOR(median_chapter_time / 60) || ':' || TO_CHAR(median_chapter_time % 60, 'FM00.000')
+    END AS median_chapter_time2
 FROM chapter_golds1_runner;
 
 /* ??? */
 
 DROP TABLE IF EXISTS chapter_golds3_runner;
 CREATE TABLE chapter_golds3_runner AS
-SELECT chapter, run_id, date_started, final_lrt_time, pb, chapter_gold, chapter_gold2,
-CASE WHEN TRUNC(cumulative_chapter_gold-TRUNC(cumulative_chapter_gold), 3)=0 THEN (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000'
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000' END)
-WHEN TRUNC(cumulative_chapter_gold-TRUNC(cumulative_chapter_gold), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00'
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00' END)
-WHEN TRUNC(cumulative_chapter_gold-TRUNC(cumulative_chapter_gold), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-          FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0'
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0' END)
-ELSE (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999') END) END AS cumulative_chapter_gold, cumulative_chapter_gold AS cumulative_chapter_gold_num, avg_chapter_time,
+SELECT
+    chapter,
+    run_id,
+    date_started,
+    final_lrt_time,
+    pb,
+    chapter_gold,
+    chapter_gold2,
+CASE
+    WHEN cumulative_chapter_gold < 10
+        THEN TO_CHAR(cumulative_chapter_gold, 'FM0.000')
+    WHEN cumulative_chapter_gold < 60
+        THEN TO_CHAR(cumulative_chapter_gold, 'FM00.000')
+    WHEN cumulative_chapter_gold < 3600
+        THEN FLOOR(cumulative_chapter_gold / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
+    ELSE
+        FLOOR(cumulative_chapter_gold / 3600) || ':' || FLOOR((cumulative_chapter_gold - 3600) / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
+END AS cumulative_chapter_gold, cumulative_chapter_gold AS cumulative_chapter_gold_num, avg_chapter_time,
 median_chapter_time, avg_chapter_time2, median_chapter_time2
 FROM(
 SELECT a.chapter, a.chapter_gold, a.run_id, a.date_started, a.finished_run, a.final_lrt_time, a.pb, a.avg_chapter_time, a.chapter_gold2,
@@ -1356,39 +1337,23 @@ FROM section_golds1_runner;
 DROP TABLE IF EXISTS section_golds3_runner;
 CREATE TABLE section_golds3_runner AS
 SELECT _section, run_id, date_started, final_lrt_time, pb, section_gold, section_gold2,
-CASE WHEN TRUNC(cumulative_chapter_gold-TRUNC(cumulative_chapter_gold), 3)=0 THEN (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000'
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'000' END)
-WHEN TRUNC(cumulative_chapter_gold-TRUNC(cumulative_chapter_gold), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00'
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'00' END)
-WHEN TRUNC(cumulative_chapter_gold-TRUNC(cumulative_chapter_gold), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-          FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0'
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')||'0' END)
-ELSE (CASE WHEN cumulative_chapter_gold>=3600 THEN
-FLOOR(cumulative_chapter_gold / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold / 60)-(FLOOR(cumulative_chapter_gold/3600)*60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999')
-ELSE FLOOR(cumulative_chapter_gold / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold, 3) % 60, 'FM00.999') END) END AS cumulative_section_gold, section_avg, section_median,
+CASE
+    WHEN cumulative_chapter_gold < 10
+        THEN TO_CHAR(cumulative_chapter_gold, 'FM0.000')
+    WHEN cumulative_chapter_gold < 60
+        THEN TO_CHAR(cumulative_chapter_gold, 'FM00.000')
+    WHEN cumulative_chapter_gold < 3600
+        THEN FLOOR(cumulative_chapter_gold / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
+    ELSE
+        FLOOR(cumulative_chapter_gold / 3600) || ':' || FLOOR((cumulative_chapter_gold - 3600) / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
+END AS cumulative_section_gold, section_avg, section_median,
 section_avg2, section_median2
 FROM(
 SELECT a._section, a.section_gold, a.run_id, a.date_started, a.finished_run, a.final_lrt_time, a.pb, a.section_avg, a.section_gold2,
 a.section_avg2, a.section_median, a.section_median2, SUM(b.section_gold) AS cumulative_chapter_gold
 FROM section_golds2_runner a
 LEFT JOIN (SELECT DISTINCT _section, section_gold FROM section_golds2_runner) b ON CASE WHEN a._section='Village' THEN 1 WHEN a._section='Castle' THEN 2 ELSE 3 END>=
-	CASE WHEN b._section='Village' THEN 1 WHEN b._section='Castle' THEN 2 ELSE 3 END
+    CASE WHEN b._section='Village' THEN 1 WHEN b._section='Castle' THEN 2 ELSE 3 END
 GROUP BY a._section, a.section_gold, a.run_id, a.date_started, a.finished_run, a.final_lrt_time, a.pb, a.section_avg, a.section_gold2,
 a.section_avg2, a.section_median, a.section_median2) a
 ORDER BY CASE WHEN _section='Village' THEN 1 WHEN _section='Castle' THEN 2 ELSE 3 END;
@@ -1398,46 +1363,46 @@ ORDER BY CASE WHEN _section='Village' THEN 1 WHEN _section='Castle' THEN 2 ELSE 
 DROP TABLE IF EXISTS section_history1_runner;
 CREATE TABLE section_history1_runner AS
 SELECT
-	_section,
-	run_id,
-	date_started,
-	finished_run,
-	final_lrt_time,
-	pb,
-	SUM(section_time) AS section_time
+    _section,
+    run_id,
+    date_started,
+    finished_run,
+    final_lrt_time,
+    pb,
+    SUM(section_time) AS section_time
 FROM
 (
-	SELECT a.*
-	FROM
-	(
-		SELECT
-			_section,
-			run_id,
-			date_started,
-			finished_run,
-			final_lrt_time,
-			pb,
-			SUM(lrt_time_dec) AS section_time,
-			COUNT(*) AS number_of_splits
-		FROM splits_overview3_runner
-		GROUP BY
-			_section,
-			run_id,
-			date_started,
-			finished_run,
-			final_lrt_time,
-			pb
-	) a
-	JOIN splits_per_section b
-	ON a._section = b._section AND a.number_of_splits = b.number_of_splits
+    SELECT a.*
+    FROM
+    (
+        SELECT
+            _section,
+            run_id,
+            date_started,
+            finished_run,
+            final_lrt_time,
+            pb,
+            SUM(lrt_time_dec) AS section_time,
+            COUNT(*) AS number_of_splits
+        FROM splits_overview3_runner
+        GROUP BY
+            _section,
+            run_id,
+            date_started,
+            finished_run,
+            final_lrt_time,
+            pb
+    ) a
+    JOIN splits_per_section b
+    ON a._section = b._section AND a.number_of_splits = b.number_of_splits
 )
 GROUP BY
-	1,
-	2,
-	date_started,
-	finished_run,
-	final_lrt_time,
-	pb
+    1,
+    2,
+    date_started,
+    finished_run,
+    final_lrt_time,
+    pb
 ORDER BY 1;
 
 /* Putting the section golds in LiveSplit format (previously numbers) */
@@ -1505,13 +1470,13 @@ SELECT pace.*, best_pace, /*avg_pace, median_pace,*/
 CASE WHEN TRUNC(pace-TRUNC(pace), 3)=0 THEN (CASE WHEN pace<3600 THEN FLOOR(pace / 60) || ':' ||
 TO_CHAR(TRUNC(pace, 3) % 60, 'FM00.999')||'000'
 ELSE FLOOR(pace / 3600) || ':' || CASE WHEN FLOOR(pace / 60)-(FLOOR(pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(pace / 60)-(FLOOR(pace/3600)*60) || ':' ||
+      FLOOR(pace / 60)-(FLOOR(pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(pace, 3) % 60, 'FM00.999')||'000' END)
 WHEN TRUNC(pace-TRUNC(pace), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 THEN (CASE WHEN pace<3600 THEN FLOOR(pace / 60) || ':' ||
 TO_CHAR(TRUNC(pace, 3) % 60, 'FM00.999')||'00'
 ELSE FLOOR(pace / 3600) || ':' || CASE WHEN FLOOR(pace / 60)-(FLOOR(pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(pace / 60)-(FLOOR(pace/3600)*60) || ':' ||
+      FLOOR(pace / 60)-(FLOOR(pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(pace, 3) % 60, 'FM00.999')||'00' END)
 WHEN TRUNC(pace-TRUNC(pace), 3) IN (SELECT decimal_value FROM decimal_values)
 THEN (CASE WHEN pace<3600 THEN FLOOR(pace / 60) || ':' ||
@@ -1522,18 +1487,18 @@ TO_CHAR(TRUNC(pace, 3) % 60, 'FM00.999')||'0' END)
 ELSE (CASE WHEN pace<3600 THEN FLOOR(pace / 60) || ':' ||
 TO_CHAR(TRUNC(pace, 3) % 60, 'FM00.999')
 ELSE FLOOR(pace / 3600) || ':' || CASE WHEN FLOOR(pace / 60)-(FLOOR(pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(pace / 60)-(FLOOR(pace/3600)*60)|| ':' ||
+      FLOOR(pace / 60)-(FLOOR(pace/3600)*60)|| ':' ||
 TO_CHAR(TRUNC(pace, 3) % 60, 'FM00.999') END) END AS pace2,
 CASE WHEN TRUNC(best_pace-TRUNC(best_pace), 3)=0 THEN (CASE WHEN best_pace>=3600 THEN
 FLOOR(best_pace / 3600) || ':' || CASE WHEN FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60) || ':' ||
+      FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999')||'000'
 ELSE FLOOR(best_pace / 60) || ':' ||
 TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999')||'000' END)
 WHEN TRUNC(best_pace-TRUNC(best_pace), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 THEN (CASE WHEN best_pace>=3600 THEN
 FLOOR(best_pace / 3600) || ':' || CASE WHEN FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60) || ':' ||
+      FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999')||'00'
 ELSE FLOOR(best_pace / 60) || ':' ||
 TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999')||'00' END)
@@ -1546,20 +1511,20 @@ ELSE FLOOR(best_pace / 60) || ':' ||
 TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999')||'0' END)
 ELSE (CASE WHEN best_pace>=3600 THEN
 FLOOR(best_pace / 3600) || ':' || CASE WHEN FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60) || ':' ||
+      FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999')
 ELSE FLOOR(best_pace / 60) || ':' ||
 TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999') END) END AS best_pace2/*,
 CASE WHEN TRUNC(avg_pace-TRUNC(avg_pace), 3)=0 THEN (CASE WHEN avg_pace>=3600 THEN
 FLOOR(avg_pace / 3600) || ':' || CASE WHEN FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60) || ':' ||
+      FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(avg_pace, 3) % 60, 'FM00.999')||'000'
 ELSE FLOOR(avg_pace / 60) || ':' ||
 TO_CHAR(TRUNC(avg_pace, 3) % 60, 'FM00.999')||'000' END)
 WHEN TRUNC(avg_pace-TRUNC(avg_pace), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 THEN (CASE WHEN avg_pace>=3600 THEN
 FLOOR(avg_pace / 3600) || ':' || CASE WHEN FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60) || ':' ||
+      FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(avg_pace, 3) % 60, 'FM00.999')||'00'
 ELSE FLOOR(avg_pace / 60) || ':' ||
 TO_CHAR(TRUNC(avg_pace, 3) % 60, 'FM00.999')||'00' END)
@@ -1572,20 +1537,20 @@ ELSE FLOOR(avg_pace / 60) || ':' ||
 TO_CHAR(TRUNC(avg_pace, 3) % 60, 'FM00.999')||'0' END)
 ELSE (CASE WHEN avg_pace>=3600 THEN
 FLOOR(avg_pace / 3600) || ':' || CASE WHEN FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60) || ':' ||
+      FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(avg_pace, 3) % 60, 'FM00.999')
 ELSE FLOOR(avg_pace / 60) || ':' ||
 TO_CHAR(TRUNC(avg_pace, 3) % 60, 'FM00.999') END) END AS avg_pace2,
 CASE WHEN TRUNC(median_pace-TRUNC(median_pace), 3)=0 THEN (CASE WHEN median_pace>=3600 THEN
 FLOOR(median_pace / 3600) || ':' || CASE WHEN FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60) || ':' ||
+      FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999')||'000'
 ELSE FLOOR(median_pace / 60) || ':' ||
 TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999')||'000' END)
 WHEN TRUNC(median_pace-TRUNC(median_pace), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 THEN (CASE WHEN median_pace>=3600 THEN
 FLOOR(median_pace / 3600) || ':' || CASE WHEN FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60) || ':' ||
+      FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999')||'00'
 ELSE FLOOR(median_pace / 60) || ':' ||
 TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999')||'00' END)
@@ -1598,7 +1563,7 @@ ELSE FLOOR(median_pace / 60) || ':' ||
 TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999')||'0' END)
 ELSE (CASE WHEN median_pace>=3600 THEN
 FLOOR(median_pace / 3600) || ':' || CASE WHEN FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60) || ':' ||
+      FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999')
 ELSE FLOOR(median_pace / 60) || ':' ||
 TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999') END) END AS median_pace2*/
@@ -1639,13 +1604,13 @@ END AS was_best_pace,
 CASE WHEN TRUNC(min-TRUNC(min), 3)=0 THEN (CASE WHEN min<3600 THEN FLOOR(min / 60) || ':' ||
 TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'000'
 ELSE FLOOR(min / 3600) || ':' || CASE WHEN FLOOR(min / 60)-(FLOOR(min/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(min / 60)-(FLOOR(min/3600)*60) || ':' ||
+      FLOOR(min / 60)-(FLOOR(min/3600)*60) || ':' ||
 TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'000' END)
 WHEN TRUNC(min-TRUNC(min), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 THEN (CASE WHEN min<3600 THEN FLOOR(min / 60) || ':' ||
 TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'00'
 ELSE FLOOR(min / 3600) || ':' || CASE WHEN FLOOR(min / 60)-(FLOOR(min/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(min / 60)-(FLOOR(min/3600)*60) || ':' ||
+      FLOOR(min / 60)-(FLOOR(min/3600)*60) || ':' ||
 TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'00' END)
 WHEN TRUNC(min-TRUNC(min), 3) IN (SELECT decimal_value FROM decimal_values)
 THEN (CASE WHEN min<3600 THEN FLOOR(min / 60) || ':' ||
@@ -1656,7 +1621,7 @@ TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'0' END)
 ELSE (CASE WHEN min<3600 THEN FLOOR(min / 60) || ':' ||
 TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')
 ELSE FLOOR(min / 3600) || ':' || CASE WHEN FLOOR(min / 60)-(FLOOR(min/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(min / 60)-(FLOOR(min/3600)*60)|| ':' ||
+      FLOOR(min / 60)-(FLOOR(min/3600)*60)|| ':' ||
 TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999') END) END AS best_pace_at_that_time, min AS best_pace_at_that_time2/*,
 avg_pace, median_pace, avg_pace2, median_pace2*/, RANK() OVER (PARTITION BY split_number ORDER BY pace) AS rank_pace
 FROM (SELECT a.split_number, a.run_id, a.split_name, a.number_of_splits, a.pace, a.best_pace, a.pace2, a.best_pace2, /*a.avg_pace, a.median_pace,
@@ -1831,8 +1796,8 @@ ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_number ORDER BY id2 DESC) AS r
 FROM splits_overview3_runner a
 LEFT JOIN best_paces_history2_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
 LEFT JOIN (SELECT split_number, gold2, gold, door_avg, door_median, door_avg2, door_median2, MIN(cumulative_door_gold) AS cumulative_door_gold, MIN(cumulative_door_gold_num) AS cumulative_door_gold_num
-		   FROM doorsplit_golds2_runner
-		   GROUP BY split_number, gold2, gold, door_avg, door_median, door_avg2, door_median2) e ON a.split_number=e.split_number
+           FROM doorsplit_golds2_runner
+           GROUP BY split_number, gold2, gold, door_avg, door_median, door_avg2, door_median2) e ON a.split_number=e.split_number
 LEFT JOIN doorsplit_golds_history2_runner ee ON a.split_number=ee.split_number AND a.run_id=ee.run_id
 LEFT JOIN chapter_history3_runner c ON a.run_id=c.run_id AND a.chapter=c.chapter
 LEFT JOIN section_history3_runner d ON a.run_id=d.run_id AND a._section=d._section
@@ -2203,41 +2168,38 @@ ORDER BY lago_pattern;
 
 DROP TABLE IF EXISTS chapter_golds_sheet_runner;
 CREATE TABLE chapter_golds_sheet_runner AS
-SELECT a.chapter, a.run_id, a.date_started, a.final_lrt_time, a.pb, a.chapter_gold2,
-CASE WHEN cumulative_chapter_gold2<60 THEN (CASE WHEN TRUNC(cumulative_chapter_gold2-TRUNC(cumulative_chapter_gold2), 3) =0 THEN
-TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(cumulative_chapter_gold2-TRUNC(cumulative_chapter_gold2), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(cumulative_chapter_gold2-TRUNC(cumulative_chapter_gold2), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'0'
-ELSE
-TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999') END)
-ELSE (CASE WHEN TRUNC(cumulative_chapter_gold2-TRUNC(cumulative_chapter_gold2), 3) =0
-THEN FLOOR(cumulative_chapter_gold2 / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000'
-WHEN TRUNC(cumulative_chapter_gold2-TRUNC(cumulative_chapter_gold2), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
-THEN FLOOR(cumulative_chapter_gold2 / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00'
-WHEN TRUNC(cumulative_chapter_gold2-TRUNC(cumulative_chapter_gold2), 3) IN (SELECT decimal_value FROM decimal_values)
-THEN FLOOR(cumulative_chapter_gold2 / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'0'
-ELSE
-FLOOR(cumulative_chapter_gold2 / 60) || ':' ||
-TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999') END) END AS doorsplit_combined_gold, cumulative_chapter_gold2 AS doorsplit_combined_gold2, a.cumulative_chapter_gold,
-cumulative_door_gold, cumulative_door_gold_num, avg_chapter_time2, chapter_gold_at_that_time AS previous_chapter_gold
+SELECT
+    a.chapter,
+    a.run_id,
+    a.date_started,
+    a.final_lrt_time,
+    a.pb,
+    a.chapter_gold2,
+    CASE
+        WHEN cumulative_chapter_gold2 < 60
+            THEN TO_CHAR(cumulative_chapter_gold2, 'FM00.000')
+        ELSE
+            FLOOR(cumulative_chapter_gold2 / 60) || ':' || TO_CHAR(cumulative_chapter_gold2 % 60, 'FM00.000')
+    END AS doorsplit_combined_gold,
+    cumulative_chapter_gold2 AS doorsplit_combined_gold2,
+    a.cumulative_chapter_gold,
+    cumulative_door_gold,
+    cumulative_door_gold_num,
+    avg_chapter_time2,
+    chapter_gold_at_that_time AS previous_chapter_gold
 FROM chapter_golds3_runner a
 LEFT JOIN (SELECT chapter, SUM(gold) AS cumulative_chapter_gold2
-		   FROM(
+           FROM(
 SELECT chapter, a.gold, a.gold2, a.split_number, MIN(cumulative_door_gold) AS cumulative_door_gold
 FROM doorsplit_golds2_runner a
 LEFT JOIN (SELECT DISTINCT split_number, chapter FROM splits_overview_runner) b ON a.split_number=b.split_number
-			   GROUP BY chapter, a.gold, a.gold2, a.split_number ORDER BY a.split_number) b
-		  GROUP BY chapter) bb ON a.chapter=bb.chapter
+               GROUP BY chapter, a.gold, a.gold2, a.split_number ORDER BY a.split_number) b
+          GROUP BY chapter) bb ON a.chapter=bb.chapter
 LEFT JOIN (SELECT *
-		   FROM (SELECT split_number, chapter, cumulative_door_gold, cumulative_door_gold_num, ROW_NUMBER() OVER(PARTITION BY chapter
+           FROM (SELECT split_number, chapter, cumulative_door_gold, cumulative_door_gold_num, ROW_NUMBER() OVER(PARTITION BY chapter
 ORDER BY split_number DESC) AS rang FROM splits_overview_runner) a WHERE rang=1) c ON a.chapter=c.chapter
 LEFT JOIN (SELECT DISTINCT run_id, chapter, chapter_gold_at_that_time
-		   FROM splits_overview_runner WHERE chapter_time2=chapter_gold2) d ON a.chapter=d.chapter AND a.run_id=d.run_id;
+           FROM splits_overview_runner WHERE chapter_time2=chapter_gold2) d ON a.chapter=d.chapter AND a.run_id=d.run_id;
 
 /* All _section golds with doorsplits golds combined per _section + chapter golds combined per _section */
 
@@ -2246,14 +2208,14 @@ CREATE TABLE section_golds_sheet_runner AS
 SELECT a._section, a.run_id, a.date_started, a.final_lrt_time, a.pb, a.section_gold2,
 CASE WHEN TRUNC(cumulative_chapter_gold3-TRUNC(cumulative_chapter_gold3), 3)=0 THEN (CASE WHEN cumulative_chapter_gold3>=3600 THEN
 FLOOR(cumulative_chapter_gold3 / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold3 / 60)-(FLOOR(cumulative_chapter_gold3/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold3 / 60)-(FLOOR(cumulative_chapter_gold3/3600)*60) || ':' ||
+      FLOOR(cumulative_chapter_gold3 / 60)-(FLOOR(cumulative_chapter_gold3/3600)*60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'000'
 ELSE FLOOR(cumulative_chapter_gold3 / 60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'000' END)
 WHEN TRUNC(cumulative_chapter_gold3-TRUNC(cumulative_chapter_gold3), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 THEN (CASE WHEN cumulative_chapter_gold3>=3600 THEN
 FLOOR(cumulative_chapter_gold3 / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold3 / 60)-(FLOOR(cumulative_chapter_gold3/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold3 / 60)-(FLOOR(cumulative_chapter_gold3/3600)*60) || ':' ||
+      FLOOR(cumulative_chapter_gold3 / 60)-(FLOOR(cumulative_chapter_gold3/3600)*60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'00'
 ELSE FLOOR(cumulative_chapter_gold3 / 60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'00' END)
@@ -2266,21 +2228,21 @@ ELSE FLOOR(cumulative_chapter_gold3 / 60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold3, 3) % 60, 'FM00.999')||'0' END)
 ELSE (CASE WHEN cumulative_chapter_gold3>=3600 THEN
 FLOOR(cumulative_chapter_gold3 / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold3 / 60)-(FLOOR(cumulative_chapter_gold3/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold3 / 60)-(FLOOR(cumulative_chapter_gold3/3600)*60) || ':' ||
+      FLOOR(cumulative_chapter_gold3 / 60)-(FLOOR(cumulative_chapter_gold3/3600)*60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold3, 3) % 60, 'FM00.999')
 ELSE FLOOR(cumulative_chapter_gold3 / 60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold3, 3) % 60, 'FM00.999') END) END AS chapter_combined_gold, cumulative_chapter_gold3 AS chapter_combined_gold2,
 
 CASE WHEN TRUNC(cumulative_chapter_gold2-TRUNC(cumulative_chapter_gold2), 3)=0 THEN (CASE WHEN cumulative_chapter_gold2>=3600 THEN
 FLOOR(cumulative_chapter_gold2 / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold2 / 60)-(FLOOR(cumulative_chapter_gold2/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold2 / 60)-(FLOOR(cumulative_chapter_gold2/3600)*60) || ':' ||
+      FLOOR(cumulative_chapter_gold2 / 60)-(FLOOR(cumulative_chapter_gold2/3600)*60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000'
 ELSE FLOOR(cumulative_chapter_gold2 / 60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'000' END)
 WHEN TRUNC(cumulative_chapter_gold2-TRUNC(cumulative_chapter_gold2), 3) IN (0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 THEN (CASE WHEN cumulative_chapter_gold2>=3600 THEN
 FLOOR(cumulative_chapter_gold2 / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold2 / 60)-(FLOOR(cumulative_chapter_gold2/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold2 / 60)-(FLOOR(cumulative_chapter_gold2/3600)*60) || ':' ||
+      FLOOR(cumulative_chapter_gold2 / 60)-(FLOOR(cumulative_chapter_gold2/3600)*60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00'
 ELSE FLOOR(cumulative_chapter_gold2 / 60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'00' END)
@@ -2293,34 +2255,34 @@ ELSE FLOOR(cumulative_chapter_gold2 / 60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')||'0' END)
 ELSE (CASE WHEN cumulative_chapter_gold2>=3600 THEN
 FLOOR(cumulative_chapter_gold2 / 3600) || ':' || CASE WHEN FLOOR(cumulative_chapter_gold2 / 60)-(FLOOR(cumulative_chapter_gold2/3600)*60)<10 THEN '0' ELSE '' END ||
-	  FLOOR(cumulative_chapter_gold2 / 60)-(FLOOR(cumulative_chapter_gold2/3600)*60) || ':' ||
+      FLOOR(cumulative_chapter_gold2 / 60)-(FLOOR(cumulative_chapter_gold2/3600)*60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999')
 ELSE FLOOR(cumulative_chapter_gold2 / 60) || ':' ||
 TO_CHAR(TRUNC(cumulative_chapter_gold2, 3) % 60, 'FM00.999') END) END AS doorsplit_combined_gold, cumulative_chapter_gold2 AS doorsplit_combined_gold2, a.cumulative_section_gold,
 cumulative_chapter_gold, cumulative_chapter_gold_num, cumulative_door_gold, cumulative_door_gold_num, a.section_avg2, section_gold_at_that_time AS previous_section_gold
 FROM section_golds3_runner a
 LEFT JOIN (SELECT _section, SUM(gold) AS cumulative_chapter_gold2
-		   FROM(
+           FROM(
 SELECT DISTINCT _section, a.gold, a.gold2, a.split_number
 FROM doorsplit_golds2_runner a
 LEFT JOIN (SELECT DISTINCT split_number, _section FROM splits_overview_runner) b ON a.split_number=b.split_number) b
-		  GROUP BY _section) bb ON a._section=bb._section
+          GROUP BY _section) bb ON a._section=bb._section
 LEFT JOIN (SELECT *
-		   FROM (SELECT split_number, _section, cumulative_door_gold, cumulative_door_gold_num, ROW_NUMBER() OVER(PARTITION BY _section
+           FROM (SELECT split_number, _section, cumulative_door_gold, cumulative_door_gold_num, ROW_NUMBER() OVER(PARTITION BY _section
 ORDER BY split_number DESC) AS rang FROM splits_overview_runner) a WHERE rang=1) c ON a._section=c._section
 
 LEFT JOIN (SELECT _section, SUM(chapter_gold) AS cumulative_chapter_gold3
-		   FROM(
+           FROM(
 SELECT _section, a.chapter_gold, a.chapter_gold2, a.chapter, MIN(cumulative_chapter_gold) AS cumulative_chapter_gold
 FROM chapter_golds3_runner a
 LEFT JOIN (SELECT DISTINCT chapter, _section FROM splits_overview_runner) b ON a.chapter=b.chapter
-			   GROUP BY _section, a.chapter_gold, a.chapter_gold2, a.chapter ORDER BY a.chapter) b
-		  GROUP BY _section) d ON a._section=d._section
+               GROUP BY _section, a.chapter_gold, a.chapter_gold2, a.chapter ORDER BY a.chapter) b
+          GROUP BY _section) d ON a._section=d._section
 LEFT JOIN (SELECT *
-		   FROM (SELECT chapter, _section, cumulative_chapter_gold, cumulative_chapter_gold_num, ROW_NUMBER() OVER(PARTITION BY _section
+           FROM (SELECT chapter, _section, cumulative_chapter_gold, cumulative_chapter_gold_num, ROW_NUMBER() OVER(PARTITION BY _section
 ORDER BY chapter DESC) AS rang FROM splits_overview_runner) a WHERE rang=1) e ON a._section=e._section
 LEFT JOIN (SELECT DISTINCT run_id, _section, section_gold_at_that_time
-		   FROM splits_overview_runner WHERE section_time2=section_gold2) f ON a._section=f._section AND a.run_id=f.run_id
+           FROM splits_overview_runner WHERE section_time2=section_gold2) f ON a._section=f._section AND a.run_id=f.run_id
 ORDER BY CASE WHEN a._section='Village' THEN 1 WHEN a._section='Castle' THEN 2 ELSE 3 END;
 
 /* Getting the history of PBs by the day of the week */
