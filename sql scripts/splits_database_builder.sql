@@ -429,11 +429,11 @@ ELSE ''||FLOOR(60*(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeri
 FLOOR(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
 - FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END))))) END END AS time_end_numeric3
 FROM(
-SELECT a.*, b.split AS default_split, CASE WHEN a.cle2=1 THEN time_start_numeric WHEN time_start_numeric<86400 AND time_start_numeric+lag_rta>=86400 THEN time_start_numeric+lag_rta-86400
+SELECT a.*, b.split_name AS default_split, CASE WHEN a.cle2=1 THEN time_start_numeric WHEN time_start_numeric<86400 AND time_start_numeric+lag_rta>=86400 THEN time_start_numeric+lag_rta-86400
 ELSE time_start_numeric+lag_rta END AS time_start_numeric2, CASE WHEN time_start_numeric<86400 AND time_start_numeric+cumulative_rta>=86400 THEN time_start_numeric+cumulative_rta-86400
 ELSE time_start_numeric+cumulative_rta END AS time_end_numeric2
 FROM splits_cleaned_runner_old2 a
-LEFT JOIN default_split_names b ON a.cle2=b.cle2);
+LEFT JOIN default_split_names b ON a.cle2=b.split_number);
 
 /* Getting the chapter golds AND chapter averages */
 
@@ -695,7 +695,7 @@ SELECT section, id, SUM(lrt_number) AS section_time, COUNT(*) AS number_of_split
 FROM splits_cleaned_runner
 GROUP BY section, id
 ORDER BY 1) a
-JOIN splits_per_section b ON a.section=b.section AND a.number_of_splits=b.number_of_splits)
+JOIN splits_per_section b ON a.section=b._section AND a.number_of_splits=b.number_of_splits)
 GROUP BY 1) aa
 LEFT JOIN (
 SELECT *
@@ -706,7 +706,7 @@ SELECT section, id, date_started, finished_run, final_lrt, pb, SUM(lrt_number) A
 FROM splits_cleaned_runner
 GROUP BY section, id, date_started, finished_run, final_lrt, pb
 ORDER BY 1) a
-JOIN splits_per_section b ON a.section=b.section AND a.number_of_splits=b.number_of_splits)) bb
+JOIN splits_per_section b ON a.section=b._section AND a.number_of_splits=b.number_of_splits)) bb
 ON aa.section_gold=bb.section_time
 ORDER BY CASE WHEN aa.section='Village' THEN 1 WHEN aa.section='Castle' THEN 2 ELSE 3 END) section_golds
 LEFT JOIN (SELECT section, AVG(section_time) AS section_avg
@@ -716,7 +716,7 @@ FROM(
 SELECT section, id, date_started, finished_run, final_lrt, pb, SUM(lrt_number) AS section_time, COUNT(*) AS number_of_splits
 FROM splits_cleaned_runner
 GROUP BY section, id, date_started, finished_run, final_lrt, pb) a
-JOIN splits_per_section b ON a.section=b.section AND a.number_of_splits=b.number_of_splits)
+JOIN splits_per_section b ON a.section=b._section AND a.number_of_splits=b.number_of_splits)
 GROUP BY 1
 ORDER BY 1) section_avg ON section_golds.section=section_avg.section
 LEFT JOIN (SELECT section, PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY section_time) AS section_median
@@ -726,7 +726,7 @@ FROM(
 SELECT section, id, date_started, finished_run, final_lrt, pb, SUM(lrt_number) AS section_time, COUNT(*) AS number_of_splits
 FROM splits_cleaned_runner
 GROUP BY section, id, date_started, finished_run, final_lrt, pb) a
-JOIN splits_per_section b ON a.section=b.section AND a.number_of_splits=b.number_of_splits)
+JOIN splits_per_section b ON a.section=b._section AND a.number_of_splits=b.number_of_splits)
 GROUP BY 1
 ORDER BY 1) section_med ON section_golds.section=section_med.section;
 
@@ -811,7 +811,7 @@ FROM(
 SELECT section, id, date_started, finished_run, final_lrt, pb, SUM(lrt_number) AS section_time, COUNT(*) AS number_of_splits
 FROM splits_cleaned_runner
 GROUP BY section, id, date_started, finished_run, final_lrt, pb) a
-JOIN splits_per_section b ON a.section=b.section AND a.number_of_splits=b.number_of_splits)
+JOIN splits_per_section b ON a.section=b._section AND a.number_of_splits=b.number_of_splits)
 GROUP BY 1, 2, date_started, finished_run, final_lrt, pb
 ORDER BY 1;
 

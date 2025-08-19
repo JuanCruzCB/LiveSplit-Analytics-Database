@@ -43,81 +43,74 @@ AND line_number <
     WHERE file_line LIKE '%<AutoSplitterSettings%'
 );
 
-/* Extracting the run id, the split_name name, the LRT time and the RTA time for the whole segment history of each segment.
+/* Extracting the run id, the split name, the LRT time and the RTA time for the whole segment history of each segment.
 
 For the run ids, we need to find the lines that have the format <Time id="integer">.
-For the split_name names, we need to find the lines that have the format <Name>...</Name>.
+For the split names, we need to find the lines that have the format <Name>...</Name>.
 For the LRT time, we need to find the lines that have the format <GameTime>...</GameTime>.
 For the RTA time, we need to find the lines that have the format <RealTime>...</RealTime>.
 
-We can achieve each one of these cases by using a regular expression. In the first case, ="(.*?)"> which catches everything between =" and "> and in the other cases >(.*?)</ which catches everything between > and </. */
+We can achieve each one of these cases by using a regular expression. In the first case, ="(.*?)"> which catches everything between =" and "> and in the other cases >(.*?)</ which catches everything between > and </. In that first case, it's very important to end the regex with "> and NOT "/>, since we do not want the Time tags that close their tag immediately, because that means that run id has no LRT nor RTA times associated with it which is a bug that happens when runners delete their splits/golds manually etc. */
 
 DROP TABLE IF EXISTS segments_data2_runner;
 CREATE TABLE segments_data2_runner AS
 SELECT
-    CASE
-        WHEN file_line_stripped LIKE '%Time id%'
-            THEN SUBSTRING(file_line_stripped FROM '="(.*?)">')
-        ELSE ''
-    END AS run_id,
-    CASE
-        WHEN file_line_stripped LIKE '%<Name>%'
-            THEN SUBSTRING(file_line_stripped FROM '>(.*?)</')
-        ELSE ''
-    END AS split_name,
-    CASE
-        WHEN file_line_stripped LIKE '%<GameTime>%'
-            THEN SUBSTRING(file_line_stripped FROM '>(.*?)</')
-        ELSE ''
-    END AS lrt_time,
-    CASE
-        WHEN file_line_stripped LIKE '%<RealTime>%'
-            THEN SUBSTRING(file_line_stripped FROM '>(.*?)</')
-        ELSE ''
-    END AS rta_time,
+    COALESCE(SUBSTRING(file_line_stripped FROM '<Time id="(.*?)">'), '') AS run_id,
+    COALESCE(SUBSTRING(file_line_stripped FROM '<Name>(.*?)</Name>'), '') AS split_name,
+    COALESCE(SUBSTRING(file_line_stripped FROM '<GameTime>(.*?)</GameTime>'), '') AS lrt_time,
+    COALESCE(SUBSTRING(file_line_stripped FROM '<RealTime>(.*?)</RealTime>'), '') AS rta_time,
     file_line_stripped,
     ROW_NUMBER() OVER() AS line_number
 FROM segments_data1_runner;
 
-/* Converting the run id as an int: sometimes (rare) some run ids have no time at all for a specific split_name (because it was deleted by the runner) so it will show the id without a time and then the run id in this case will not be for example 100 but 100" so it will mess up the INT conversion, so for these rare cases we force them to be 0. We also force the other blank rows to be 0. This doesn't cause any issues because run ids always start from 1 and never from 0 in the file.
 
-The LRT time of each split_name is showing 2 rows below the row that has the run id, since we want everything on the same row we use the LEAD function, we want the information from 2 rows below the run id but also 1 row below run id because sometimes the RTA is not showing (negative runs) and it only has the LRT available, so in that case we just take the next row and not the one after it. */
+/* Converting the run id to INT. If the row doesn't have a valid run id (it's an empty string) then we force it to 0. This doesn't cause any issues because run ids always start from 1 and never from 0 in the file.
+
+The LRT time of each split name is 2 rows below the row that has the run id of that time. Since we want everything on the same row we use the LEAD function, we want the information from 2 rows below the run id but also 1 row below run id because some rare Time tags that have negative run ids don't have any RTA time and only LRT, so in this edge case we take the next row and not the one after it. */
 
 DROP TABLE IF EXISTS segments_data3_runner;
 CREATE TABLE segments_data3_runner AS
 SELECT
-    *,
+    run_id,
     CASE
-        WHEN (file_line_stripped LIKE '%<Time id=%' AND file_line_stripped LIKE '% />%') OR run_id = ''
+        WHEN run_id = ''
             THEN 0
         ELSE run_id::INT
     END AS run_id_int,
-    LEAD(lrt_time) OVER(ORDER BY line_number) AS lrt_lead1,
-    LEAD(lrt_time, 2) OVER(ORDER BY line_number) AS lrt_lead2,
-    LEAD(rta_time) OVER(ORDER BY line_number) AS rta_lead
+    split_name,
+    lrt_time,
+    LEAD(lrt_time) OVER(ORDER BY line_number) AS lrt_time_negative_run_id,
+    LEAD(lrt_time, 2) OVER(ORDER BY line_number) AS lrt_time_normal,
+    rta_time,
+    LEAD(rta_time) OVER(ORDER BY line_number) AS rta_time_normal,
+    file_line_stripped,
+    line_number
 FROM segments_data2_runner;
 
-/* Now putting back the LRT times that are 2 rows below the row we want (or 1 row below if no RTA time) in the same row as the other info (run id, etc.) and ignoring the other intermediate unnecessary columns. */
+/* Now putting back the LRT times that are 2 rows below the row we want (or 1 row below if negative run id) in the same row as the other info (run id, etc.) and ignoring the other intermediate unnecessary columns. */
 
 DROP TABLE IF EXISTS segments_data4_runner;
 CREATE TABLE segments_data4_runner AS
 SELECT
-    file_line_stripped,
-    line_number,
-    split_name,
     run_id_int AS run_id,
+    split_name,
     CASE
-        WHEN run_id_int = 0 THEN ''
-        WHEN run_id_int < 0 THEN lrt_lead1
-        ELSE lrt_lead2
+        WHEN run_id_int = 0
+            THEN ''
+        WHEN run_id_int < 0
+            THEN lrt_time_negative_run_id
+        ELSE lrt_time_normal
     END AS lrt_time,
     CASE
-        WHEN run_id_int <= 0 THEN ''
-        ELSE rta_lead
-    END AS rta_time
+        WHEN run_id_int <= 0
+            THEN ''
+        ELSE rta_time_normal
+    END AS rta_time,
+    file_line_stripped,
+    line_number
 FROM segments_data3_runner;
 
-/* Now that we have the run ids and the LRT + RTA times in the same row, we just need to get the split_name names on this same row as well. For this we select the minimum row number for each split_name using the line_number column, which tells us on which row the new split_name starts (and the previous split_name ends 1 row before that). */
+/* Now that we have the run ids and the LRT + RTA times in the same row, we just need to get the split names on this same row too. For this we select the minimum row number for each split_name using the line_number column, which tells us on which row the new split starts. The previous split ends 1 row before that. */
 
 DROP TABLE IF EXISTS split_names_data1_runner;
 CREATE TABLE split_names_data1_runner AS
@@ -134,27 +127,29 @@ FROM
     FROM segments_data4_runner
     WHERE split_name <> ''
 )
-GROUP BY 1, 2
-ORDER BY 3;
+GROUP BY split_name, split_name_occurrence
+ORDER BY starts_at_row;
 
-/* Now that we have the min row for each split_name name, it's easy to get the max, it's just the min of the next split_name-1, we also create a split_number column which also uses a ROW_NUMBER function but this time only with the 123 rows of the 123 unique splits (and not the whole LiveSplit history rows), this will be useful to create the chapters and sections. */
+/* Now that we have the min row for each split name, it's easy to get the max, it's just the min of the next split -1. We also create a split_number column which also uses a ROW_NUMBER function but this time only with the 123 rows of the 123 unique splits (and not the whole LiveSplit history rows), this will be useful to create the chapters and sections. */
 
 DROP TABLE IF EXISTS split_names_data2_runner;
 CREATE TABLE split_names_data2_runner AS
 SELECT
-    *,
-    LEAD(starts_at_row) OVER(ORDER BY starts_at_row) - 1 AS ends_at_row,
-    ROW_NUMBER() OVER() AS split_number
+    ROW_NUMBER() OVER() AS split_number,
+    split_name,
+    starts_at_row,
+    LEAD(starts_at_row) OVER(ORDER BY starts_at_row) - 1 AS ends_at_row
 FROM split_names_data1_runner;
 
-/* Getting the chapter name and _section name each split_name belongs to using the split_number column. For example, we know that 1-1 has only 4 splits, so if split_number is between 1 and 4, we know it's one of the first 4 splits and therefore that split_name is in chapter 1-1, etc.
+/* We assign the chapter name and section name to each split based on the index of that split. For example, we know that 1-1 only has 4 splits (1 2 3 4), so if split_number is between 1 and 4, we know it belongs to chapter 1-1. This same logic is applied to assign the section name to each split. Note that this is quite brittle and has to be adjusted on a per-game or even per-category basis, as each game and/or category can have a varying amount of splits per chapter and per section.
 
-Then doing the same for sections, technically we didn't need to create a split_number variable, the original line_number variable was already enough, but it would have been a bit harder to create the chapter and _section names since it depends on each runners splits, for example a runner could have 10K rows of 1-1 then 8K rows of 1-2, etc. So we'd have to identify the chapters using the split_name names and stuff, here it's easy since it's the same for everyone, everyone has 4 splits in 1-1, etc. (not to mention split_number is actually a very useful variable and had to be created anyway, since it's the split_name number, so split_number = 1 means it's the first split_name of the run, etc. It's better to use the id of the split_name instead of its name, since not all runners have the same split_name names for each split_name (this also makes it so not everyone needs to have the same split_name names for the script to work, which helps usability). */
+Besides being able to identify the chapter name and section name, having the split number as a column is very useful as it allows us to 1) have a unique key to identify each split, regardless of if a split name is duplicated on the splits file or not and 2) convert each split name to default split names through their id, to standardize and simplify the output when exporting the final data. 3) allow each split to have any name (except containing commas) and not specific ones for the script to work properly. */
 
 DROP TABLE IF EXISTS split_names_data3_runner;
 CREATE TABLE split_names_data3_runner AS
 SELECT
-    *,
+    split_number,
+    split_name,
     CASE
         WHEN split_number <= 4 THEN '1-1'
         WHEN split_number <= 7 THEN '1-2'
@@ -180,28 +175,30 @@ SELECT
         WHEN split_number <= 32 THEN 'Village'
         WHEN split_number <= 82 THEN 'Castle'
         ELSE 'Island'
-    END AS _section
+    END AS _section,
+    starts_at_row,
+    ends_at_row
 FROM split_names_data2_runner;
 
-/* Now that the split_name names are finished (+chapter and _section names added) we join that table with the table we had that has run ids and LRT times on the same row, now it will have the split_name names (+chapter and _section names) on the same row too, because as explained above, the split_name name on the original file only shows once at the top and then just lists the time history without displaying the split_name name again, so we need that for each row.
+/* We join the split names table with the segments data table that has run ids and LRT times on the same row, so now it will have the split, chapter, section names on that same row too, because as explained before, the split name on the original file only shows once at the top and then just lists the entire history of that split name without displaying the split name again, so we need that for each row.
 
-Just like we did for run ids and LRT times, we make the split_name name empty on the rows we don't want (there are a lot of unnecessary rows in the original file since all the data has 1 info per row (for example split_name name, LRT time and run id will show on 3 different rows on the original file, but since here we put everything in the same row, we only keep one row out of the 3 and the other 2 are useless, so we delete them, it also makes the file a bit lighter since we now have much less rows to work with). */
+Just like we did for run ids and LRT times, we make the split name empty on the rows we don't want (there are a lot of unnecessary rows in the original file since all the data has 1 info per row, for example split name, LRT time and run id will show on 3 different rows on the original file, but since here we put everything on the same row, we only keep 1 row out of the 3 and the other 2 are useless, so we delete them). */
 
 DROP TABLE IF EXISTS segments_data5_runner;
 CREATE TABLE segments_data5_runner AS
 SELECT
-    file_line_stripped,
-    line_number,
     run_id,
     split_number,
-    lrt_time,
-    rta_time,
     CASE
         WHEN lrt_time = '' THEN ''
         ELSE splits.split_name
     END AS split_name,
     chapter,
-    _section
+    _section,
+    lrt_time,
+    rta_time,
+    file_line_stripped,
+    line_number
 FROM segments_data4_runner segs
 LEFT JOIN split_names_data3_runner splits ON
     segs.line_number >= splits.starts_at_row AND
@@ -211,73 +208,90 @@ LEFT JOIN split_names_data3_runner splits ON
                         END
 ORDER BY line_number;
 
-/* Converting the LRT times from text format to number format (decimal). At this point we only keep the rows that have useful information and we already have everything in the same row (run id, lrt time and split_name name) so we can delete the rest */
+/* Converting the LRT and RTA times from text to INTERVAL types. At this point we only keep the rows that have useful information and we already have everything on the same row (run id, lrt time and split name) so we can delete the rest. */
 
 DROP TABLE IF EXISTS segments_data6_runner;
 CREATE TABLE segments_data6_runner AS
 SELECT
-    file_line_stripped,
-    line_number,
     run_id,
     split_number,
-    lrt_time,
-    rta_time,
-    (SPLIT_PART(lrt_time, ':', 1)::DECIMAL * 3600 + SPLIT_PART(lrt_time, ':', 2)::DECIMAL * 60 + SPLIT_PART(lrt_time, ':', 3)::DECIMAL) AS lrt_time_dec,
-    (SPLIT_PART(rta_time, ':', 1)::DECIMAL * 3600 + SPLIT_PART(rta_time, ':', 2)::DECIMAL * 60 + SPLIT_PART(rta_time, ':', 3)::DECIMAL) AS rta_time_dec,
     split_name,
     chapter,
-    _section
+    _section,
+    lrt_time::INTERVAL,
+    rta_time::INTERVAL,
+    file_line_stripped,
+    line_number
 FROM segments_data5_runner
 WHERE split_name <> '';
 
-/* Also adding the LRT time with the same format as in LiveSplit (Edit Splits window), not used for calculations (for that we use the *_dec times) but it's just easier to read. */
+/* Also adding the LRT time with the same format as in LiveSplit (Edit Splits window), not used for calculations but it's nicer to read. */
 
 DROP TABLE IF EXISTS segments_data7_runner;
 CREATE TABLE segments_data7_runner AS
 SELECT
-    *,
+    run_id,
+    split_number,
+    split_name,
+    chapter,
+    _section,
+    lrt_time,
     CASE
-        WHEN lrt_time_dec < 10 THEN SUBSTR(lrt_time, 8, 5)
-        WHEN lrt_time_dec < 60 THEN SUBSTR(lrt_time, 7, 6)
-        WHEN lrt_time_dec < 600 THEN SUBSTR(lrt_time, 5, 8)
-        WHEN lrt_time_dec < 3600 THEN SUBSTR(lrt_time, 4, 9)
-        WHEN lrt_time_dec < 36000 THEN lrt_time
-        ELSE ''
-    END AS lrt_time_temp,
-    CASE
-        WHEN rta_time_dec < 10 THEN SUBSTR(rta_time, 8, 5)
-        WHEN rta_time_dec < 60 THEN SUBSTR(rta_time, 7, 6)
-        WHEN rta_time_dec < 600 THEN SUBSTR(rta_time, 5, 8)
-        WHEN rta_time_dec < 3600 THEN SUBSTR(rta_time, 4, 9)
-        WHEN rta_time_dec < 36000 THEN rta_time
-        ELSE ''
-    END AS rta_time_temp
+        WHEN EXTRACT(EPOCH FROM lrt_time) < 10 THEN             -- S.mmm
+            SUBSTRING(lrt_time::TEXT, 8)
+        WHEN EXTRACT(EPOCH FROM lrt_time) < 60 THEN             -- SS.mmm
+            SUBSTRING(lrt_time::TEXT, 7)
+        WHEN EXTRACT(EPOCH FROM lrt_time) < 3600 THEN
+            CASE
+                WHEN EXTRACT(EPOCH FROM lrt_time) < 600 THEN    -- M:SS.mmm
+                    SUBSTRING(lrt_time::TEXT, 5)
+                ELSE                                             -- MM:SS.mmm
+                    SUBSTRING(lrt_time::TEXT, 4)
+            END
+    END AS lrt_time_formatted,
+    rta_time,
+        CASE
+        WHEN EXTRACT(EPOCH FROM rta_time) < 10 THEN             -- S.mmm
+            SUBSTRING(rta_time::TEXT, 8)
+        WHEN EXTRACT(EPOCH FROM rta_time) < 60 THEN             -- SS.mmm
+            SUBSTRING(rta_time::TEXT, 7)
+        WHEN EXTRACT(EPOCH FROM rta_time) < 3600 THEN
+            CASE
+                WHEN EXTRACT(EPOCH FROM rta_time) < 600 THEN    -- M:SS.mmm
+                    SUBSTRING(rta_time::TEXT, 5)
+                ELSE                                             -- MM:SS.mmm
+                    SUBSTRING(rta_time::TEXT, 4)
+            END
+    END AS rta_time_formatted,
+    file_line_stripped,
+    line_number
 FROM segments_data6_runner;
 
-/* Adding padding (.000) in the cases where the number has no milliseconds. */
+/* Adding padding on the decimals for LRT (.000, .X00 or .XX0). */
 
 DROP TABLE IF EXISTS segments_data8_runner;
 CREATE TABLE segments_data8_runner AS
 SELECT
-    file_line_stripped,
-    line_number,
     run_id,
     split_number,
-    lrt_time,
-    rta_time,
-    lrt_time_dec,
-    rta_time_dec,
-    CASE
-        WHEN (lrt_time_dec - TRUNC(lrt_time_dec)) = 0 THEN CONCAT(lrt_time_temp, '.000')
-        ELSE lrt_time_temp
-    END AS lrt_time_readable,
-    CASE
-        WHEN (rta_time_dec - TRUNC(rta_time_dec)) = 0 THEN CONCAT(rta_time_temp, '.000')
-        ELSE rta_time_temp
-    END AS rta_time_readable,
     split_name,
     chapter,
-    _section
+    _section,
+    lrt_time,
+    CASE
+        WHEN lrt_time_formatted NOT LIKE '%.%' THEN
+            lrt_time_formatted || '.000'
+        WHEN LENGTH(SUBSTRING(lrt_time_formatted, STRPOS(lrt_time_formatted, '.') + 1)) = 1 THEN
+            lrt_time_formatted || '00'
+        WHEN LENGTH(SUBSTRING(lrt_time_formatted, STRPOS(lrt_time_formatted, '.') + 1)) = 2 THEN
+            lrt_time_formatted || '0'
+        ELSE
+            lrt_time_formatted
+    END AS lrt_time_formatted,
+    rta_time,
+    rta_time_formatted,
+    file_line_stripped,
+    line_number
 FROM segments_data7_runner;
 
 --#endregion
@@ -314,32 +328,13 @@ AND line_number <
 DROP TABLE IF EXISTS attempts_data2_runner;
 CREATE TABLE attempts_data2_runner AS
 SELECT
-    file_line_stripped,
-    runner_name,
-    CASE
-        WHEN file_line_stripped LIKE '%Attempt id%'
-            THEN SUBSTRING(file_line_stripped FROM 'id="(.*?)" started')
-        ELSE ''
-    END AS run_id,
-    SUBSTR(SUBSTR(file_line_stripped, POSITION('started' IN file_line_stripped), 19), 10) AS date_run_started,
-    SUBSTR(SUBSTR(file_line_stripped, POSITION('started' IN file_line_stripped), 28), 21) AS time_run_started,
-    SUBSTR(SUBSTR(file_line_stripped, POSITION('ended' IN file_line_stripped), 17), 8) AS date_run_ended,
-    SUBSTR(SUBSTR(file_line_stripped, POSITION('ended' IN file_line_stripped), 26), 19) AS time_run_ended,
-    CASE
-        WHEN file_line_stripped LIKE '%">'
-            THEN 1
-        ELSE 0
-    END AS finished_run,
-    CASE
-        WHEN file_line_stripped LIKE '<G%'
-            THEN SUBSTR(file_line_stripped, 11, 8)
-        ELSE ''
-    END AS final_lrt_time,
-    CASE
-        WHEN file_line_stripped LIKE '<R%'
-            THEN SUBSTR(file_line_stripped, 11, 8)
-        ELSE ''
-    END AS final_rta_time
+    COALESCE(SUBSTRING(file_line_stripped FROM 'id="(.*?)" started'), '') AS run_id,
+    COALESCE(SUBSTRING(file_line_stripped FROM '<GameTime>(.*?)</GameTime>'), '') AS final_lrt_time,
+    COALESCE(SUBSTRING(file_line_stripped FROM '<RealTime>(.*?)</RealTime>'), '') AS final_rta_time,
+    file_line_stripped LIKE '%">' AS finished_run,
+    SUBSTRING(file_line_stripped FROM 'started="(.*?)"') AS run_started_at,
+    SUBSTRING(file_line_stripped FROM 'ended="(.*?)"') AS run_ended_at,
+    runner_name
 FROM attempts_data1_runner;
 
 /* The finished runs will have their LRT time 2 rows after the run id, so need to put everything in the same row as done before for the Segments. Also remove useless rows and remove data from runs that are "too old" (this will be customizable eventually, but also optional). */
@@ -348,20 +343,13 @@ DROP TABLE IF EXISTS attempts_data3_runner;
 CREATE TABLE attempts_data3_runner AS
 SELECT
     run_id,
-    finished_run,
-    LEAD(final_rta_time, 1) OVER () AS final_rta_time,
     LEAD(final_lrt_time, 2) OVER () AS final_lrt_time,
-    date_run_started,
-    time_run_started,
-    date_run_ended,
-    time_run_ended,
+    LEAD(final_rta_time, 1) OVER () AS final_rta_time,
+    finished_run,
+    TO_TIMESTAMP(run_started_at, 'MM/DD/YYYY HH24:MI:SS') AS run_started_at,
+    TO_TIMESTAMP(run_ended_at, 'MM/DD/YYYY HH24:MI:SS') AS run_ended_at,
     runner_name
-FROM attempts_data2_runner
-WHERE run_id <> '' AND TO_DATE
-(
-    SUBSTR(date_run_started, 7, 4) || '-' || SUBSTR(date_run_started, 1, 2) || '-' || SUBSTR(date_run_started, 4, 2),
-    'YYYY-MM-DD'
-) >= '2024-10-15'; -- TODO: This date needs to be customizable
+FROM attempts_data2_runner;
 
 /* Convert run_id to INT. */
 
@@ -372,12 +360,11 @@ SELECT
     final_lrt_time,
     final_rta_time,
     finished_run,
-    date_run_started,
-    time_run_started,
-    date_run_ended,
-    time_run_ended,
+    run_started_at,
+    run_ended_at,
     runner_name
-FROM attempts_data3_runner;
+FROM attempts_data3_runner
+WHERE run_id IS NOT NULL AND DATE(run_started_at) >= '2024-10-15'; -- TODO: This date needs to be customizable
 
 /* Getting the list of all finished runs and for each finished run, if it was a PB when it was done or not (which also means getting the LRT PB at that time too). */
 
@@ -387,11 +374,7 @@ SELECT
     finished_runs.run_id,
     finished_runs.final_lrt_time,
     MIN(pbs.final_lrt_time) AS lrt_pb,
-    CASE
-        WHEN finished_runs.final_lrt_time = MIN(pbs.final_lrt_time)
-            THEN 1
-        ELSE 0
-    END AS pb
+    finished_runs.final_lrt_time = MIN(pbs.final_lrt_time) AS pb
 FROM
 (
     SELECT *
@@ -417,31 +400,11 @@ SELECT
     attempts.run_id,
     attempts.final_lrt_time,
     final_rta_time,
-    CASE
-        WHEN final_rta_time = '' OR final_rta_time IS NULL
-            THEN 0
-        ELSE
-            SUBSTR(final_rta_time, 1, 2)::INT * 3600 + SUBSTR(final_rta_time, 4, 2)::INT * 60 + SUBSTR(final_rta_time, 7, 2)::INT
-    END AS final_rta_time_int,
     finished_run,
     pb,
-    TO_DATE(SUBSTR(date_run_started, 7, 4) || '-' || SUBSTR(date_run_started, 1, 2) || '-' || SUBSTR(date_run_started, 4, 2), 'YYYY-MM-DD') AS date_run_started,
-    time_run_started,
-    SUBSTR(time_run_started, 1, 2)::INT * 3600 + SUBSTR(time_run_started, 4, 2)::INT * 60 + SUBSTR(time_run_started, 7, 2)::INT AS time_run_started_int,
-    TO_DATE(SUBSTR(date_run_ended, 7, 4) || '-' || SUBSTR(date_run_ended, 1, 2) || '-' || SUBSTR(date_run_ended, 4, 2), 'YYYY-MM-DD') AS date_run_ended,
-    time_run_ended,
-    SUBSTR(time_run_ended, 1, 2)::INT * 3600 + SUBSTR(time_run_ended, 4, 2)::INT * 60 + SUBSTR(time_run_ended, 7, 2)::INT AS time_run_ended_int,
-    CASE
-        WHEN date_run_started <> date_run_ended
-            THEN 86400 + SUBSTR(time_run_ended, 1, 2)::INT * 3600 + SUBSTR(time_run_ended, 4, 2)::INT * 60 + SUBSTR(time_run_ended, 7, 2)::INT - (
-                SUBSTR(time_run_started, 1, 2)::INT * 3600 + SUBSTR(time_run_started, 4, 2)::INT * 60 + SUBSTR(time_run_started, 7, 2)::INT
-            )
-        ELSE
-            SUBSTR(time_run_ended, 1, 2)::INT * 3600 + SUBSTR(time_run_ended, 4, 2)::INT * 60 + SUBSTR(time_run_ended, 7, 2)::INT -
-            (
-                SUBSTR(time_run_started, 1, 2)::INT * 3600 + SUBSTR(time_run_started, 4, 2)::INT * 60 + SUBSTR(time_run_started, 7, 2)::INT
-            )
-    END AS attempt_duration,
+    run_started_at,
+    run_ended_at,
+    run_ended_at - run_started_at AS run_duration,
     'runner' AS runner_name
 FROM attempts_data4_runner attempts
 LEFT JOIN pb_history1_runner pbs ON attempts.run_id = pbs.run_id;
@@ -452,14 +415,16 @@ DROP TABLE IF EXISTS pb_history2_runner;
 CREATE TABLE pb_history2_runner AS
 SELECT
     a.*,
-    SUBSTR(lrt_pb, 1, 2)::INT * 3600 + SUBSTR(lrt_pb, 4, 2)::INT * 60 + SUBSTR(lrt_pb, 7, 2)::INT AS pb_lrt, date_run_started - COALESCE(LAG(date_run_started) OVER(ORDER BY a.run_id), date_run_started) AS days_it_took,
-    a.run_id - COALESCE(LAG(a.run_id) OVER(ORDER BY a.run_id), 0) attempts_it_took, total_playtime - COALESCE(LAG(total_playtime) OVER(ORDER BY a.run_id), 0) total_playtime_it_took, days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY a.run_id), 0) AS days_of_attempts_it_took
+    run_started_at - COALESCE(LAG(run_started_at) OVER(ORDER BY a.run_id), run_started_at) AS days_it_took,
+    a.run_id - COALESCE(LAG(a.run_id) OVER(ORDER BY a.run_id), 0) attempts_it_took,
+    total_playtime - COALESCE(LAG(total_playtime) OVER(ORDER BY a.run_id), '0'::INTERVAL) total_playtime_it_took,
+    days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY a.run_id), 0) AS days_of_attempts_it_took
 FROM
 (
     SELECT
         finished_runs.run_id,
         finished_runs.final_lrt_time,
-        finished_runs.date_run_started,
+        finished_runs.run_started_at,
         MIN(pbs.final_lrt_time) AS lrt_pb,
         CASE
             WHEN finished_runs.final_lrt_time = MIN(pbs.final_lrt_time)
@@ -470,35 +435,35 @@ FROM
     (
         SELECT *
         FROM attempts_data5_runner
-        WHERE final_lrt_time <> '' AND date_run_started >= '2024-10-15' -- TODO: Avoid hardcoded date
+        WHERE final_lrt_time <> ''
     ) finished_runs
     JOIN
     (
         SELECT *
         FROM attempts_data5_runner
-        WHERE final_lrt_time <> '' AND date_run_started >= '2024-10-15' -- TODO: Avoid hardcoded date
+        WHERE final_lrt_time <> ''
     ) pbs
 
     ON finished_runs.run_id >= pbs.run_id
     GROUP BY
         finished_runs.run_id,
         finished_runs.final_lrt_time,
-        finished_runs.date_run_started
+        finished_runs.run_started_at
     ORDER BY finished_runs.run_id
 ) a
 LEFT JOIN
 (
     SELECT
         a.run_id,
-        a.attempt_duration,
-        SUM(b.attempt_duration) AS total_playtime
+        a.run_duration,
+        SUM(b.run_duration) AS total_playtime
     FROM attempts_data5_runner a
     LEFT JOIN attempts_data5_runner b
 
     ON a.run_id >= b.run_id
     GROUP BY
         a.run_id,
-        a.attempt_duration
+        a.run_duration
     ORDER BY a.run_id
 ) b
 
@@ -507,7 +472,7 @@ LEFT JOIN
 (
     SELECT
         a.run_id,
-        COUNT(DISTINCT b.date_run_started) - 1 AS days_attempts
+        COUNT(DISTINCT DATE(b.run_started_at)) - 1 AS days_attempts
     FROM attempts_data5_runner a
     LEFT JOIN attempts_data5_runner b
 
@@ -539,11 +504,9 @@ SELECT
     pb,
     final_lrt_time,
     final_rta_time,
-    date_run_started,
-    time_run_started,
-    date_run_ended,
-    time_run_ended,
-    attempt_duration
+    run_started_at,
+    run_ended_at,
+    run_duration
 FROM segments_data8_runner segments
 LEFT JOIN attempts_data5_runner attempts
 ON segments.run_id = attempts.run_id;
@@ -577,8 +540,6 @@ SELECT
     overview.*,
     cumulative_rta,
     LAG(cumulative_rta) OVER(PARTITION BY overview.run_id ORDER BY overview.split_number) AS lag_rta,
-    EXTRACT(EPOCH FROM time_run_started::TIME)::INT AS time_started_numeric,
-    EXTRACT(EPOCH FROM time_run_ended::TIME)::INT AS time_ended_numeric,
     'runner' AS runner_name
 FROM splits_overview1_runner overview
 LEFT JOIN cumulative_rta_runner cumulative
@@ -604,7 +565,7 @@ SELECT
     date_run_ended,
     time_run_started,
     time_run_ended,
-    attempt_duration,
+    run_duration,
     rta_time_dec,
     rta_time_readable,
     cumulative_rta,
@@ -1599,7 +1560,7 @@ DROP TABLE IF EXISTS splits_overview_runner;
 CREATE TABLE splits_overview_runner AS
 SELECT *
 FROM (SELECT a.run_id, a.split_name, a.chapter, a._section, a.lrt_time_dec, a.lrt_time_readable, a.date_run_started, a.finished_run, a.final_lrt_time, a.pb, a.split_number, a.final_rta_time,
-a.date_run_ended, a.time_start_numeric3 AS time_start, a.time_end_numeric3 AS time_end, a.attempt_duration, a.rta_time_dec, a.rta_time_readable, e.gold2, e.gold, pace,
+a.date_run_ended, a.time_start_numeric3 AS time_start, a.time_end_numeric3 AS time_end, a.run_duration, a.rta_time_dec, a.rta_time_readable, e.gold2, e.gold, pace,
 pace2, best_pace, best_pace2, chapter_time, chapter_time2, section_time, section_time2,
 chapter_gold, chapter_gold2, section_gold, section_gold2,
 CASE WHEN a.finished_run=1 THEN NULL ELSE split_of_reset END AS split_of_reset,
@@ -2177,9 +2138,9 @@ playtime/CASE WHEN chapter_golds=0 THEN NULL ELSE chapter_golds END AS playtime_
 playtime/CASE WHEN section_golds=0 THEN NULL ELSE section_golds END AS playtime_to_get_a_section_gold,
 playtime/CASE WHEN best_paces=0 THEN NULL ELSE best_paces END AS playtime_to_get_a_best_pace
 FROM (SELECT CASE WHEN extract(DOW FROM date_run_started)=0 THEN 7 ELSE extract(DOW FROM date_run_started) END AS weekday,
-SUM(attempt_duration) AS playtime, COUNT(DISTINCT run_id) AS attempts, COUNT(DISTINCT CASE WHEN pb=1 THEN run_id ELSE NULL END) AS number_of_pbs,
+SUM(run_duration) AS playtime, COUNT(DISTINCT run_id) AS attempts, COUNT(DISTINCT CASE WHEN pb=1 THEN run_id ELSE NULL END) AS number_of_pbs,
 ROUND(ROUND(ROUND(COUNT(DISTINCT CASE WHEN pb=1 THEN run_id ELSE NULL END), 4)/ROUND(COUNT(DISTINCT run_id), 4), 4)*100, 2)||'%' AS pb_ratio,
-ROUND(SUM(attempt_duration))/CASE WHEN ROUND(COUNT(DISTINCT CASE WHEN pb=1 THEN run_id ELSE NULL END))=0 THEN NULL ELSE
+ROUND(SUM(run_duration))/CASE WHEN ROUND(COUNT(DISTINCT CASE WHEN pb=1 THEN run_id ELSE NULL END))=0 THEN NULL ELSE
 ROUND(COUNT(DISTINCT CASE WHEN pb=1 THEN run_id ELSE NULL END)) END playtime_to_get_a_pb
 FROM attempts_data5_runner
 GROUP BY 1) a

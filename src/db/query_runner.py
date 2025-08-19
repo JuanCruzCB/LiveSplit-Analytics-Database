@@ -88,7 +88,7 @@ class QueryRunner:
         """
         return self._get_golds(
             division_type_query="""
-            SELECT split
+            SELECT split_name
             FROM default_split_names;
             """,
             golds_query="""
@@ -164,7 +164,7 @@ class QueryRunner:
         """
         return self._get_golds(
             division_type_query="""
-            SELECT section
+            SELECT _section AS section
             FROM splits_per_section;
             """,
             golds_query="""
@@ -195,7 +195,7 @@ class QueryRunner:
         """
         return self._get_golds(
             division_type_query="""
-            SELECT section
+            SELECT _section AS section
             FROM splits_per_section;
             """,
             golds_query="""
@@ -226,7 +226,7 @@ class QueryRunner:
         """
         return self._get_golds(
             division_type_query="""
-            SELECT section
+            SELECT _section AS section
             FROM splits_per_section;
             """,
             golds_query="""
@@ -393,7 +393,7 @@ class QueryRunner:
         """
         split_names = self._db.execute(
             query="""
-            SELECT split
+            SELECT split_name
             FROM default_split_names;
             """
         )
