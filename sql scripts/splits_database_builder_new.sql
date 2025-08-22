@@ -5,7 +5,7 @@
 DROP TABLE IF EXISTS splits_file_runner;
 CREATE TABLE splits_file_runner(line_number SERIAL, file_line TEXT);
 COPY splits_file_runner(file_line)
-FROM 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\Stats Sheet Google Drive\BORRAR.lss'
+FROM 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\Stats Sheet Google Drive\splits luis.lss'
 WITH DELIMITER ','; /* NOTE: The path to the splits file needs to be public, so that Postgres can access it. */
 
 /* Adding the line number to each line of the file. */
@@ -211,10 +211,12 @@ SELECT
     file_line_stripped,
     line_number
 FROM segments_data4_runner segs
-LEFT JOIN split_names_data3_runner splits ON
-    segs.line_number >= splits.starts_at_row AND
-    segs.line_number <= CASE
-                            WHEN splits.ends_at_row IS NULL THEN 10000000
+
+LEFT JOIN split_names_data3_runner splits
+ON segs.line_number >= splits.starts_at_row
+AND segs.line_number <= CASE
+                            WHEN splits.ends_at_row IS NULL THEN
+                                10000000
                             ELSE splits.ends_at_row
                         END
 ORDER BY line_number;
@@ -361,31 +363,18 @@ WHERE run_id IS NOT NULL AND DATE(run_started_at) >= '2024-10-15'; -- TODO: This
 
 /* Getting the list of all finished runs and for each finished run, if it was a PB when it was done or not (which also means getting the LRT PB at that time too). */
 
-DROP TABLE IF EXISTS pb_history1_runner;
-CREATE TABLE pb_history1_runner AS
+DROP TABLE IF EXISTS finished_runs_runner;
+CREATE TABLE finished_runs_runner AS
 SELECT
-    finished_runs.run_id,
-    finished_runs.final_lrt_time,
-    MIN(pbs.final_lrt_time) AS lrt_pb,
-    finished_runs.final_lrt_time = MIN(pbs.final_lrt_time) AS pb
-FROM
-(
-    SELECT run_id, final_lrt_time
-    FROM attempts_data4_runner
-    WHERE final_lrt_time <> ''
-) finished_runs
-INNER JOIN
-(
-    SELECT run_id, final_lrt_time
-    FROM attempts_data4_runner
-    WHERE final_lrt_time <> ''
-) pbs
+    run_id,
+    run_started_at,
+    final_lrt_time,
+    MIN(final_lrt_time) OVER(ORDER BY run_id) AS lrt_pb,
+    final_lrt_time = MIN(final_lrt_time) OVER(ORDER BY run_id) AS pb
+FROM attempts_data4_runner
+WHERE finished_run;
 
-ON finished_runs.run_id >= pbs.run_id
-GROUP BY finished_runs.run_id, finished_runs.final_lrt_time
-ORDER BY finished_runs.run_id;
-
-/* We now join the attempts history (with dates and run id on the same row) with the finished runs information (was it a PB, etc.) to have everything in the same table. As earlier, only keeping the good rows and deleting the rest (since we put everything in the same row, a lot of rows are now useless. */
+/* We now join the attempts history (with dates and run id on the same row) with the finished runs information to have everything in the same table. As earlier, only keeping the good rows and deleting the rest (since we put everything in the same row, a lot of rows are now useless). */
 
 DROP TABLE IF EXISTS attempts_data5_runner;
 CREATE TABLE attempts_data5_runner AS
@@ -395,87 +384,53 @@ SELECT
     final_rta_time,
     finished_run,
     pb,
-    run_started_at,
+    attempts.run_started_at,
     run_ended_at,
     run_duration,
     'runner' AS runner_name
 FROM attempts_data4_runner attempts
-LEFT JOIN pb_history1_runner pbs ON attempts.run_id = pbs.run_id;
 
-/* Getting the list of all PBs, also converting the PBs into number format, which can be used for calculations, graphs, etc. */
+LEFT JOIN finished_runs_runner finished
+ON attempts.run_id = finished.run_id;
 
-DROP TABLE IF EXISTS pb_history2_runner;
-CREATE TABLE pb_history2_runner AS
+/* Getting the list of all PBs. */
+
+DROP TABLE IF EXISTS pb_history_runner;
+CREATE TABLE pb_history_runner AS
 SELECT
-    a.*,
-    run_started_at - COALESCE(LAG(run_started_at) OVER(ORDER BY a.run_id), run_started_at) AS days_it_took,
-    a.run_id - COALESCE(LAG(a.run_id) OVER(ORDER BY a.run_id), 0) attempts_it_took,
-    total_playtime - COALESCE(LAG(total_playtime) OVER(ORDER BY a.run_id), '0'::INTERVAL) total_playtime_it_took,
-    days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY a.run_id), 0) AS days_of_attempts_it_took
-FROM
-(
-    SELECT
-        finished_runs.run_id,
-        finished_runs.final_lrt_time,
-        finished_runs.run_started_at,
-        MIN(pbs.final_lrt_time) AS lrt_pb,
-        CASE
-            WHEN finished_runs.final_lrt_time = MIN(pbs.final_lrt_time)
-                THEN 1
-            ELSE 0
-        END AS pb
-    FROM
-    (
-        SELECT *
-        FROM attempts_data5_runner
-        WHERE final_lrt_time <> ''
-    ) finished_runs
-    JOIN
-    (
-        SELECT *
-        FROM attempts_data5_runner
-        WHERE final_lrt_time <> ''
-    ) pbs
+    finished.run_id,
+    finished.run_started_at,
+    final_lrt_time,
+    run_started_at - COALESCE(LAG(run_started_at) OVER(ORDER BY finished.run_id), run_started_at) AS days_it_took,
+    finished.run_id - COALESCE(LAG(finished.run_id) OVER(ORDER BY finished.run_id), 0) attempts_it_took,
+    total_playtime - COALESCE(LAG(total_playtime) OVER(ORDER BY finished.run_id), '0'::INTERVAL) total_playtime_it_took,
+    days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY finished.run_id), 0) AS days_of_attempts_it_took
+FROM finished_runs_runner finished
 
-    ON finished_runs.run_id >= pbs.run_id
-    GROUP BY
-        finished_runs.run_id,
-        finished_runs.final_lrt_time,
-        finished_runs.run_started_at
-    ORDER BY finished_runs.run_id
-) a
 LEFT JOIN
 (
     SELECT
-        a.run_id,
-        a.run_duration,
-        SUM(b.run_duration) AS total_playtime
-    FROM attempts_data5_runner a
-    LEFT JOIN attempts_data5_runner b
+        run_id,
+        run_duration,
+        SUM(run_duration) OVER(ORDER BY run_id) AS total_playtime
+    FROM attempts_data5_runner
+) cumulative_playtime
+ON finished.run_id = cumulative_playtime.run_id
 
-    ON a.run_id >= b.run_id
-    GROUP BY
-        a.run_id,
-        a.run_duration
-    ORDER BY a.run_id
-) b
-
-ON a.run_id=b.run_id
 LEFT JOIN
 (
     SELECT
-        a.run_id,
-        COUNT(DISTINCT DATE(b.run_started_at)) - 1 AS days_attempts
-    FROM attempts_data5_runner a
-    LEFT JOIN attempts_data5_runner b
+        finished.run_id,
+        COUNT(DISTINCT DATE(cumulative_playtime.run_started_at)) - 1 AS days_attempts
+    FROM attempts_data5_runner finished
+    LEFT JOIN attempts_data5_runner cumulative_playtime
 
-    ON a.run_id >= b.run_id
-    GROUP BY a.run_id
-    ORDER BY a.run_id
-) c
-
-ON a.run_id = c.run_id
-WHERE pb = 1;
+    ON finished.run_id >= cumulative_playtime.run_id
+    GROUP BY finished.run_id
+    ORDER BY finished.run_id
+) cumulative_days
+ON finished.run_id = cumulative_days.run_id
+WHERE pb;
 
 --#endregion
 
@@ -489,12 +444,12 @@ SELECT
     split_name,
     chapter,
     _section,
-    lrt_time_dec,
-    lrt_time_readable,
-    rta_time_dec,
-    rta_time_readable,
+    lrt_time,
+    lrt_time_formatted,
+    rta_time,
+    rta_time_formatted,
     finished_run,
-    pb,
+    COALESCE(pb, FALSE) AS pb,
     final_lrt_time,
     final_rta_time,
     run_started_at,
@@ -504,36 +459,53 @@ FROM segments_data8_runner segments
 LEFT JOIN attempts_data5_runner attempts
 ON segments.run_id = attempts.run_id;
 
-/* ??? */
+/* Getting the cumulative RTA for each run_id, split by split, for as long as that run went (obviously some runs last until split 1, others split 2, others split 8, others until the end, etc). */
 
 DROP TABLE IF EXISTS cumulative_rta_runner;
 CREATE TABLE cumulative_rta_runner AS
 SELECT
     overview.run_id,
     overview.split_number,
-    SUM(durations.rta_time_dec) AS cumulative_rta
+    SUM(durations.rta_time) AS run_cumulative_rta
 FROM splits_overview1_runner overview
+
 LEFT JOIN
 (
     SELECT DISTINCT
         run_id,
         split_number,
-        rta_time_dec
+        rta_time
     FROM splits_overview1_runner
 ) durations
 ON overview.split_number >= durations.split_number AND overview.run_id = durations.run_id
-GROUP BY 1, 2
-ORDER BY 1, 2;
+GROUP BY overview.run_id, overview.split_number
+ORDER BY overview.run_id, overview.split_number;
 
 /* ??? */
 
 DROP TABLE IF EXISTS splits_overview2_runner;
 CREATE TABLE splits_overview2_runner AS
 SELECT
-    overview.*,
-    cumulative_rta,
-    LAG(cumulative_rta) OVER(PARTITION BY overview.run_id ORDER BY overview.split_number) AS lag_rta
+    overview.run_id,
+    overview.split_number,
+    overview.split_name,
+    overview.chapter,
+    overview._section,
+    overview.lrt_time,
+    overview.lrt_time_formatted,
+    overview.rta_time,
+    overview.rta_time_formatted,
+    overview.finished_run,
+    overview.pb,
+    overview.final_lrt_time,
+    overview.final_rta_time,
+    overview.run_started_at,
+    overview.run_ended_at,
+    overview.run_duration,
+    run_cumulative_rta,
+    LAG(run_cumulative_rta) OVER(PARTITION BY overview.run_id ORDER BY overview.split_number) AS run_cumulative_rta_lag
 FROM splits_overview1_runner overview
+
 LEFT JOIN cumulative_rta_runner cumulative
 ON overview.run_id = cumulative.run_id AND overview.split_number = cumulative.split_number;
 
@@ -1663,7 +1635,7 @@ FROM (SELECT run_id, MAX(split_number)+1 AS max
 FROM splits_overview3_runner
 GROUP BY run_id) a
 LEFT JOIN (SELECT DISTINCT split_number, split_name FROM splits_overview3_runner) b ON a.max=b.split_number) resets ON resets.run_id=a.run_id
-LEFT JOIN (SELECT *, run_id::DECIMAL AS id2 FROM pb_history2_runner) h ON a.run_id>h.id2) aa
+LEFT JOIN (SELECT *, run_id::DECIMAL AS id2 FROM pb_history_runner) h ON a.run_id>h.id2) aa
 WHERE rang=1
 ORDER BY run_id, split_number;
 
