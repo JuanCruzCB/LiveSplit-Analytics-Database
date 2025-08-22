@@ -5,7 +5,7 @@
 DROP TABLE IF EXISTS splits_file_runner;
 CREATE TABLE splits_file_runner(line_number SERIAL, file_line TEXT);
 COPY splits_file_runner(file_line)
-FROM 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\Stats Sheet Google Drive\splits joker.lss'
+FROM 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\Stats Sheet Google Drive\splits luis.lss'
 WITH DELIMITER ','; /* NOTE: The path to the splits file needs to be public, so that Postgres can access it. */
 
 /* Adding the line number to each line of the file. */
@@ -243,7 +243,7 @@ SELECT
 FROM segments_data5_runner
 WHERE split_name <> '';
 
-/* Also adding the LRT time with the same format as in LiveSplit (Edit Splits window), not used for calculations but it's nicer to read. */
+/* Also adding the LRT and RTA time with the same format as in LiveSplit (Edit Splits window), not used for calculations but it's nicer to read. */
 
 DROP TABLE IF EXISTS segments_data7_runner;
 CREATE TABLE segments_data7_runner AS
@@ -254,39 +254,12 @@ SELECT
     chapter,
     _section,
     lrt_time,
-    LTRIM(lrt_time::TEXT, '0:') AS lrt_time_formatted,
+    LTRIM(TO_CHAR(lrt_time, 'HH24:MI:SS.FF3'), '0:') AS lrt_time_formatted,
     rta_time,
-    LTRIM(rta_time::TEXT, '0:') AS rta_time_formatted,
+    LTRIM(TO_CHAR(rta_time, 'HH24:MI:SS.FF3'), '0:') AS rta_time_formatted,
     file_line_stripped,
     line_number
 FROM segments_data6_runner;
-
-/* Adding padding on the decimals for LRT (.000, .X00 or .XX0). */
-
-DROP TABLE IF EXISTS segments_data8_runner;
-CREATE TABLE segments_data8_runner AS
-SELECT
-    run_id,
-    split_number,
-    split_name,
-    chapter,
-    _section,
-    lrt_time,
-    CASE
-        WHEN lrt_time_formatted NOT LIKE '%.%' THEN
-            lrt_time_formatted || '.000'
-        WHEN LENGTH(SUBSTRING(lrt_time_formatted, STRPOS(lrt_time_formatted, '.') + 1)) = 1 THEN
-            lrt_time_formatted || '00'
-        WHEN LENGTH(SUBSTRING(lrt_time_formatted, STRPOS(lrt_time_formatted, '.') + 1)) = 2 THEN
-            lrt_time_formatted || '0'
-        ELSE
-            lrt_time_formatted
-    END AS lrt_time_formatted,
-    rta_time,
-    rta_time_formatted,
-    file_line_stripped,
-    line_number
-FROM segments_data7_runner;
 
 --#endregion
 
@@ -455,7 +428,7 @@ SELECT
     run_started_at,
     run_ended_at,
     run_duration
-FROM segments_data8_runner segments
+FROM segments_data7_runner segments
 LEFT JOIN attempts_data5_runner attempts
 ON segments.run_id = attempts.run_id;
 
@@ -552,209 +525,214 @@ ON overview.split_number = defaults.split_number;
 
 --#region DOORS
 
-/* All golds */
+/* For each individual segment, we get the gold (fastest time ever on that segment) with ties if there are any, and the average and median times of that segment. Also add these times well formatted for readability. */
 
 DROP TABLE IF EXISTS doorsplit_golds1_runner;
 CREATE TABLE doorsplit_golds1_runner AS
 SELECT
-    aa.*,
-    bb.run_id,
-    run_started_at,
-    finished_run,
-    final_lrt_time,
-    pb,
-    average,
-    median
+    overview.run_id,
+    golds_averages.split_number,
+    overview.split_name,
+    golds_averages.gold,
+    golds_averages.gold_formatted,
+    ROW_NUMBER() OVER(PARTITION BY overview.split_number ORDER BY split_started_at) AS gold_occurrence,
+    golds_averages.average,
+    golds_averages.average_formatted,
+    golds_averages.median,
+    golds_averages.median_formatted,
+    overview.split_started_at,
+    overview.split_ended_at,
+    overview.run_started_at,
+    overview.run_ended_at,
+    overview.final_lrt_time
 FROM
 (
     SELECT
         split_number,
-        split_name,
-        MIN(split_time) AS gold
-    FROM
-    (
-        SELECT
-            split_name,
-            run_id,
-            split_number,
-            SUM(lrt_time) AS split_time
-        FROM splits_overview3_runner
-        GROUP BY split_name, run_id, split_number
-    ) a
-    GROUP BY split_name, split_number
-) aa
+        MIN(lrt_time) AS gold,
+        LTRIM(TO_CHAR(MIN(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS gold_formatted,
+        AVG(lrt_time) AS average,
+        LTRIM(TO_CHAR(AVG(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS average_formatted,
+        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS median,
+        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time), 'HH24:MI:SS.FF3'), '0:') AS median_formatted
+    FROM splits_overview3_runner
+    GROUP BY split_number
+    ORDER BY split_number
+) golds_averages
 
 LEFT JOIN
 (
     SELECT
-        split_name,
         run_id,
         split_number,
+        split_name,
+        lrt_time,
         run_started_at,
-        finished_run,
-        final_lrt_time,
-        pb,
-        SUM(lrt_time) AS split_time
+        run_ended_at,
+        split_started_at,
+        split_ended_at,
+        final_lrt_time
     FROM splits_overview3_runner
-    GROUP BY split_name, run_id, split_number, run_started_at, finished_run, final_lrt_time, pb
-) bb
-ON aa.gold = bb.split_time AND aa.split_number = bb.split_number
+) overview
+ON golds_averages.split_number = overview.split_number AND golds_averages.gold = overview.lrt_time
+ORDER BY golds_averages.split_number, overview.run_id;
 
-LEFT JOIN
-(
-    SELECT
-        split_number,
-        AVG(lrt_time) AS average
-    FROM
-    (
-        SELECT
-            split_number,
-            run_id,
-            run_started_at,
-            finished_run,
-            final_lrt_time,
-            pb,
-            SUM(lrt_time) AS lrt_time
-        FROM splits_overview3_runner
-        GROUP BY split_number, run_id, run_started_at, finished_run, final_lrt_time, pb
-    )
-    GROUP BY 1
-    ORDER BY 1
-) door_avg
-ON door_avg.split_number = aa.split_number
-
-LEFT JOIN
-(
-    SELECT
-        split_number,
-        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS median
-    FROM
-    (
-        SELECT
-            split_number,
-            run_id,
-            run_started_at,
-            finished_run,
-            final_lrt_time,
-            pb,
-            SUM(lrt_time) AS lrt_time
-        FROM splits_overview3_runner
-        GROUP BY split_number, run_id, run_started_at, finished_run, final_lrt_time, pb
-    )
-    GROUP BY 1
-    ORDER BY 1
-) door_med
-ON door_med.split_number = aa.split_number
-ORDER BY split_number;
-
-/* ??? */
+/* Adding the cumulative best gold. */
 
 DROP TABLE IF EXISTS doorsplit_golds2_runner;
 CREATE TABLE doorsplit_golds2_runner AS
 SELECT
-    split_number,
-    run_id,
-    date_run_started,
-    final_lrt_time,
-    pb,
-    gold,
-    gold2,
-    door_avg,
-    door_median,
-    CASE
-        WHEN cumulative_chapter_gold < 10
-            THEN TO_CHAR(cumulative_chapter_gold, 'FM0.000')
-        WHEN cumulative_chapter_gold < 60
-            THEN TO_CHAR(cumulative_chapter_gold, 'FM00.000')
-        WHEN cumulative_chapter_gold < 3600
-            THEN FLOOR(cumulative_chapter_gold / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
-        ELSE
-            FLOOR(cumulative_chapter_gold / 3600) || ':' || FLOOR((cumulative_chapter_gold - 3600) / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
-    END AS cumulative_door_gold,
-    cumulative_chapter_gold AS cumulative_door_gold_num,
-    CASE
-        WHEN door_avg < 10
-            THEN TO_CHAR(door_avg, 'FM0.000')
-        WHEN door_avg < 60
-            THEN TO_CHAR(door_avg, 'FM00.000')
-        WHEN door_avg < 3600
-            THEN FLOOR(door_avg / 60) || ':' || TO_CHAR(door_avg % 60, 'FM00.000')
-        ELSE
-            FLOOR(door_avg / 3600) || ':' || FLOOR((door_avg - 3600) / 60) || ':' || TO_CHAR(door_avg % 60, 'FM00.000')
-    END AS door_avg2,
-    CASE
-        WHEN door_median < 10
-            THEN TO_CHAR(door_median, 'FM0.000')
-        WHEN door_median < 60
-            THEN TO_CHAR(door_median, 'FM00.000')
-        WHEN door_median < 3600
-            THEN FLOOR(door_median / 60) || ':' || TO_CHAR(door_median % 60, 'FM00.000')
-        ELSE
-            FLOOR(door_median / 3600) || ':' || FLOOR((door_median - 3600) / 60) || ':' || TO_CHAR(door_median % 60, 'FM00.000')
-    END AS door_median2
-FROM(
-SELECT a.split_number, a.split_name, a.gold, a.run_id, a.date_run_started, a.finished_run, a.final_lrt_time, a.pb, a.gold2, a.door_avg, a.door_median,
-    SUM(b.gold) AS cumulative_chapter_gold
-FROM doorsplit_golds1_runner a
-LEFT JOIN (SELECT DISTINCT split_number, gold FROM doorsplit_golds1_runner) b ON a.split_number>=b.split_number
-GROUP BY a.split_number, a.split_name, a.gold, a.run_id, a.date_run_started, a.finished_run, a.final_lrt_time, a.pb, a.gold2, a.door_avg, a.door_median
-ORDER BY a.split_number) a
-ORDER BY split_number;
+    golds.run_id,
+    golds.split_number,
+    golds.split_name,
+    golds.gold,
+    golds.gold_formatted,
+    cumulative.cumulative_gold_sum,
+    golds.average,
+    golds.average_formatted,
+    golds.median,
+    golds.median_formatted,
+    golds.split_started_at,
+    golds.split_ended_at,
+    golds.run_started_at,
+    golds.run_ended_at,
+    golds.final_lrt_time
+FROM doorsplit_golds1_runner golds
+
+LEFT JOIN
+(
+    SELECT
+        split_number,
+        SUM(gold) OVER(ORDER BY split_number) AS cumulative_gold_sum
+    FROM
+    (
+        SELECT DISTINCT
+            split_number,
+            gold
+        FROM doorsplit_golds1_runner
+    )
+) cumulative
+ON golds.split_number = cumulative.split_number;
 
 /* ??? */
 
 DROP TABLE IF EXISTS doorsplit_golds_history1_runner;
 CREATE TABLE doorsplit_golds_history1_runner AS
 SELECT
+    run_id,
     split_number,
     split_name,
+    lrt_time,
+    LTRIM(TO_CHAR(lrt_time, 'HH24:MI:SS.FF3'), '0:') AS lrt_time_formatted,
+    RANK() OVER (PARTITION BY split_number ORDER BY lrt_time) AS rank_split,
     gold,
-    run_id,
-    date_run_started,
+    gold_formatted,
+    run_started_at,
     finished_run,
     final_lrt_time,
     pb,
-    gold2,
-    CASE
-        WHEN lrt_time_dec <= min OR min IS NULL
-            THEN 1
-        ELSE 0
-    END AS golded_split,
-    CASE
-        WHEN min < 10
-            THEN TO_CHAR(min, 'FM0.000')
-        WHEN min < 60
-            THEN TO_CHAR(min, 'FM00.000')
-        ELSE
-            FLOOR(min / 60) || ':' || TO_CHAR(min % 60, 'FM00.000')
-    END AS gold_at_that_time, lrt_time_dec AS lrt_number8, RANK() OVER (PARTITION BY split_number ORDER BY lrt_time_dec) AS rank_split
-FROM (SELECT a.split_number, a.split_name, c.gold, c.gold2, a.lrt_time_dec, a.run_id, a.date_run_started, a.finished_run, a.final_lrt_time, a.pb, a.lrt_time_readable, MIN(b.lrt_time_dec) AS min,
-MIN(b.lrt_time_readable) AS min2
-FROM splits_overview3_runner a
-LEFT JOIN splits_overview3_runner b ON a.split_number=b.split_number AND a.run_id>b.run_id
-LEFT JOIN (SELECT DISTINCT split_number, split_name, gold, gold2 FROM doorsplit_golds1_runner) c ON a.split_number=c.split_number
-GROUP BY a.split_number, a.split_name, c.gold, c.gold2, a.lrt_time_dec, a.run_id, a.date_run_started, a.finished_run, a.final_lrt_time, a.pb, a.lrt_time_readable) a;
+    lrt_time <= min OR min IS NULL AS golded_split,
+    min AS gold_at_that_time
+FROM
+(
+    SELECT
+        a.split_number,
+        a.split_name,
+        c.gold,
+        c.gold_formatted,
+        a.lrt_time,
+        a.run_id,
+        a.run_started_at,
+        a.finished_run,
+        a.final_lrt_time,
+        a.pb,
+        a.lrt_time_formatted,
+        MIN(b.lrt_time) AS min,
+        MIN(b.lrt_time_formatted) AS min2
+    FROM splits_overview3_runner a
+
+    LEFT JOIN splits_overview3_runner b
+    ON a.split_number = b.split_number AND a.run_id > b.run_id
+
+    LEFT JOIN
+    (
+        SELECT DISTINCT
+            split_number,
+            split_name,
+            gold,
+            gold_formatted
+        FROM doorsplit_golds1_runner
+    ) c
+    ON a.split_number = c.split_number
+    GROUP BY
+        a.split_number,
+        a.split_name,
+        c.gold,
+        c.gold_formatted,
+        a.lrt_time,
+        a.run_id,
+        a.run_started_at,
+        a.finished_run,
+        a.final_lrt_time,
+        a.pb,
+        a.lrt_time_formatted
+)
+ORDER BY run_id, split_number;
 
 /* ??? */
 
 DROP TABLE IF EXISTS doorsplit_golds_history2_runner;
 CREATE TABLE doorsplit_golds_history2_runner AS
-SELECT a.*, split_rank_at_that_time, finished_splits, finished_splits_at_that_time
+SELECT
+    a.*,
+    split_rank_at_that_time,
+    finished_splits,
+    finished_splits_at_that_time
 FROM doorsplit_golds_history1_runner a
-LEFT JOIN (SELECT split_number, COUNT(*) AS finished_splits FROM doorsplit_golds_history1_runner GROUP BY 1) c ON a.split_number=c.split_number
-LEFT JOIN (SELECT *
-FROM (SELECT a.*, b.lrt_number8 AS split_time3, b.run_id AS id2,
-RANK() OVER (PARTITION BY a.split_number, a.run_id ORDER BY b.lrt_number8) AS split_rank_at_that_time
-FROM doorsplit_golds_history1_runner a
-JOIN doorsplit_golds_history1_runner b ON a.split_number=b.split_number AND a.run_id>=b.run_id) a
-WHERE run_id=id2) d ON a.split_number=d.split_number AND a.run_id=d.run_id
 
-LEFT JOIN (
+LEFT JOIN
+(
+    SELECT
+        split_number,
+        COUNT(*) AS finished_splits
+    FROM doorsplit_golds_history1_runner
+    GROUP BY 1
+) c
+ON a.split_number = c.split_number
 
-SELECT a.split_number, a.run_id, COUNT(*) AS finished_splits_at_that_time
-FROM doorsplit_golds_history1_runner a
-JOIN doorsplit_golds_history1_runner b ON a.split_number=b.split_number AND a.run_id>=b.run_id
-GROUP BY 1, 2) e ON a.split_number=e.split_number AND a.run_id=e.run_id;
+LEFT JOIN
+(
+    SELECT
+        *
+    FROM
+    (
+        SELECT
+            a.*,
+            b.lrt_number8 AS split_time3,
+            b.run_id AS id2,
+            RANK() OVER (PARTITION BY a.split_number, a.run_id ORDER BY b.lrt_number8) AS split_rank_at_that_time
+        FROM doorsplit_golds_history1_runner a
+
+        JOIN doorsplit_golds_history1_runner b
+        ON a.split_number = b.split_number AND a.run_id >= b.run_id
+    ) a
+    WHERE run_id = id2
+) d
+ON a.split_number = d.split_number AND a.run_id = d.run_id
+
+LEFT JOIN
+(
+    SELECT
+        a.split_number,
+        a.run_id,
+        COUNT(*) AS finished_splits_at_that_time
+    FROM doorsplit_golds_history1_runner a
+
+    JOIN doorsplit_golds_history1_runner b
+    ON a.split_number = b.split_number AND a.run_id >= b.run_id
+    GROUP BY 1, 2
+) e
+ON a.split_number = e.split_number AND a.run_id = e.run_id;
 
 --#endregion DOORS
 
@@ -765,13 +743,14 @@ GROUP BY 1, 2) e ON a.split_number=e.split_number AND a.run_id=e.run_id;
 DROP TABLE IF EXISTS chapter_history1_runner;
 CREATE TABLE chapter_history1_runner AS
 SELECT
-    chapter,
     run_id,
-    date_run_started,
+    chapter,
+    SUM(chapter_time) AS chapter_time,
+    LTRIM(TO_CHAR(SUM(chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_formatted,
+    run_started_at,
     finished_run,
-    final_lrt_time,
     pb,
-    SUM(chapter_time) AS chapter_time
+    final_lrt_time
 FROM
 (
     SELECT a.*
@@ -780,17 +759,17 @@ FROM
         SELECT
             chapter,
             run_id,
-            date_run_started,
+            run_started_at,
             finished_run,
             final_lrt_time,
             pb,
-            SUM(lrt_time_dec) AS chapter_time,
+            SUM(lrt_time) AS chapter_time,
             COUNT(*) AS number_of_splits
         FROM splits_overview3_runner
         GROUP BY
             chapter,
             run_id,
-            date_run_started,
+            run_started_at,
             finished_run,
             final_lrt_time,
             pb
@@ -801,11 +780,11 @@ FROM
 GROUP BY
     chapter,
     run_id,
-    date_run_started,
+    run_started_at,
     finished_run,
     final_lrt_time,
     pb
-ORDER BY 1;
+ORDER BY chapter;
 
 /* Putting the chapter golds in LiveSplit format (previously numbers) */
 
