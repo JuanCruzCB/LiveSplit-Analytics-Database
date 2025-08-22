@@ -5,7 +5,7 @@
 DROP TABLE IF EXISTS splits_file_runner;
 CREATE TABLE splits_file_runner(line_number SERIAL, file_line TEXT);
 COPY splits_file_runner(file_line)
-FROM 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\Stats Sheet Google Drive\splits luis.lss'
+FROM 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\Stats Sheet Google Drive\splits joker.lss'
 WITH DELIMITER ','; /* NOTE: The path to the splits file needs to be public, so that Postgres can access it. */
 
 /* Adding the line number to each line of the file. */
@@ -481,7 +481,7 @@ ON overview.split_number >= durations.split_number AND overview.run_id = duratio
 GROUP BY overview.run_id, overview.split_number
 ORDER BY overview.run_id, overview.split_number;
 
-/* ??? */
+/* Add cumulative rta data to each run, this will be useful to calculate the start and end timestamp of each segment. */
 
 DROP TABLE IF EXISTS splits_overview2_runner;
 CREATE TABLE splits_overview2_runner AS
@@ -509,104 +509,46 @@ FROM splits_overview1_runner overview
 LEFT JOIN cumulative_rta_runner cumulative
 ON overview.run_id = cumulative.run_id AND overview.split_number = cumulative.split_number;
 
-/* ??? */
+/* Adds the start and end timestamps for each individual segment in the history. Also swaps all split names (which may be customized) by
+default split names for readability. */
 
 DROP TABLE IF EXISTS splits_overview3_runner;
 CREATE TABLE splits_overview3_runner AS
 SELECT
     run_id,
-    default_split_name AS split_name,
+    overview.split_number,
+    defaults.split_name,
     chapter,
     _section,
-    lrt_time_dec,
-    lrt_time_readable,
-    date_run_started,
+    lrt_time,
+    lrt_time_formatted,
+    rta_time,
+    rta_time_formatted,
     finished_run,
-    final_lrt_time,
     pb,
-    split_number,
+    final_lrt_time,
     final_rta_time,
-    date_run_ended,
-    time_run_started,
-    time_run_ended,
+    run_started_at,
+    run_ended_at,
     run_duration,
-    rta_time_dec,
-    rta_time_readable,
-    cumulative_rta,
-    lag_rta,
-    time_started_numeric,
-    time_ended_numeric,
-    time_start_numeric2,
-    time_end_numeric2,
-    CASE WHEN split_number = 1 THEN time_run_started ELSE
-    CASE WHEN FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)<10
-    THEN '0'||FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)
-    ELSE ''||FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END) END
-    ||':'||
-    CASE WHEN FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))<10
-    THEN '0'||FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))
-    ELSE ''||FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))) END
-    ||':'||
-    CASE WHEN FLOOR(60*(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))-
-    FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))))<10
-    THEN '0'||FLOOR(60*(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))-
-    FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END)))))
-    ELSE ''||FLOOR(60*(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))-
-    FLOOR(60*(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END
-    - FLOOR(CASE WHEN time_start_numeric2/3600>=24 THEN time_start_numeric2/3600-24 ELSE time_start_numeric2/3600 END))))) END END AS time_start_numeric3,
-    CASE WHEN split_number = 123 THEN time_run_ended ELSE
-CASE WHEN FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END)<10
-THEN '0'||FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END)
-ELSE ''||FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END) END
-||':'||
-CASE WHEN FLOOR(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
-- FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END)))<10
-THEN '0'||FLOOR(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
-- FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END)))
-ELSE ''||FLOOR(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
-- FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END))) END
-||':'||
-CASE WHEN FLOOR(60*(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
-- FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END))-
-FLOOR(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
-- FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END)))))<10
-THEN '0'||FLOOR(60*(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
-- FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END))-
-FLOOR(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
-- FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END)))))
-ELSE ''||FLOOR(60*(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
-- FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END))-
-FLOOR(60*(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END
-- FLOOR(CASE WHEN time_end_numeric2/3600>=24 THEN time_end_numeric2/3600-24 ELSE time_end_numeric2/3600 END))))) END END AS time_end_numeric3
-FROM
-(
-    SELECT
-        overview.*,
-        defaults.split_name AS default_split_name,
-        CASE
-            WHEN overview.split_number = 1
-                THEN time_started_numeric
-            WHEN time_started_numeric < 86400 AND time_started_numeric + lag_rta >= 86400
-                THEN time_started_numeric + lag_rta - 86400
-            ELSE time_started_numeric + lag_rta
-        END AS time_start_numeric2,
-        CASE
-            WHEN time_started_numeric < 86400 AND time_started_numeric + cumulative_rta >= 86400
-                THEN time_started_numeric + cumulative_rta - 86400
-            ELSE time_started_numeric + cumulative_rta
-        END AS time_end_numeric2
-    FROM splits_overview2_runner overview
-    LEFT JOIN default_split_names defaults
-    ON overview.split_number = defaults.split_number
-);
+    run_cumulative_rta,
+    run_cumulative_rta_lag,
+    CASE
+        WHEN overview.split_number = 1 THEN
+            run_started_at
+        ELSE
+            run_started_at + run_cumulative_rta_lag
+    END AS split_started_at,
+    CASE
+        WHEN overview.split_number = 123 THEN
+            run_ended_at
+        ELSE
+            run_started_at + run_cumulative_rta
+    END AS split_ended_at
+FROM splits_overview2_runner overview
+
+LEFT JOIN default_split_names defaults
+ON overview.split_number = defaults.split_number;
 
 --#region DOORS
 
@@ -617,48 +559,92 @@ CREATE TABLE doorsplit_golds1_runner AS
 SELECT
     aa.*,
     bb.run_id,
-    date_run_started,
+    run_started_at,
     finished_run,
     final_lrt_time,
     pb,
-    CASE
-        WHEN gold < 10
-            THEN TO_CHAR(gold, 'FM0.000')
-        WHEN gold < 60
-            THEN TO_CHAR(gold, 'FM00.000')
-        ELSE
-            FLOOR(gold / 60) || ':' || TO_CHAR(gold % 60, 'FM00.000')
-    END AS gold2,
-    door_avg::DECIMAL AS door_avg,
-    door_median::DECIMAL AS door_median
-    FROM (
-SELECT split_number, split_name, MIN(split_time) AS gold
-FROM(SELECT split_name, run_id, split_number, SUM(lrt_time_dec) AS split_time
-FROM splits_overview3_runner
-GROUP BY split_name, run_id, split_number) a
-GROUP BY split_name, split_number) aa
-LEFT JOIN (SELECT *
-FROM(SELECT split_name, run_id, split_number, date_run_started, finished_run, final_lrt_time, pb, SUM(lrt_time_dec) AS split_time
-FROM splits_overview3_runner
-GROUP BY split_name, run_id, split_number, date_run_started, finished_run, final_lrt_time, pb) a) bb ON aa.gold=bb.split_time AND aa.split_number=bb.split_number
-LEFT JOIN (SELECT split_number, AVG(lrt_time) AS door_avg
-FROM(
-SELECT a.*
-FROM(
-SELECT split_number, run_id, date_run_started, finished_run, final_lrt_time, pb, SUM(lrt_time_dec) AS lrt_time
-FROM splits_overview3_runner
-GROUP BY split_number, run_id, date_run_started, finished_run, final_lrt_time, pb) a)
-GROUP BY 1
-ORDER BY 1) door_avg ON door_avg.split_number=aa.split_number
-LEFT JOIN (SELECT split_number, PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS door_median
-FROM(
-SELECT a.*
-FROM(
-SELECT split_number, run_id, date_run_started, finished_run, final_lrt_time, pb, SUM(lrt_time_dec) AS lrt_time
-FROM splits_overview3_runner
-GROUP BY split_number, run_id, date_run_started, finished_run, final_lrt_time, pb) a)
-GROUP BY 1
-ORDER BY 1) door_med ON door_med.split_number=aa.split_number
+    average,
+    median
+FROM
+(
+    SELECT
+        split_number,
+        split_name,
+        MIN(split_time) AS gold
+    FROM
+    (
+        SELECT
+            split_name,
+            run_id,
+            split_number,
+            SUM(lrt_time) AS split_time
+        FROM splits_overview3_runner
+        GROUP BY split_name, run_id, split_number
+    ) a
+    GROUP BY split_name, split_number
+) aa
+
+LEFT JOIN
+(
+    SELECT
+        split_name,
+        run_id,
+        split_number,
+        run_started_at,
+        finished_run,
+        final_lrt_time,
+        pb,
+        SUM(lrt_time) AS split_time
+    FROM splits_overview3_runner
+    GROUP BY split_name, run_id, split_number, run_started_at, finished_run, final_lrt_time, pb
+) bb
+ON aa.gold = bb.split_time AND aa.split_number = bb.split_number
+
+LEFT JOIN
+(
+    SELECT
+        split_number,
+        AVG(lrt_time) AS average
+    FROM
+    (
+        SELECT
+            split_number,
+            run_id,
+            run_started_at,
+            finished_run,
+            final_lrt_time,
+            pb,
+            SUM(lrt_time) AS lrt_time
+        FROM splits_overview3_runner
+        GROUP BY split_number, run_id, run_started_at, finished_run, final_lrt_time, pb
+    )
+    GROUP BY 1
+    ORDER BY 1
+) door_avg
+ON door_avg.split_number = aa.split_number
+
+LEFT JOIN
+(
+    SELECT
+        split_number,
+        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS median
+    FROM
+    (
+        SELECT
+            split_number,
+            run_id,
+            run_started_at,
+            finished_run,
+            final_lrt_time,
+            pb,
+            SUM(lrt_time) AS lrt_time
+        FROM splits_overview3_runner
+        GROUP BY split_number, run_id, run_started_at, finished_run, final_lrt_time, pb
+    )
+    GROUP BY 1
+    ORDER BY 1
+) door_med
+ON door_med.split_number = aa.split_number
 ORDER BY split_number;
 
 /* ??? */
