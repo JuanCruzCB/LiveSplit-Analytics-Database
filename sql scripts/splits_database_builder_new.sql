@@ -413,7 +413,9 @@ WHERE pb;
 
 --#endregion
 
-/* Main table that will be used to get the interesting stats (chapter golds, section golds, best paces, etc). We combine the attempts data with the segments data and we also convert the dates of the runs into date objects. */
+--#region DOORS
+
+/* We combine the attempts data with the segments data to obtain as a result the entire doorsplit history of the splits. This is the main table that will be used to get the interesting stats (chapter golds, section golds, best paces, etc). */
 
 DROP TABLE IF EXISTS doorsplit_history1_runner;
 CREATE TABLE doorsplit_history1_runner AS
@@ -439,15 +441,15 @@ FROM segments_data7_runner segments
 LEFT JOIN attempts_data5_runner attempts
 ON segments.run_id = attempts.run_id;
 
-/* Getting the cumulative RTA for each run_id, split by split, for as long as that run went (obviously some runs last until split 1, others split 2, others split 8, others until the end, etc). */
+/* Getting the cumulative RTA for each run, split by split, for as long as that run went on (obviously some runs last until split 1, others until split 2, others until split 8, others until the end, etc). */
 
 DROP TABLE IF EXISTS cumulative_rta_runner;
 CREATE TABLE cumulative_rta_runner AS
 SELECT
-    overview.run_id,
-    overview.split_number,
+    ds.run_id,
+    ds.split_number,
     SUM(durations.rta_time) AS run_cumulative_rta
-FROM doorsplit_history1_runner overview
+FROM doorsplit_history1_runner ds
 
 LEFT JOIN
 (
@@ -457,50 +459,53 @@ LEFT JOIN
         rta_time
     FROM doorsplit_history1_runner
 ) durations
-ON overview.split_number >= durations.split_number AND overview.run_id = durations.run_id
-GROUP BY overview.run_id, overview.split_number
-ORDER BY overview.run_id, overview.split_number;
+ON ds.split_number >= durations.split_number AND ds.run_id = durations.run_id
+GROUP BY
+    ds.run_id,
+    ds.split_number
+ORDER BY
+    ds.run_id,
+    ds.split_number;
 
 /* Add cumulative rta data to each run, this will be useful to calculate the start and end timestamp of each segment. */
 
 DROP TABLE IF EXISTS doorsplit_history2_runner;
 CREATE TABLE doorsplit_history2_runner AS
 SELECT
-    overview.run_id,
-    overview.split_number,
-    overview.split_name,
-    overview.chapter,
-    overview._section,
-    overview.lrt_time,
-    overview.lrt_time_formatted,
-    overview.rta_time,
-    overview.rta_time_formatted,
-    overview.finished_run,
-    overview.pb,
-    overview.final_lrt_time,
-    overview.final_rta_time,
-    overview.run_started_at,
-    overview.run_ended_at,
-    overview.run_duration,
+    ds.run_id,
+    ds.split_number,
+    ds.split_name,
+    ds.chapter,
+    ds._section,
+    ds.lrt_time,
+    ds.lrt_time_formatted,
+    ds.rta_time,
+    ds.rta_time_formatted,
+    ds.finished_run,
+    ds.pb,
+    ds.final_lrt_time,
+    ds.final_rta_time,
+    ds.run_started_at,
+    ds.run_ended_at,
+    ds.run_duration,
     run_cumulative_rta,
-    LAG(run_cumulative_rta) OVER(PARTITION BY overview.run_id ORDER BY overview.split_number) AS run_cumulative_rta_lag
-FROM doorsplit_history1_runner overview
+    LAG(run_cumulative_rta) OVER(PARTITION BY ds.run_id ORDER BY ds.split_number) AS run_cumulative_rta_lag
+FROM doorsplit_history1_runner ds
 
-LEFT JOIN cumulative_rta_runner cumulative
-ON overview.run_id = cumulative.run_id AND overview.split_number = cumulative.split_number;
+LEFT JOIN cumulative_rta_runner crta
+ON ds.run_id = crta.run_id AND ds.split_number = crta.split_number;
 
-/* Adds the start and end timestamps for each individual segment in the history. Also swaps all split names (which may be customized) by
-default split names for readability. */
+/* Adds the date and time at which each individual segment in the history began and ended. Also swaps all split names (which may be customized) by default split names for readability. */
 
 DROP TABLE IF EXISTS doorsplit_history3_runner;
 CREATE TABLE doorsplit_history3_runner AS
 SELECT
     run_id,
-    overview.split_number,
+    ds.split_number,
     defaults.split_name,
     chapter,
     _section,
-    RANK() OVER (PARTITION BY overview.split_number ORDER BY lrt_time) AS lrt_time_rank,
+    RANK() OVER (PARTITION BY ds.split_number ORDER BY lrt_time) AS lrt_time_rank,
     lrt_time,
     lrt_time_formatted,
     rta_time,
@@ -513,61 +518,105 @@ SELECT
     run_ended_at,
     run_duration,
     CASE
-        WHEN overview.split_number = 1 THEN
+        WHEN ds.split_number = 1 THEN
             run_started_at
         ELSE
             run_started_at + run_cumulative_rta_lag
     END AS split_started_at,
     CASE
-        WHEN overview.split_number = 123 THEN
+        WHEN ds.split_number = 123 THEN
             run_ended_at
         ELSE
             run_started_at + run_cumulative_rta
     END AS split_ended_at
-FROM doorsplit_history2_runner overview
+FROM doorsplit_history2_runner ds
 
 LEFT JOIN default_split_names defaults
-ON overview.split_number = defaults.split_number
+ON ds.split_number = defaults.split_number
 ORDER BY
-    overview.split_number,
+    ds.split_number,
     run_id;
 
---#region DOORS
+/* The average and median times for each doorsplit, along with well formatted versions. Also cumulative average and median times. */
 
-/* For each individual segment, we get the gold (fastest time ever on that segment) with ties if there are any, and the average and median times of that segment. Also add these times well formatted for readability. */
+DROP TABLE IF EXISTS avg_med_doorsplits_runner;
+CREATE TABLE avg_med_doorsplits_runner AS
+WITH avg_med AS
+(
+    SELECT
+        split_number,
+        split_name,
+        chapter,
+        _section,
+        AVG(lrt_time) AS lrt_time_avg,
+        LTRIM(TO_CHAR(AVG(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_avg_formatted,
+        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS lrt_time_med,
+        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_med_formatted
+    FROM doorsplit_history3_runner
+    GROUP BY
+        split_number,
+        split_name,
+        chapter,
+        _section
+),
+avg_med_cumulative AS
+(
+    SELECT
+        split_number,
+        split_name,
+        chapter,
+        _section,
+        lrt_time_avg,
+        lrt_time_avg_formatted,
+        SUM(lrt_time_avg) OVER (ORDER BY split_number) AS lrt_time_avg_cumulative,
+        lrt_time_med,
+        lrt_time_med_formatted,
+        SUM(lrt_time_med) OVER (ORDER BY split_number) AS lrt_time_med_cumulative
+    FROM avg_med
+    ORDER BY split_number
+)
+
+SELECT
+    split_number,
+    split_name,
+    chapter,
+    _section,
+    lrt_time_avg,
+    lrt_time_avg_formatted,
+    lrt_time_avg_cumulative,
+    LTRIM(TO_CHAR(lrt_time_avg_cumulative, 'HH24:MI:SS.FF3'), '0:') AS lrt_time_avg_cumulative_formatted,
+    lrt_time_med,
+    lrt_time_med_formatted,
+    lrt_time_med_cumulative,
+    LTRIM(TO_CHAR(lrt_time_med_cumulative, 'HH24:MI:SS.FF3'), '0:') AS lrt_time_med_cumulative_formatted
+FROM avg_med_cumulative;
+
+/* For each individual segment, we get the gold (fastest time ever on that segment) with ties if there are any. Also add these times well formatted for readability. */
 
 DROP TABLE IF EXISTS doorsplit_golds1_runner;
 CREATE TABLE doorsplit_golds1_runner AS
 SELECT
-    overview.run_id,
-    golds_averages.split_number,
-    overview.split_name,
-    golds_averages.gold,
-    golds_averages.gold_formatted,
-    ROW_NUMBER() OVER(PARTITION BY overview.split_number ORDER BY split_started_at) AS gold_occurrence,
-    golds_averages.average,
-    golds_averages.average_formatted,
-    golds_averages.median,
-    golds_averages.median_formatted,
-    overview.split_started_at,
-    overview.split_ended_at,
-    overview.run_started_at,
-    overview.run_ended_at,
-    overview.final_lrt_time
+    ds.run_id,
+    ds_golds.split_number,
+    ds.split_name,
+    ds_golds.gold AS lrt_time_gold,
+    ds_golds.gold_formatted AS lrt_time_gold_formatted,
+    ROW_NUMBER() OVER(PARTITION BY ds.split_number ORDER BY split_started_at) AS gold_occurrence,
+    ds.split_started_at,
+    ds.split_ended_at,
+    ds.run_started_at,
+    ds.run_ended_at,
+    ds.final_lrt_time
 FROM
 (
     SELECT
         split_number,
         MIN(lrt_time) AS gold,
-        LTRIM(TO_CHAR(MIN(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS gold_formatted,
-        AVG(lrt_time) AS average,
-        LTRIM(TO_CHAR(AVG(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS average_formatted,
-        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS median,
-        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time), 'HH24:MI:SS.FF3'), '0:') AS median_formatted
+        LTRIM(TO_CHAR(MIN(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS gold_formatted
     FROM doorsplit_history3_runner
     GROUP BY split_number
     ORDER BY split_number
-) golds_averages
+) ds_golds
 
 LEFT JOIN
 (
@@ -582,11 +631,11 @@ LEFT JOIN
         split_ended_at,
         final_lrt_time
     FROM doorsplit_history3_runner
-) overview
-ON golds_averages.split_number = overview.split_number AND golds_averages.gold = overview.lrt_time
-ORDER BY golds_averages.split_number, overview.run_id;
+) ds
+ON ds_golds.split_number = ds.split_number AND ds_golds.gold = ds.lrt_time
+ORDER BY ds_golds.split_number, ds.run_id;
 
-/* Adding the cumulative best gold. */
+/* Add the cumulative sum of best by doors. */
 
 DROP TABLE IF EXISTS doorsplit_golds2_runner;
 CREATE TABLE doorsplit_golds2_runner AS
@@ -594,13 +643,10 @@ SELECT
     golds.run_id,
     golds.split_number,
     golds.split_name,
-    golds.gold,
-    golds.gold_formatted,
+    golds.lrt_time_gold,
+    golds.lrt_time_gold_formatted,
+    golds.gold_occurrence,
     cumulative.cumulative_gold_sum,
-    golds.average,
-    golds.average_formatted,
-    golds.median,
-    golds.median_formatted,
     golds.split_started_at,
     golds.split_ended_at,
     golds.run_started_at,
@@ -612,12 +658,12 @@ LEFT JOIN
 (
     SELECT
         split_number,
-        SUM(gold) OVER(ORDER BY split_number) AS cumulative_gold_sum
+        SUM(lrt_time_gold) OVER(ORDER BY split_number) AS cumulative_gold_sum
     FROM
     (
         SELECT DISTINCT
             split_number,
-            gold
+            lrt_time_gold
         FROM doorsplit_golds1_runner
     )
 ) cumulative
@@ -634,8 +680,8 @@ SELECT
     lrt_time,
     LTRIM(TO_CHAR(lrt_time, 'HH24:MI:SS.FF3'), '0:') AS lrt_time_formatted,
     RANK() OVER (PARTITION BY split_number ORDER BY lrt_time) AS rank_split,
-    gold,
-    gold_formatted,
+    lrt_time_gold,
+    lrt_time_gold_formatted,
     run_started_at,
     finished_run,
     final_lrt_time,
@@ -647,8 +693,8 @@ FROM
     SELECT
         a.split_number,
         a.split_name,
-        c.gold,
-        c.gold_formatted,
+        c.lrt_time_gold,
+        c.lrt_time_gold_formatted,
         a.lrt_time,
         a.run_id,
         a.run_started_at,
@@ -668,16 +714,16 @@ FROM
         SELECT DISTINCT
             split_number,
             split_name,
-            gold,
-            gold_formatted
+            lrt_time_gold,
+            lrt_time_gold_formatted
         FROM doorsplit_golds1_runner
     ) c
     ON a.split_number = c.split_number
     GROUP BY
         a.split_number,
         a.split_name,
-        c.gold,
-        c.gold_formatted,
+        c.lrt_time_gold,
+        c.lrt_time_gold_formatted,
         a.lrt_time,
         a.run_id,
         a.run_started_at,
@@ -747,7 +793,7 @@ ON a.split_number = e.split_number AND a.run_id = e.run_id;
 
 --#region CHAPTERS
 
-/* Chapter times of all the attempts */
+/* All the chapter times ever obtained. */
 
 DROP TABLE IF EXISTS chapter_history1_runner;
 CREATE TABLE chapter_history1_runner AS
@@ -1733,43 +1779,6 @@ ON a.split_number = e.split_number AND a.run_id = e.run_id;
 
 --#endregion
 
-/* Checking is a gold was done ON a gold hunt (bad run) by checking the delta between the pace of that run AND the best pace for each split_name */
-
-DROP TABLE IF EXISTS gold_hunt_detector_runner;
-CREATE TABLE gold_hunt_detector_runner AS
-SELECT
-    split_number,
-    split_name,
-    gold,
-    gold2,
-    run_id,
-    run_started_at,
-    finished_run,
-    final_lrt_time,
-    pb,
-    pace,
-    pace2,
-    best_pace,
-    best_pace2,
-    best_pace_delta
-FROM
-(
-    SELECT
-        a.*,
-        pace,
-        best_pace,
-        pace - best_pace AS best_pace_delta,
-        pace2,
-        best_pace2,
-        ROW_NUMBER () OVER (PARTITION BY a.split_number ORDER BY pace - best_pace) AS rang
-    FROM doorsplit_golds1_runner a
-
-    LEFT JOIN best_paces_history2_runner b
-    ON a.run_id = b.run_id AND a.split_number = b.split_number
-) a
-WHERE rang = 1
-ORDER BY split_number;
-
 --#region RESETS
 
 /* Resets history to get the % of resets for each split_name */
@@ -1839,6 +1848,8 @@ FROM
 );
 
 --#endregion
+
+--#region MAIN TABLE
 
 /* Final main table that has everything */
 
@@ -2209,6 +2220,8 @@ ORDER BY
     run_id,
     split_number;
 
+--#endregion
+
 --#region RNG
 
 /* RNG splits (LIKE Lago) to get the % of patterns (LIKE % of early dives, etc.) */
@@ -2560,6 +2573,43 @@ ORDER BY lago_pattern;
 --#region USEFUL QUERIES
 
 /* Script is finished, here we have some useful queries */
+
+/* Checking is a gold was done ON a gold hunt (bad run) by checking the delta between the pace of that run AND the best pace for each split_name */
+
+DROP TABLE IF EXISTS gold_hunt_detector_runner;
+CREATE TABLE gold_hunt_detector_runner AS
+SELECT
+    split_number,
+    split_name,
+    gold,
+    gold2,
+    run_id,
+    run_started_at,
+    finished_run,
+    final_lrt_time,
+    pb,
+    pace,
+    pace2,
+    best_pace,
+    best_pace2,
+    best_pace_delta
+FROM
+(
+    SELECT
+        a.*,
+        pace,
+        best_pace,
+        pace - best_pace AS best_pace_delta,
+        pace2,
+        best_pace2,
+        ROW_NUMBER () OVER (PARTITION BY a.split_number ORDER BY pace - best_pace) AS rang
+    FROM doorsplit_golds1_runner a
+
+    LEFT JOIN best_paces_history2_runner b
+    ON a.run_id = b.run_id AND a.split_number = b.split_number
+) a
+WHERE rang = 1
+ORDER BY split_number;
 
 /* All chapter golds with doorsplits golds combined per chapter */
 
