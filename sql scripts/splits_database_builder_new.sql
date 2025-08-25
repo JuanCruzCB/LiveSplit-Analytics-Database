@@ -415,8 +415,8 @@ WHERE pb;
 
 /* Main table that will be used to get the interesting stats (chapter golds, section golds, best paces, etc). We combine the attempts data with the segments data and we also convert the dates of the runs into date objects. */
 
-DROP TABLE IF EXISTS splits_overview1_runner;
-CREATE TABLE splits_overview1_runner AS
+DROP TABLE IF EXISTS doorsplit_history1_runner;
+CREATE TABLE doorsplit_history1_runner AS
 SELECT
     segments.run_id,
     split_number,
@@ -447,7 +447,7 @@ SELECT
     overview.run_id,
     overview.split_number,
     SUM(durations.rta_time) AS run_cumulative_rta
-FROM splits_overview1_runner overview
+FROM doorsplit_history1_runner overview
 
 LEFT JOIN
 (
@@ -455,7 +455,7 @@ LEFT JOIN
         run_id,
         split_number,
         rta_time
-    FROM splits_overview1_runner
+    FROM doorsplit_history1_runner
 ) durations
 ON overview.split_number >= durations.split_number AND overview.run_id = durations.run_id
 GROUP BY overview.run_id, overview.split_number
@@ -463,8 +463,8 @@ ORDER BY overview.run_id, overview.split_number;
 
 /* Add cumulative rta data to each run, this will be useful to calculate the start and end timestamp of each segment. */
 
-DROP TABLE IF EXISTS splits_overview2_runner;
-CREATE TABLE splits_overview2_runner AS
+DROP TABLE IF EXISTS doorsplit_history2_runner;
+CREATE TABLE doorsplit_history2_runner AS
 SELECT
     overview.run_id,
     overview.split_number,
@@ -484,7 +484,7 @@ SELECT
     overview.run_duration,
     run_cumulative_rta,
     LAG(run_cumulative_rta) OVER(PARTITION BY overview.run_id ORDER BY overview.split_number) AS run_cumulative_rta_lag
-FROM splits_overview1_runner overview
+FROM doorsplit_history1_runner overview
 
 LEFT JOIN cumulative_rta_runner cumulative
 ON overview.run_id = cumulative.run_id AND overview.split_number = cumulative.split_number;
@@ -492,8 +492,8 @@ ON overview.run_id = cumulative.run_id AND overview.split_number = cumulative.sp
 /* Adds the start and end timestamps for each individual segment in the history. Also swaps all split names (which may be customized) by
 default split names for readability. */
 
-DROP TABLE IF EXISTS splits_overview3_runner;
-CREATE TABLE splits_overview3_runner AS
+DROP TABLE IF EXISTS doorsplit_history3_runner;
+CREATE TABLE doorsplit_history3_runner AS
 SELECT
     run_id,
     overview.split_number,
@@ -525,10 +525,13 @@ SELECT
         ELSE
             run_started_at + run_cumulative_rta
     END AS split_ended_at
-FROM splits_overview2_runner overview
+FROM doorsplit_history2_runner overview
 
 LEFT JOIN default_split_names defaults
-ON overview.split_number = defaults.split_number;
+ON overview.split_number = defaults.split_number
+ORDER BY
+    overview.split_number,
+    run_id;
 
 --#region DOORS
 
@@ -562,7 +565,7 @@ FROM
         LTRIM(TO_CHAR(AVG(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS average_formatted,
         PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS median,
         LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time), 'HH24:MI:SS.FF3'), '0:') AS median_formatted
-    FROM splits_overview3_runner
+    FROM doorsplit_history3_runner
     GROUP BY split_number
     ORDER BY split_number
 ) golds_averages
@@ -579,7 +582,7 @@ LEFT JOIN
         split_started_at,
         split_ended_at,
         final_lrt_time
-    FROM splits_overview3_runner
+    FROM doorsplit_history3_runner
 ) overview
 ON golds_averages.split_number = overview.split_number AND golds_averages.gold = overview.lrt_time
 ORDER BY golds_averages.split_number, overview.run_id;
@@ -656,9 +659,9 @@ FROM
         a.lrt_time_formatted,
         MIN(b.lrt_time) AS min,
         MIN(b.lrt_time_formatted) AS min2
-    FROM splits_overview3_runner a
+    FROM doorsplit_history3_runner a
 
-    LEFT JOIN splits_overview3_runner b
+    LEFT JOIN doorsplit_history3_runner b
     ON a.split_number = b.split_number AND a.run_id > b.run_id
 
     LEFT JOIN
@@ -773,7 +776,7 @@ FROM
             pb,
             SUM(lrt_time) AS chapter_time,
             COUNT(*) AS number_of_splits
-        FROM splits_overview3_runner
+        FROM doorsplit_history3_runner
         GROUP BY
             chapter,
             run_id,
@@ -916,7 +919,7 @@ FROM
                     run_id,
                     SUM(lrt_time) AS chapter_time,
                     COUNT(*) AS number_of_splits
-                FROM splits_overview3_runner
+                FROM doorsplit_history3_runner
                 GROUP BY chapter, run_id
                 ORDER BY chapter
             ) a
@@ -943,7 +946,7 @@ FROM
                     pb,
                     SUM(lrt_time) AS chapter_time,
                     COUNT(*) AS number_of_splits
-                FROM splits_overview3_runner
+                FROM doorsplit_history3_runner
                 GROUP BY
                     chapter,
                     run_id,
@@ -978,7 +981,7 @@ LEFT JOIN
                 pb,
                 SUM(lrt_time) AS chapter_time,
                 COUNT(*) AS number_of_splits
-            FROM splits_overview3_runner
+            FROM doorsplit_history3_runner
             GROUP BY
                 chapter,
                 run_id,
@@ -1013,7 +1016,7 @@ LEFT JOIN
                 pb,
                 SUM(lrt_time) AS chapter_time,
                 COUNT(*) AS number_of_splits
-            FROM splits_overview3_runner
+            FROM doorsplit_history3_runner
             GROUP BY
                 chapter,
                 run_id,
@@ -1136,7 +1139,7 @@ FROM
                     run_id,
                     SUM(lrt_time_dec) AS section_time,
                     COUNT(*) AS number_of_splits
-                FROM splits_overview3_runner
+                FROM doorsplit_history3_runner
                 GROUP BY
                     _section,
                     run_id
@@ -1168,7 +1171,7 @@ FROM
                     pb,
                     SUM(lrt_time_dec) AS section_time,
                     COUNT(*) AS number_of_splits
-                FROM splits_overview3_runner
+                FROM doorsplit_history3_runner
                 GROUP BY
                     _section,
                     run_id,
@@ -1215,7 +1218,7 @@ LEFT JOIN
                 pb,
                 SUM(lrt_time_dec) AS section_time,
                 COUNT(*) AS number_of_splits
-            FROM splits_overview3_runner
+            FROM doorsplit_history3_runner
             GROUP BY
                 _section,
                 run_id,
@@ -1253,7 +1256,7 @@ LEFT JOIN
                 pb,
                 SUM(lrt_time_dec) AS section_time,
                 COUNT(*) AS number_of_splits
-            FROM splits_overview3_runner
+            FROM doorsplit_history3_runner
             GROUP BY
                 _section,
                 run_id,
@@ -1389,7 +1392,7 @@ FROM
             pb,
             SUM(lrt_time_dec) AS section_time,
             COUNT(*) AS number_of_splits
-        FROM splits_overview3_runner
+        FROM doorsplit_history3_runner
         GROUP BY
             _section,
             run_id,
@@ -1539,14 +1542,14 @@ FROM
     (
         SELECT
             *
-        FROM splits_overview3_runner a
+        FROM doorsplit_history3_runner a
     ) aa
 
     JOIN
     (
         SELECT
             *
-        FROM splits_overview3_runner a
+        FROM doorsplit_history3_runner a
     ) bb
     ON aa.split_number >= bb.split_number AND aa.run_id = bb.run_id
     GROUP BY
@@ -1579,14 +1582,14 @@ LEFT JOIN
         (
             SELECT
                 *
-            FROM splits_overview3_runner a
+            FROM doorsplit_history3_runner a
         ) aa
 
         JOIN
         (
             SELECT
                 *
-            FROM splits_overview3_runner a
+            FROM doorsplit_history3_runner a
         ) bb
         ON aa.split_number >= bb.split_number AND aa.run_id = bb.run_id
         GROUP BY
@@ -1783,7 +1786,7 @@ FROM
         split_number,
         split_name,
         COUNT(*) AS runs
-    FROM splits_overview3_runner
+    FROM doorsplit_history3_runner
     GROUP BY
         split_number,
         split_name
@@ -2123,7 +2126,7 @@ FROM
         finished_paces,
         finished_paces_at_that_time,
         ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_number ORDER BY id2 DESC) AS rang
-    FROM splits_overview3_runner a
+    FROM doorsplit_history3_runner a
 
     LEFT JOIN best_paces_history2_runner b
     ON a.run_id = b.run_id AND a.split_number = b.split_number
@@ -2178,7 +2181,7 @@ FROM
             SELECT
                 run_id,
                 MAX(split_number) + 1 AS max
-            FROM splits_overview3_runner
+            FROM doorsplit_history3_runner
             GROUP BY run_id
         ) a
 
@@ -2187,7 +2190,7 @@ FROM
             SELECT DISTINCT
                 split_number,
                 split_name
-            FROM splits_overview3_runner
+            FROM doorsplit_history3_runner
         ) b
         ON a.max = b.split_number
     ) resets
@@ -2219,7 +2222,7 @@ FROM (SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
 FROM(
 SELECT lago_pattern AS pattern, COUNT(*) AS runs
 FROM splits_overview_runner a
-LEFT JOIN splits_overview3_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
+LEFT JOIN doorsplit_history3_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
 WHERE (a.split_number=14 AND a.lrt_time_dec<117) OR (a.split_number=13 AND cle2_reset=14 AND
 CASE WHEN time_end_numeric2>time_ended_numeric AND b.time_run_ended<>time_end_numeric3 THEN time_ended_numeric-time_end_numeric2+86400 ELSE time_ended_numeric-time_end_numeric2 END>=CASE WHEN runner_name LIKE '%lu%'
 AND runner_name LIKE '%is%' THEN 59 ELSE 56 END)
@@ -2227,7 +2230,7 @@ GROUP BY 1) a
 CROSS JOIN (
 SELECT COUNT(*) AS total
 FROM splits_overview_runner a
-LEFT JOIN splits_overview3_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
+LEFT JOIN doorsplit_history3_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
 WHERE (a.split_number=14 AND a.lrt_time_dec<117) OR (a.split_number=13 AND cle2_reset=14 AND
 CASE WHEN time_end_numeric2>time_ended_numeric AND b.time_run_ended<>time_end_numeric3 THEN time_ended_numeric-time_end_numeric2+86400 ELSE time_ended_numeric-time_end_numeric2 END>=CASE WHEN runner_name LIKE '%lu%'
 AND runner_name LIKE '%is%' THEN 59 ELSE 56 END)) b)
@@ -2389,7 +2392,7 @@ SELECT DISTINCT a.run_id, lago_pattern,
 ROW_NUMBER() OVER (ORDER BY a.run_id) AS ROW_NUMBER,
 ROW_NUMBER() OVER (PARTITION BY lago_pattern ORDER BY a.run_id) AS row_number2
 FROM splits_overview_runner a
-LEFT JOIN splits_overview3_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
+LEFT JOIN doorsplit_history3_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
 WHERE (a.split_number=14 AND a.lrt_time_dec<117) OR (a.split_number=13 AND cle2_reset=14 AND
 CASE WHEN time_end_numeric2>time_ended_numeric AND b.time_run_ended<>time_end_numeric3 THEN time_ended_numeric-time_end_numeric2+86400 ELSE time_ended_numeric-time_end_numeric2 END>=CASE WHEN runner_name LIKE '%lu%'
 AND runner_name LIKE '%is%' THEN 59 ELSE 56 END))
