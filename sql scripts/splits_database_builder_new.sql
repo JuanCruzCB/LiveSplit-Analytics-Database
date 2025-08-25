@@ -446,26 +446,14 @@ ON segments.run_id = attempts.run_id;
 DROP TABLE IF EXISTS cumulative_rta_runner;
 CREATE TABLE cumulative_rta_runner AS
 SELECT
-    ds.run_id,
-    ds.split_number,
-    SUM(durations.rta_time) AS run_cumulative_rta
-FROM doorsplit_history1_runner ds
+    run_id,
+    split_number,
+    SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_number) AS run_cumulative_rta
 
-LEFT JOIN
-(
-    SELECT DISTINCT
-        run_id,
-        split_number,
-        rta_time
-    FROM doorsplit_history1_runner
-) durations
-ON ds.split_number >= durations.split_number AND ds.run_id = durations.run_id
-GROUP BY
-    ds.run_id,
-    ds.split_number
+FROM doorsplit_history1_runner
 ORDER BY
-    ds.run_id,
-    ds.split_number;
+    run_id,
+    split_number;
 
 /* Add cumulative rta data to each run, this will be useful to calculate the start and end timestamp of each segment. */
 
@@ -851,17 +839,17 @@ CREATE TABLE chapter_history2_runner AS
 SELECT
     run_id,
     chapter,
-    run_started_at,
-    finished_run,
-    pb,
     chapter_time,
     chapter_time_formatted,
+    rank_chapter,
     chapter_time <= min OR min IS NULL AS golded_chapter,
     min AS chapter_gold_at_that_time,
-    rank_chapter,
     chapter_rank_at_that_time,
     finished_chapters,
-    finished_chapters_at_that_time
+    finished_chapters_at_that_time,
+    run_started_at,
+    finished_run,
+    pb
 FROM
 (
     SELECT
