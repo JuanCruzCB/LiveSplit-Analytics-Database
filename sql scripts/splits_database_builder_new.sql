@@ -455,7 +455,7 @@ ORDER BY
     run_id,
     split_number;
 
-/* Add cumulative rta data to each run, this will be useful to calculate the start and end timestamp of each segment. */
+/* Add cumulative RTA data to each run, this will be useful to calculate the start and end timestamp of each segment. */
 
 DROP TABLE IF EXISTS doorsplit_history2_runner;
 CREATE TABLE doorsplit_history2_runner AS
@@ -476,8 +476,8 @@ SELECT
     ds.run_started_at,
     ds.run_ended_at,
     ds.run_duration,
-    run_cumulative_rta,
-    LAG(run_cumulative_rta) OVER(PARTITION BY ds.run_id ORDER BY ds.split_number) AS run_cumulative_rta_lag
+    crta.run_cumulative_rta,
+    LAG(crta.run_cumulative_rta) OVER(PARTITION BY ds.run_id ORDER BY ds.split_number) AS run_cumulative_rta_lag
 FROM doorsplit_history1_runner ds
 
 LEFT JOIN cumulative_rta_runner crta
@@ -490,7 +490,7 @@ CREATE TABLE doorsplit_history3_runner AS
 SELECT
     run_id,
     ds.split_number,
-    defaults.split_name,
+    defs.split_name,
     chapter,
     _section,
     RANK() OVER (PARTITION BY ds.split_number ORDER BY lrt_time) AS lrt_time_rank,
@@ -519,11 +519,24 @@ SELECT
     END AS split_ended_at
 FROM doorsplit_history2_runner ds
 
-LEFT JOIN default_split_names defaults
-ON ds.split_number = defaults.split_number
+LEFT JOIN default_split_names defs
+ON ds.split_number = defs.split_number
 ORDER BY
     ds.split_number,
     run_id;
+
+/* Total number of times each doorsplit has been finished in the history. */
+
+DROP TABLE IF EXISTS finished_doorsplits_runner;
+CREATE TABLE finished_doorsplits_runner AS
+SELECT DISTINCT
+    split_number,
+    split_name,
+    chapter,
+    _section,
+    COUNT(*) OVER(PARTITION BY split_number) AS times_finished
+FROM doorsplit_history3_runner
+ORDER BY split_number
 
 /* The average and median times for each doorsplit, along with well formatted versions. Also cumulative average and median times. */
 
