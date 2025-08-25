@@ -500,6 +500,7 @@ SELECT
     defaults.split_name,
     chapter,
     _section,
+    RANK() OVER (PARTITION BY overview.split_number ORDER BY lrt_time) AS lrt_time_rank,
     lrt_time,
     lrt_time_formatted,
     rta_time,
@@ -511,8 +512,6 @@ SELECT
     run_started_at,
     run_ended_at,
     run_duration,
-    run_cumulative_rta,
-    run_cumulative_rta_lag,
     CASE
         WHEN overview.split_number = 1 THEN
             run_started_at
