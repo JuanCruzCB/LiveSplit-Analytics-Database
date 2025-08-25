@@ -830,6 +830,7 @@ FROM
             final_lrt_time,
             pb
     ) a
+
     JOIN splits_per_chapter b
     ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
 )
@@ -878,6 +879,7 @@ FROM
         chapter_rank_at_that_time,
         finished_chapters_at_that_time
     FROM chapter_history1_runner a
+
     LEFT JOIN chapter_history1_runner b
     ON a.chapter = b.chapter AND a.run_id > b.run_id
 
@@ -888,7 +890,8 @@ FROM
             COUNT(*) AS finished_chapters
         FROM chapter_history1_runner
         GROUP BY chapter
-    ) c ON a.chapter = c.chapter
+    ) c
+    ON a.chapter = c.chapter
 
     LEFT JOIN
     (
@@ -901,11 +904,14 @@ FROM
                 b.run_id AS id2,
                 RANK() OVER (PARTITION BY a.chapter, a.run_id ORDER BY b.chapter_time) AS chapter_rank_at_that_time
             FROM chapter_history1_runner a
+
             JOIN chapter_history1_runner b
             ON a.chapter = b.chapter AND a.run_id >= b.run_id
         ) a
         WHERE run_id = id2
-    ) d ON a.chapter = d.chapter AND a.run_id = d.run_id
+    ) d
+    ON a.chapter = d.chapter AND a.run_id = d.run_id
+
     LEFT JOIN
     (
         SELECT
@@ -913,10 +919,12 @@ FROM
             a.run_id,
             COUNT(*) AS finished_chapters_at_that_time
         FROM chapter_history1_runner a
+
         JOIN chapter_history1_runner b
         ON a.chapter = b.chapter AND a.run_id >= b.run_id
         GROUP BY a.chapter, a.run_id
-    ) e ON a.chapter = e.chapter AND a.run_id = e.run_id
+    ) e
+    ON a.chapter = e.chapter AND a.run_id = e.run_id
 GROUP BY
     finished_chapters_at_that_time,
     chapter_rank_at_that_time,
@@ -932,7 +940,7 @@ GROUP BY
 ORDER BY chapter, run_id
 ) a;
 
-/* Getting the chapter golds AND chapter averages */
+/* Getting the chapter golds and chapter averages. */
 
 DROP TABLE IF EXISTS chapter_golds1_runner;
 CREATE TABLE chapter_golds1_runner AS
@@ -968,12 +976,14 @@ FROM
                 GROUP BY chapter, run_id
                 ORDER BY chapter
             ) a
+
             JOIN splits_per_chapter b
             ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
         )
         GROUP BY 1
         ORDER BY 1
     ) aa
+
     LEFT JOIN
     (
         SELECT *
@@ -1001,12 +1011,14 @@ FROM
                     pb
                 ORDER BY chapter
             ) a
+
             JOIN splits_per_chapter b
             ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
         )
     ) bb
     ON aa.chapter_gold = bb.chapter_time
 ) ch_golds
+
 LEFT JOIN
 (
     SELECT
@@ -1035,6 +1047,7 @@ LEFT JOIN
                 final_lrt_time,
                 pb
         ) a
+
         JOIN splits_per_chapter b
         ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
     )
@@ -1042,6 +1055,7 @@ LEFT JOIN
     ORDER BY 1
 ) ch_average
 ON ch_golds.chapter = ch_average.chapter
+
 LEFT JOIN
 (
     SELECT
@@ -1070,6 +1084,7 @@ LEFT JOIN
                 final_lrt_time,
                 pb
         ) a
+
         JOIN splits_per_chapter b
         ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
     )
@@ -1090,17 +1105,7 @@ SELECT
     pb,
     chapter_gold,
     chapter_gold_formatted,
-    CASE
-        WHEN cumulative_chapter_gold < 10 THEN
-            TO_CHAR(cumulative_chapter_gold, 'FM0.000')
-        WHEN cumulative_chapter_gold < 60 THEN
-            TO_CHAR(cumulative_chapter_gold, 'FM00.000')
-        WHEN cumulative_chapter_gold < 3600 THEN
-            FLOOR(cumulative_chapter_gold / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
-        ELSE
-            FLOOR(cumulative_chapter_gold / 3600) || ':' || FLOOR((cumulative_chapter_gold - 3600) / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
-    END AS cumulative_chapter_gold,
-    cumulative_chapter_gold AS cumulative_chapter_gold_num,
+    cumulative_chapter_gold,
     avg_chapter_time,
     median_chapter_time,
     avg_chapter_time2,
@@ -1331,16 +1336,7 @@ SELECT
     pb,
     section_gold,
     section_gold2,
-    CASE
-        WHEN cumulative_chapter_gold < 10 THEN
-            TO_CHAR(cumulative_chapter_gold, 'FM0.000')
-        WHEN cumulative_chapter_gold < 60 THEN
-            TO_CHAR(cumulative_chapter_gold, 'FM00.000')
-        WHEN cumulative_chapter_gold < 3600 THEN
-            FLOOR(cumulative_chapter_gold / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
-        ELSE
-            FLOOR(cumulative_chapter_gold / 3600) || ':' || FLOOR((cumulative_chapter_gold - 3600) / 60) || ':' || TO_CHAR(cumulative_chapter_gold % 60, 'FM00.000')
-    END AS cumulative_section_gold,
+    cumulative_chapter_gold AS cumulative_section_gold
     section_avg,
     section_median,
     section_avg2,
@@ -1425,7 +1421,8 @@ SELECT
     SUM(section_time) AS section_time
 FROM
 (
-    SELECT a.*
+    SELECT
+        a.*
     FROM
     (
         SELECT
@@ -1465,16 +1462,7 @@ DROP TABLE IF EXISTS section_history2_runner;
 CREATE TABLE section_history2_runner AS
 SELECT
     *,
-    CASE
-        WHEN section_time < 10 THEN
-            TO_CHAR(section_time, 'FM0.000')
-        WHEN section_time < 60 THEN
-            TO_CHAR(section_time, 'FM00.000')
-        WHEN section_time < 3600 THEN
-            FLOOR(section_time / 60) || ':' || TO_CHAR(section_time % 60, 'FM00.000')
-        ELSE
-            FLOOR(section_time / 3600) || ':' || FLOOR((section_time - 3600) / 60) || ':' || TO_CHAR(section_time % 60, 'FM00.000')
-    END AS section_time2,
+    section_time AS section_time2,
     RANK() OVER (PARTITION BY _section ORDER BY section_time) AS rank_section
 FROM section_history1_runner
 ORDER BY
@@ -1492,35 +1480,100 @@ ORDER BY
 
 DROP TABLE IF EXISTS section_history3_runner;
 CREATE TABLE section_history3_runner AS
-SELECT _section, run_id, run_started_at, finished_run, final_lrt_time, pb, section_time, section_time2, CASE WHEN section_time<=min OR min IS NULL
-THEN 1 ELSE 0 END AS golded_section,
-FLOOR(min / 60) || ':' ||
-CASE WHEN LENGTH(TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999'))=3
-THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'000'
-WHEN LENGTH(TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999'))=4
-THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'00'
-WHEN LENGTH(TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999'))=5
-THEN TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')||'0' ELSE
-TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999') END AS section_gold_at_that_time, rank_section, section_rank_at_that_time, finished_sections, finished_sections_at_that_time
-FROM (SELECT a._section, a.run_id, a.run_started_at, a.finished_run, a.final_lrt_time, a.pb, a.section_time, a.section_time2, MIN(b.section_time) AS min,
-MIN(b.section_time2) AS min2, a.rank_section, finished_sections, finished_sections_at_that_time, section_rank_at_that_time
-FROM section_history2_runner a
-LEFT JOIN section_history2_runner b ON a._section=b._section AND a.run_id>b.run_id
-LEFT JOIN (SELECT _section, COUNT(*) AS finished_sections FROM section_history2_runner GROUP BY 1) c ON a._section=c._section
-LEFT JOIN (SELECT *
-FROM (SELECT a.*, b.section_time AS section_time3, b.run_id AS id2,
-RANK() OVER (PARTITION BY a._section, a.run_id ORDER BY b.section_time) AS section_rank_at_that_time
-FROM section_history2_runner a
-JOIN section_history2_runner b ON a._section=b._section AND a.run_id>=b.run_id) a
-WHERE run_id=id2) d ON a._section=d._section AND a.run_id=d.run_id
+SELECT
+    _section,
+    run_id,
+    run_started_at,
+    finished_run,
+    final_lrt_time,
+    pb,
+    section_time,
+    section_time2,
+    section_time <= min OR min IS NULL AS golded_section,
+    min AS section_gold_at_that_time,
+    rank_section,
+    section_rank_at_that_time,
+    finished_sections,
+    finished_sections_at_that_time
+FROM
+(
+    SELECT
+        a._section,
+        a.run_id,
+        a.run_started_at,
+        a.finished_run,
+        a.final_lrt_time,
+        a.pb,
+        a.section_time,
+        a.section_time2,
+        MIN(b.section_time) AS min,
+        MIN(b.section_time2) AS min2,
+        a.rank_section,
+        finished_sections,
+        finished_sections_at_that_time,
+        section_rank_at_that_time
+    FROM section_history2_runner a
 
-LEFT JOIN (
+    LEFT JOIN section_history2_runner b
+    ON a._section = b._section AND a.run_id > b.run_id
 
-SELECT a._section, a.run_id, COUNT(*) AS finished_sections_at_that_time
-FROM section_history2_runner a
-JOIN section_history2_runner b ON a._section=b._section AND a.run_id>=b.run_id
-GROUP BY 1, 2) e ON a._section=e._section AND a.run_id=e.run_id
-GROUP BY a.rank_section, finished_sections, finished_sections_at_that_time, section_rank_at_that_time, a._section, a.run_id, a.run_started_at, a.finished_run, a.final_lrt_time, a.pb, a.section_time, a.section_time2) a;
+    LEFT JOIN
+    (
+        SELECT
+            _section,
+            COUNT(*) AS finished_sections
+        FROM section_history2_runner
+        GROUP BY _section
+    ) c
+    ON a._section = c._section
+
+    LEFT JOIN
+    (
+        SELECT
+            *
+        FROM
+        (
+            SELECT
+                a.*,
+                b.section_time AS section_time3,
+                b.run_id AS id2,
+                RANK() OVER (PARTITION BY a._section, a.run_id ORDER BY b.section_time) AS section_rank_at_that_time
+            FROM section_history2_runner a
+
+            JOIN section_history2_runner b
+            ON a._section = b._section AND a.run_id >= b.run_id
+        ) a
+        WHERE run_id = id2
+    ) d
+    ON a._section = d._section AND a.run_id = d.run_id
+
+    LEFT JOIN
+    (
+        SELECT
+            a._section,
+            a.run_id,
+            COUNT(*) AS finished_sections_at_that_time
+        FROM section_history2_runner a
+
+        JOIN section_history2_runner b
+        ON a._section = b._section AND a.run_id >= b.run_id
+        GROUP BY 1, 2
+    ) e
+    ON a._section = e._section AND a.run_id = e.run_id
+    GROUP BY
+        a.rank_section,
+        finished_sections,
+        finished_sections_at_that_time,
+        section_rank_at_that_time,
+        a._section,
+        a.run_id,
+        a.run_started_at,
+        a.finished_run,
+        a.final_lrt_time,
+        a.pb,
+        a.section_time,
+        a.section_time2
+) a;
 
 --#endregion
 
@@ -1535,46 +1588,10 @@ SELECT
     best_pace,
     --avg_pace,
     -- median_pace,
-    CASE
-        WHEN pace < 10 THEN
-            TO_CHAR(pace, 'FM0.000')
-        WHEN pace < 60 THEN
-            TO_CHAR(pace, 'FM00.000')
-        WHEN pace < 3600 THEN
-            FLOOR(pace / 60) || ':' || TO_CHAR(pace % 60, 'FM00.000')
-        ELSE
-            FLOOR(pace / 3600) || ':' || FLOOR((pace - 3600) / 60) || ':' || TO_CHAR(pace % 60, 'FM00.000')
-    END AS pace2,
-    CASE
-        WHEN best_pace < 10 THEN
-            TO_CHAR(best_pace, 'FM0.000')
-        WHEN best_pace < 60 THEN
-            TO_CHAR(best_pace, 'FM00.000')
-        WHEN best_pace < 3600 THEN
-            FLOOR(best_pace / 60) || ':' || TO_CHAR(best_pace % 60, 'FM00.000')
-        ELSE
-            FLOOR(best_pace / 3600) || ':' || FLOOR((best_pace - 3600) / 60) || ':' || TO_CHAR(best_pace % 60, 'FM00.000')
-    END AS best_pace2/*,
-    CASE
-        WHEN avg_pace < 10 THEN
-            TO_CHAR(avg_pace , 'FM0.000')
-        WHEN avg_pace  < 60 THEN
-            TO_CHAR(avg_pace , 'FM00.000')
-        WHEN avg_pace  < 3600 THEN
-            FLOOR(avg_pace  / 60) || ':' || TO_CHAR(avg_pace  % 60, 'FM00.000')
-        ELSE
-            FLOOR(avg_pace  / 3600) || ':' || FLOOR((avg_pace  - 3600) / 60) || ':' || TO_CHAR(avg_pace  % 60, 'FM00.000')
-    END AS avg_pace2,
-    CASE
-        WHEN median_pace < 10 THEN
-            TO_CHAR(median_pace, 'FM0.000')
-        WHEN median_pace < 60 THEN
-            TO_CHAR(median_pace, 'FM00.000')
-        WHEN median_pace < 3600 THEN
-            FLOOR(median_pace / 60) || ':' || TO_CHAR(median_pace % 60, 'FM00.000')
-        ELSE
-            FLOOR(median_pace / 3600) || ':' || FLOOR((median_pace - 3600) / 60) || ':' || TO_CHAR(median_pace % 60, 'FM00.000')
-    END AS median_pace2*/
+    pace AS pace2,
+    best_pace AS best_pace2--,
+    --avg_pace AS avg_pace2,
+    --median_pace AS median_pace2
 FROM
 (
     SELECT
@@ -1667,16 +1684,7 @@ SELECT
     pace2,
     best_pace2,
     pace <= min OR min IS NULL AS was_best_pace,
-    CASE
-        WHEN min < 10 THEN
-            TO_CHAR(min, 'FM0.000')
-        WHEN min < 60 THEN
-            TO_CHAR(min, 'FM00.000')
-        WHEN min < 3600 THEN
-            FLOOR(min / 60) || ':' || TO_CHAR(min % 60, 'FM00.000')
-        ELSE
-            FLOOR(min / 3600) || ':' || FLOOR((min - 3600) / 60) || ':' || TO_CHAR(min % 60, 'FM00.000')
-    END AS best_pace_at_that_time,
+    min AS best_pace_at_that_time,
     min AS best_pace_at_that_time2,
     --avg_pace,
     --median_pace,
@@ -2228,167 +2236,359 @@ ORDER BY
 
 DROP TABLE IF EXISTS rng_splits_runner;
 CREATE TABLE rng_splits_runner AS
-SELECT pattern, SUBSTR(pattern, 4, LENGTH(pattern)-3) AS pattern2, runs, total, percentage
-FROM(SELECT pattern, runs, total, percentage
-FROM (SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT lago_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner a
-LEFT JOIN doorsplit_history3_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
-WHERE (a.split_number=14 AND a.lrt_time_dec<117) OR (a.split_number=13 AND cle2_reset=14 AND
-CASE WHEN time_end_numeric2>time_ended_numeric AND b.time_run_ended<>time_end_numeric3 THEN time_ended_numeric-time_end_numeric2+86400 ELSE time_ended_numeric-time_end_numeric2 END>=CASE WHEN runner_name LIKE '%lu%'
-AND runner_name LIKE '%is%' THEN 59 ELSE 56 END)
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner a
-LEFT JOIN doorsplit_history3_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
-WHERE (a.split_number=14 AND a.lrt_time_dec<117) OR (a.split_number=13 AND cle2_reset=14 AND
-CASE WHEN time_end_numeric2>time_ended_numeric AND b.time_run_ended<>time_end_numeric3 THEN time_ended_numeric-time_end_numeric2+86400 ELSE time_ended_numeric-time_end_numeric2 END>=CASE WHEN runner_name LIKE '%lu%'
-AND runner_name LIKE '%is%' THEN 59 ELSE 56 END)) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT mendez_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE mendez_pattern<>'' AND lrt_time_dec<60
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=30 AND lrt_time_dec<60) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT catapult_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE catapult_pattern<>'' AND lrt_time_dec<40
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=65 AND lrt_time_dec<40) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT cabin_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE cabin_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=26
-) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT water_hall_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE water_hall_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=38
-) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT novis1_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE novis1_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=41
-) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT gallery_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE gallery_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=43
-) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT novis2_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE novis2_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=64
-) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT novis3_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE novis3_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=74
-) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT u3_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE u3_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=110
-) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT krauser_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE krauser_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=112
-) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT war_room_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE war_room_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=113
-) b)
-UNION
-(SELECT a.*, total, ROUND(runs)/ROUND(total)*100 AS percentage
-FROM(
-SELECT key_card_pattern AS pattern, COUNT(*) AS runs
-FROM splits_overview_runner
-WHERE key_card_pattern<>''
-GROUP BY 1) a
-CROSS JOIN (
-SELECT COUNT(*) AS total
-FROM splits_overview_runner
-WHERE split_number=117
-) b)
-ORDER BY pattern);
+SELECT
+    pattern,
+    SUBSTR(pattern, 4, LENGTH(pattern) - 3) AS pattern2,
+    runs,
+    total,
+    percentage
+FROM
+(
+    SELECT
+        pattern,
+        runs,
+        total,
+        percentage
+    FROM
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                lago_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner a
+
+            LEFT JOIN doorsplit_history3_runner b
+            ON a.run_id = b.run_id AND a.split_number = b.split_number
+            WHERE
+            (a.split_number = 14 AND a.lrt_time_dec < 117) OR
+            (a.split_number = 13 AND cle2_reset = 14 AND
+            CASE
+                WHEN time_end_numeric2 > time_ended_numeric AND b.time_run_ended <> time_end_numeric3 THEN
+                    time_ended_numeric - time_end_numeric2 + 86400
+                ELSE
+                    time_ended_numeric - time_end_numeric2
+                END
+            >=
+            CASE
+                WHEN runner_name LIKE '%lu%' AND runner_name LIKE '%is%' THEN
+                    59
+                ELSE
+                    56
+            END)
+            GROUP BY 1
+        ) a
+
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner a
+
+            LEFT JOIN doorsplit_history3_runner b
+            ON a.run_id = b.run_id AND a.split_number = b.split_number
+            WHERE
+            (a.split_number = 14 AND a.lrt_time_dec < 117) OR
+            (a.split_number = 13 AND cle2_reset = 14 AND
+            CASE
+                WHEN time_end_numeric2 > time_ended_numeric AND b.time_run_ended <> time_end_numeric3 THEN
+                    time_ended_numeric - time_end_numeric2 + 86400
+                ELSE
+                    time_ended_numeric - time_end_numeric2
+            END
+            >=
+            CASE
+                WHEN runner_name LIKE '%lu%' AND runner_name LIKE '%is%' THEN
+                    59
+                ELSE
+                    56
+            END)
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                mendez_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE mendez_pattern <> '' AND lrt_time_dec < 60
+            GROUP BY 1
+        ) a
+
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 30 AND lrt_time_dec < 60
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                catapult_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE catapult_pattern <> '' AND lrt_time_dec < 40
+            GROUP BY 1
+        ) a
+
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 65 AND lrt_time_dec < 40
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                cabin_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE cabin_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 26
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                water_hall_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE water_hall_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 38
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                novis1_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE novis1_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 41
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                gallery_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE gallery_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 43
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                novis2_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE novis2_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 64
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                novis3_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE novis3_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 74
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                u3_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE u3_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 110
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                krauser_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE krauser_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 112
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                war_room_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE war_room_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 113
+        ) b
+    )
+    UNION
+    (
+        SELECT
+            a.*,
+            total,
+            ROUND(runs) / ROUND(total) * 100 AS percentage
+        FROM
+        (
+            SELECT
+                key_card_pattern AS pattern,
+                COUNT(*) AS runs
+            FROM splits_overview_runner
+            WHERE key_card_pattern <> ''
+            GROUP BY 1
+        ) a
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS total
+            FROM splits_overview_runner
+            WHERE split_number = 117
+        ) b
+    )
+    ORDER BY pattern
+);
 
 /* Same but to get the consecutive patterns (LIKE how many early dives IN a row */
 
