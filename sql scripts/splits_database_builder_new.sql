@@ -383,7 +383,8 @@ SELECT
     run_started_at - COALESCE(LAG(run_started_at) OVER(ORDER BY finished.run_id), run_started_at) AS days_it_took,
     finished.run_id - COALESCE(LAG(finished.run_id) OVER(ORDER BY finished.run_id), 0) attempts_it_took,
     total_playtime - COALESCE(LAG(total_playtime) OVER(ORDER BY finished.run_id), '0'::INTERVAL) total_playtime_it_took,
-    days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY finished.run_id), 0) AS days_of_attempts_it_took
+    days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY finished.run_id), 0) AS days_of_attempts_it_took,
+    lrt_pb
 FROM finished_runs_runner finished
 
 LEFT JOIN
@@ -536,7 +537,7 @@ SELECT DISTINCT
     _section,
     COUNT(*) OVER(PARTITION BY split_number) AS times_finished
 FROM doorsplit_history3_runner
-ORDER BY split_number
+ORDER BY split_number;
 
 /* The average and median times for each doorsplit, along with well formatted versions. Also cumulative average and median times. */
 
@@ -569,10 +570,10 @@ avg_med_cumulative AS
         _section,
         lrt_time_avg,
         lrt_time_avg_formatted,
-        SUM(lrt_time_avg) OVER (ORDER BY split_number) AS lrt_time_avg_cumulative,
+        SUM(lrt_time_avg) OVER (ORDER BY split_number) AS sum_of_avg,
         lrt_time_med,
         lrt_time_med_formatted,
-        SUM(lrt_time_med) OVER (ORDER BY split_number) AS lrt_time_med_cumulative
+        SUM(lrt_time_med) OVER (ORDER BY split_number) AS sum_of_med
     FROM avg_med
     ORDER BY split_number
 )
@@ -584,12 +585,12 @@ SELECT
     _section,
     lrt_time_avg,
     lrt_time_avg_formatted,
-    lrt_time_avg_cumulative,
-    LTRIM(TO_CHAR(lrt_time_avg_cumulative, 'HH24:MI:SS.FF3'), '0:') AS lrt_time_avg_cumulative_formatted,
+    sum_of_avg,
+    LTRIM(TO_CHAR(sum_of_avg, 'HH24:MI:SS.FF3'), '0:') AS sum_of_avg_formatted,
     lrt_time_med,
     lrt_time_med_formatted,
-    lrt_time_med_cumulative,
-    LTRIM(TO_CHAR(lrt_time_med_cumulative, 'HH24:MI:SS.FF3'), '0:') AS lrt_time_med_cumulative_formatted
+    sum_of_med,
+    LTRIM(TO_CHAR(sum_of_med, 'HH24:MI:SS.FF3'), '0:') AS sum_of_med_formatted
 FROM avg_med_cumulative;
 
 /* For each individual segment, we get the gold (fastest time ever on that segment) with ties if there are any. Also add these times well formatted for readability. */
@@ -600,6 +601,7 @@ SELECT
     ds.run_id,
     ds_golds.split_number,
     ds.split_name,
+    ds.chapter,
     ds_golds.gold AS lrt_time_gold,
     ds_golds.gold_formatted AS lrt_time_gold_formatted,
     ROW_NUMBER() OVER(PARTITION BY ds.split_number ORDER BY split_started_at) AS gold_occurrence,
@@ -625,6 +627,7 @@ LEFT JOIN
         run_id,
         split_number,
         split_name,
+        chapter,
         lrt_time,
         run_started_at,
         run_ended_at,
@@ -1105,12 +1108,9 @@ SELECT
     final_lrt_time,
     pb,
     chapter_gold,
-    chapter_gold_formatted,
     cumulative_chapter_gold,
     avg_chapter_time,
-    median_chapter_time,
-    avg_chapter_time2,
-    median_chapter_time2
+    median_chapter_time
 FROM
 (
     SELECT
@@ -1122,10 +1122,7 @@ FROM
         a.final_lrt_time,
         a.pb,
         a.avg_chapter_time,
-        a.chapter_gold_formatted,
         a.median_chapter_time,
-        a.avg_chapter_time2,
-        a.median_chapter_time2,
         SUM(b.chapter_gold) AS cumulative_chapter_gold
     FROM chapter_golds1_runner a
 
@@ -1146,10 +1143,7 @@ FROM
         a.final_lrt_time,
         a.pb,
         a.avg_chapter_time,
-        a.chapter_gold_formatted,
-        a.median_chapter_time,
-        a.avg_chapter_time2,
-        a.median_chapter_time2
+        a.median_chapter_time
 ) a
 ORDER BY chapter;
 
@@ -1164,7 +1158,7 @@ CREATE TABLE section_golds1_runner AS
 SELECT
     section_golds.*,
     section_avg,
-    section_median::DECIMAL AS section_median
+    section_median
 FROM
 (
     SELECT
@@ -1188,7 +1182,7 @@ FROM
                 SELECT
                     _section,
                     run_id,
-                    SUM(lrt_time_dec) AS section_time,
+                    SUM(lrt_time) AS section_time,
                     COUNT(*) AS number_of_splits
                 FROM doorsplit_history3_runner
                 GROUP BY
@@ -1220,7 +1214,7 @@ FROM
                     finished_run,
                     final_lrt_time,
                     pb,
-                    SUM(lrt_time_dec) AS section_time,
+                    SUM(lrt_time) AS section_time,
                     COUNT(*) AS number_of_splits
                 FROM doorsplit_history3_runner
                 GROUP BY
@@ -1267,7 +1261,7 @@ LEFT JOIN
                 finished_run,
                 final_lrt_time,
                 pb,
-                SUM(lrt_time_dec) AS section_time,
+                SUM(lrt_time) AS section_time,
                 COUNT(*) AS number_of_splits
             FROM doorsplit_history3_runner
             GROUP BY
@@ -1305,7 +1299,7 @@ LEFT JOIN
                 finished_run,
                 final_lrt_time,
                 pb,
-                SUM(lrt_time_dec) AS section_time,
+                SUM(lrt_time) AS section_time,
                 COUNT(*) AS number_of_splits
             FROM doorsplit_history3_runner
             GROUP BY
@@ -1336,12 +1330,9 @@ SELECT
     final_lrt_time,
     pb,
     section_gold,
-    section_gold2,
-    cumulative_chapter_gold AS cumulative_section_gold
+    cumulative_chapter_gold AS cumulative_section_gold,
     section_avg,
-    section_median,
-    section_avg2,
-    section_median2
+    section_median
 FROM
 (
     SELECT
@@ -1353,10 +1344,7 @@ FROM
         a.final_lrt_time,
         a.pb,
         a.section_avg,
-        a.section_gold2,
-        a.section_avg2,
         a.section_median,
-        a.section_median2,
         SUM(b.section_gold) AS cumulative_chapter_gold
     FROM section_golds1_runner a
 
@@ -1393,10 +1381,7 @@ FROM
         a.final_lrt_time,
         a.pb,
         a.section_avg,
-        a.section_gold2,
-        a.section_avg2,
-        a.section_median,
-        a.section_median2
+        a.section_median
 ) a
 ORDER BY
     CASE
@@ -1433,7 +1418,7 @@ FROM
             finished_run,
             final_lrt_time,
             pb,
-            SUM(lrt_time_dec) AS section_time,
+            SUM(lrt_time) AS section_time,
             COUNT(*) AS number_of_splits
         FROM doorsplit_history3_runner
         GROUP BY
@@ -1600,7 +1585,7 @@ FROM
         aa.run_id,
         aa.split_name,
         COUNT(*) AS number_of_splits,
-        SUM(bb.lrt_time_dec) AS pace
+        SUM(bb.lrt_time) AS pace
     FROM
     (
         SELECT
@@ -1640,7 +1625,7 @@ LEFT JOIN
             aa.run_id,
             aa.split_name,
             COUNT(*) AS number_of_splits,
-            SUM(bb.lrt_time_dec) AS pace
+            SUM(bb.lrt_time) AS pace
         FROM
         (
             SELECT
@@ -1721,7 +1706,7 @@ FROM
         a.pace,
         a.best_pace,
         a.pace2,
-        a.best_pace2,
+        a.best_pace2--,
         --a.avg_pace,
         --a.median_pace,
         --a.avg_pace2,
@@ -1873,50 +1858,46 @@ FROM
         a.split_name,
         a.chapter,
         a._section,
-        a.lrt_time_dec,
-        a.lrt_time_readable,
+        a.lrt_time,
+        a.lrt_time_formatted,
         a.run_started_at,
         a.finished_run,
         a.final_lrt_time,
         a.pb,
         a.split_number,
         a.final_rta_time,
-        a.date_run_ended,
-        a.time_start_numeric3 AS time_start,
-        a.time_end_numeric3 AS time_end,
+        a.run_ended_at,
         a.run_duration,
-        a.rta_time_dec,
-        a.rta_time_readable,
-        e.gold2,
-        e.gold,
+        a.rta_time,
+        a.rta_time_formatted,
+        e.lrt_time_gold,
+        e.lrt_time_gold_formatted,
         pace,
         pace2,
         best_pace,
         best_pace2,
         chapter_time,
-        chapter_time2,
+        chapter_time_formatted,
         section_time,
         section_time2,
         chapter_gold,
-        chapter_gold2,
         section_gold,
-        section_gold2,
         CASE
-            WHEN a.finished_run = 1 THEN
+            WHEN a.finished_run THEN
                 NULL
             ELSE
                 split_of_reset
         END AS split_of_reset,
         CASE
-            WHEN a.finished_run = 1 THEN
+            WHEN a.finished_run THEN
                 NULL
             ELSE
                 cle2_reset
         END AS cle2_reset,
         CASE
-            WHEN a.split_number = 30 AND lrt_time_dec <= 54.5 THEN
+            WHEN a.split_number = 30 AND a.lrt_time <= '54.5'::INTERVAL THEN
                 '2-a Fast Mendez'
-            WHEN a.split_number = 30 AND lrt_time_dec <= 57 THEN
+            WHEN a.split_number = 30 AND a.lrt_time <= '57'::INTERVAL THEN
                 '2-b Medium Mendez'
             WHEN a.split_number = 30 THEN
                 '2-c Slow Mendez'
@@ -1924,9 +1905,9 @@ FROM
                 ''
         END AS mendez_pattern,
         CASE
-            WHEN a.split_number = 14 AND lrt_time_dec <= 96 THEN
+            WHEN a.split_number = 14 AND a.lrt_time <= '96'::INTERVAL THEN
                 '1-a No dive'
-            WHEN a.split_number = 14 AND lrt_time_dec <= 102 THEN
+            WHEN a.split_number = 14 AND a.lrt_time <= '102'::INTERVAL THEN
                 '1-b Late dive'
             WHEN a.split_number = 14 OR (a.split_number = 13 AND cle2_reset = 14) THEN
                 '1-c Early dive'
@@ -1934,9 +1915,9 @@ FROM
                 ''
         END AS lago_pattern,
         CASE
-            WHEN a.split_number = 65 AND lrt_time_dec <= 31 THEN
+            WHEN a.split_number = 65 AND a.lrt_time <= '31'::INTERVAL THEN
                 '3-a Perfect catapult'
-            WHEN a.split_number = 65 AND lrt_time_dec <= 33 THEN
+            WHEN a.split_number = 65 AND a.lrt_time <= '33'::INTERVAL THEN
                 '3-b Stagger catapult'
             WHEN a.split_number = 65 THEN
                 '3-c Boulder catapult'
@@ -1944,13 +1925,13 @@ FROM
                 ''
         END AS catapult_pattern,
         CASE
-            WHEN a.split_number = 26 AND lrt_time_dec <= 113 THEN
+            WHEN a.split_number = 26 AND a.lrt_time <= '113'::INTERVAL THEN
                 '4-a Great cabin'
-            WHEN a.split_number = 26 AND lrt_time_dec <= 118 THEN
+            WHEN a.split_number = 26 AND a.lrt_time <= '118'::INTERVAL THEN
                 '4-b Good cabin'
-            WHEN a.split_number = 26 AND lrt_time_dec <= 123 THEN
+            WHEN a.split_number = 26 AND a.lrt_time <= '123'::INTERVAL THEN
                 '4-c Average cabin'
-            WHEN a.split_number = 26 AND lrt_time_dec <= 130 THEN
+            WHEN a.split_number = 26 AND a.lrt_time <= '130'::INTERVAL THEN
                 '4-d Bad cabin'
             WHEN a.split_number = 26 THEN
                 '4-e Terrible cabin'
@@ -1958,13 +1939,13 @@ FROM
                 ''
         END AS cabin_pattern,
         CASE
-            WHEN a.split_number=38 AND lrt_time_dec<=196 THEN
+            WHEN a.split_number=38 AND a.lrt_time<='196'::INTERVAL THEN
                 '5-a Great water hall'
-            WHEN a.split_number=38 AND lrt_time_dec<=199 THEN
+            WHEN a.split_number=38 AND a.lrt_time<='199'::INTERVAL THEN
                 '5-b Good water hall'
-            WHEN a.split_number=38 AND lrt_time_dec<=202 THEN
+            WHEN a.split_number=38 AND a.lrt_time<='202'::INTERVAL THEN
                 '5-c Average water hall'
-            WHEN a.split_number=38 AND lrt_time_dec<=205 THEN
+            WHEN a.split_number=38 AND a.lrt_time<='205'::INTERVAL THEN
                 '5-d Bad water hall'
             WHEN a.split_number=38 THEN
                 '5-e Terrible water hall'
@@ -1972,13 +1953,13 @@ FROM
                 ''
         END AS water_hall_pattern,
         CASE
-            WHEN a.split_number=41 AND lrt_time_dec<=82 THEN
+            WHEN a.split_number=41 AND a.lrt_time<='82'::INTERVAL THEN
                 '6-a Great novis 1'
-            WHEN a.split_number=41 AND lrt_time_dec<=84 THEN
+            WHEN a.split_number=41 AND a.lrt_time<='84'::INTERVAL THEN
                 '6-b Good novis 1'
-            WHEN a.split_number=41 AND lrt_time_dec<=86 THEN
+            WHEN a.split_number=41 AND a.lrt_time<='86'::INTERVAL THEN
                 '6-c Average novis 1'
-            WHEN a.split_number=41 AND lrt_time_dec<=88 THEN
+            WHEN a.split_number=41 AND a.lrt_time<='88'::INTERVAL THEN
                 '6-d Bad novis 1'
             WHEN a.split_number=41 THEN
                 '6-e Terrible novis 1'
@@ -1986,13 +1967,13 @@ FROM
                 ''
         END AS novis1_pattern,
         CASE
-            WHEN a.split_number=43 AND lrt_time_dec<=102 THEN
+            WHEN a.split_number=43 AND a.lrt_time<='102'::INTERVAL THEN
                 '7-a Great gallery'
-            WHEN a.split_number=43 AND lrt_time_dec<=105 THEN
+            WHEN a.split_number=43 AND a.lrt_time<='105'::INTERVAL THEN
                 '7-b Good gallery'
-            WHEN a.split_number=43 AND lrt_time_dec<=108 THEN
+            WHEN a.split_number=43 AND a.lrt_time<='108'::INTERVAL THEN
                 '7-c Average gallery'
-            WHEN a.split_number=43 AND lrt_time_dec<=110 THEN
+            WHEN a.split_number=43 AND a.lrt_time<='110'::INTERVAL THEN
                 '7-d Bad gallery'
             WHEN a.split_number=43 THEN
                 '7-e Terrible gallery'
@@ -2000,13 +1981,13 @@ FROM
                 ''
         END AS gallery_pattern,
         CASE
-            WHEN a.split_number=64 AND lrt_time_dec<=33.5 THEN
+            WHEN a.split_number=64 AND a.lrt_time<='33.5'::INTERVAL THEN
                 '8-a Great novis 2'
-            WHEN a.split_number=64 AND lrt_time_dec<=35 THEN
+            WHEN a.split_number=64 AND a.lrt_time<='35'::INTERVAL THEN
                 '8-b Good novis 2'
-            WHEN a.split_number=64 AND lrt_time_dec<=38 THEN
+            WHEN a.split_number=64 AND a.lrt_time<='38'::INTERVAL THEN
                 '8-c Average novis 2'
-            WHEN a.split_number=64 AND lrt_time_dec<=40 THEN
+            WHEN a.split_number=64 AND a.lrt_time<='40'::INTERVAL THEN
                 '8-d Bad novis 2'
             WHEN a.split_number=64 THEN
                 '8-e Terrible novis 2'
@@ -2014,13 +1995,13 @@ FROM
                 ''
         END AS novis2_pattern,
         CASE
-            WHEN a.split_number=74 AND lrt_time_dec<=77 THEN
+            WHEN a.split_number=74 AND a.lrt_time<='77'::INTERVAL THEN
                 '9-a Great novis 3'
-            WHEN a.split_number=74 AND lrt_time_dec<=79 THEN
+            WHEN a.split_number=74 AND a.lrt_time<='79'::INTERVAL THEN
                 '9-b Good novis 3'
-            WHEN a.split_number=74 AND lrt_time_dec<=82 THEN
+            WHEN a.split_number=74 AND a.lrt_time<='82'::INTERVAL THEN
                 '9-c Average novis 3'
-            WHEN a.split_number=74 AND lrt_time_dec<=85 THEN
+            WHEN a.split_number=74 AND a.lrt_time<='85'::INTERVAL THEN
                 '9-d Bad novis 3'
             WHEN a.split_number=74 THEN
                 '9-e Terrible novis 3'
@@ -2028,13 +2009,13 @@ FROM
                 ''
         END AS novis3_pattern,
         CASE
-            WHEN a.split_number=110 AND lrt_time_dec<=95.5 THEN
+            WHEN a.split_number=110 AND a.lrt_time<='95.5'::INTERVAL THEN
                 '90-a Great u3'
-            WHEN a.split_number=110 AND lrt_time_dec<=99 THEN
+            WHEN a.split_number=110 AND a.lrt_time<='99'::INTERVAL THEN
                 '90-b Good u3'
-            WHEN a.split_number=110 AND lrt_time_dec<=101 THEN
+            WHEN a.split_number=110 AND a.lrt_time<='101'::INTERVAL THEN
                 '90-c Average u3'
-            WHEN a.split_number=110 AND lrt_time_dec<=103 THEN
+            WHEN a.split_number=110 AND a.lrt_time<='103'::INTERVAL THEN
                 '90-d Bad u3'
             WHEN a.split_number=110 THEN
                 '90-e Terrible u3'
@@ -2042,13 +2023,13 @@ FROM
                 ''
         END AS u3_pattern,
         CASE
-            WHEN a.split_number=112 AND lrt_time_dec<=139 THEN
+            WHEN a.split_number=112 AND a.lrt_time<='139'::INTERVAL THEN
                 '91-a Great Krauser'
-            WHEN a.split_number=112 AND lrt_time_dec<=142 THEN
+            WHEN a.split_number=112 AND a.lrt_time<='142'::INTERVAL THEN
                 '91-b Good Krauser'
-            WHEN a.split_number=112 AND lrt_time_dec<=145 THEN
+            WHEN a.split_number=112 AND a.lrt_time<='145'::INTERVAL THEN
                 '91-c Average Krauser'
-            WHEN a.split_number=112 AND lrt_time_dec<=148 THEN
+            WHEN a.split_number=112 AND a.lrt_time<='148'::INTERVAL THEN
                 '91-d Bad Krauser'
             WHEN a.split_number=112 THEN
                 '91-e Terrible Krauser'
@@ -2056,13 +2037,13 @@ FROM
                 ''
         END AS krauser_pattern,
         CASE
-            WHEN a.split_number=113 AND lrt_time_dec<=111 THEN
+            WHEN a.split_number=113 AND a.lrt_time<='111'::INTERVAL THEN
                 '92-a Great war room'
-            WHEN a.split_number=113 AND lrt_time_dec<=114 THEN
+            WHEN a.split_number=113 AND a.lrt_time<='114'::INTERVAL THEN
                 '92-b Good war room'
-            WHEN a.split_number=113 AND lrt_time_dec<=117 THEN
+            WHEN a.split_number=113 AND a.lrt_time<='117'::INTERVAL THEN
                 '92-c Average war room'
-            WHEN a.split_number=113 AND lrt_time_dec<=120 THEN
+            WHEN a.split_number=113 AND a.lrt_time<='120'::INTERVAL THEN
                 '92-d Bad war room'
             WHEN a.split_number=113 THEN
                 '92-e Terrible war room'
@@ -2070,13 +2051,13 @@ FROM
                 ''
         END AS war_room_pattern,
         CASE
-            WHEN a.split_number=117 AND lrt_time_dec<=55 THEN
+            WHEN a.split_number=117 AND a.lrt_time<='55'::INTERVAL THEN
                 '93-a Great key card'
-            WHEN a.split_number=117 AND lrt_time_dec<=57 THEN
+            WHEN a.split_number=117 AND a.lrt_time<='57'::INTERVAL THEN
                 '93-b Good key card'
-            WHEN a.split_number=117 AND lrt_time_dec<=59 THEN
+            WHEN a.split_number=117 AND a.lrt_time<='59'::INTERVAL THEN
                 '93-c Average key card'
-            WHEN a.split_number=117 AND lrt_time_dec<=61 THEN
+            WHEN a.split_number=117 AND a.lrt_time<='61'::INTERVAL THEN
                 '93-d Bad key card'
             WHEN a.split_number=117 THEN
                 '93-e Terrible key card'
@@ -2095,38 +2076,23 @@ FROM
         golded_section,
         was_best_pace,
         cumulative_chapter_gold,
-        cumulative_chapter_gold_num,
         cumulative_section_gold,
         cumulative_door_gold,
-        cumulative_door_gold_num,
         gold_at_that_time,
         chapter_gold_at_that_time,
         section_gold_at_that_time,
         best_pace_at_that_time,
         best_pace_at_that_time2,
-        CASE
-            WHEN SUBSTR(a.time_run_started, 1, 2)::DECIMAL > SUBSTR(a.time_start_numeric3, 1, 2)::DECIMAL THEN
-                a.run_started_at + 1
-            ELSE
-                a.run_started_at
-        END AS date_started2,
-        CASE
-            WHEN SUBSTR(a.time_run_ended, 1, 2)::DECIMAL < SUBSTR(a.time_end_numeric3, 1, 2)::DECIMAL THEN
-                a.date_run_ended - 1
-            ELSE
-                a.date_run_ended
-        END AS date_end2,
-        door_avg,
-        door_median,
-        door_avg2,
-        door_median2,
+        --door_avg,
+        --door_median,
+        --door_avg2,
+        --door_median2,
         median_chapter_time,
-        median_chapter_time2,
-        /*avg_pace, median_pace, avg_pace2, median_pace2,*/
+        --avg_pace,
+        --median_pace,
+        --avg_pace2,
+        --median_pace2,
         section_median,
-        section_median2,
-        section_avg2,
-        avg_chapter_time2,
         'runner' AS runner_name,
         rank_chapter,
         chapter_rank_at_that_time,
@@ -2154,23 +2120,14 @@ FROM
     (
         SELECT
             split_number,
-            gold2,
-            gold,
-            door_avg,
-            door_median,
-            door_avg2,
-            door_median2,
-            MIN(cumulative_door_gold) AS cumulative_door_gold,
-            MIN(cumulative_door_gold_num) AS cumulative_door_gold_num
+            lrt_time_gold_formatted,
+            lrt_time_gold,
+            MIN(cumulative_gold_sum) AS cumulative_door_gold
         FROM doorsplit_golds2_runner
         GROUP BY
             split_number,
-            gold2,
-            gold,
-            door_avg,
-            door_median,
-            door_avg2,
-            door_median2
+            lrt_time_gold_formatted,
+            lrt_time_gold
     ) e
     ON a.split_number = e.split_number
 
@@ -2183,10 +2140,10 @@ FROM
     LEFT JOIN section_history3_runner d
     ON a.run_id = d.run_id AND a._section = d._section
 
-    LEFT JOIN chapter_golds3_runner f
+    LEFT JOIN chapter_golds2_runner f
     ON a.chapter = f.chapter
 
-    LEFT JOIN section_golds3_runner g
+    LEFT JOIN section_golds2_runner g
     ON a._section = g._section
 
     LEFT JOIN
@@ -2266,8 +2223,8 @@ FROM
             LEFT JOIN doorsplit_history3_runner b
             ON a.run_id = b.run_id AND a.split_number = b.split_number
             WHERE
-            (a.split_number = 14 AND a.lrt_time_dec < 117) OR
-            (a.split_number = 13 AND cle2_reset = 14 AND
+            (a.split_number = 14 AND a.lrt_time < '117'::INTERVAL) OR
+            (a.split_number = 13 AND cle2_reset = 14 /* TODO: Fix this AND
             CASE
                 WHEN time_end_numeric2 > time_ended_numeric AND b.time_run_ended <> time_end_numeric3 THEN
                     time_ended_numeric - time_end_numeric2 + 86400
@@ -2280,7 +2237,7 @@ FROM
                     59
                 ELSE
                     56
-            END)
+            END*/)
             GROUP BY 1
         ) a
 
@@ -2293,8 +2250,8 @@ FROM
             LEFT JOIN doorsplit_history3_runner b
             ON a.run_id = b.run_id AND a.split_number = b.split_number
             WHERE
-            (a.split_number = 14 AND a.lrt_time_dec < 117) OR
-            (a.split_number = 13 AND cle2_reset = 14 AND
+            (a.split_number = 14 AND a.lrt_time < '117'::INTERVAL) OR
+            (a.split_number = 13 AND cle2_reset = 14 /* TODO: Fix this AND
             CASE
                 WHEN time_end_numeric2 > time_ended_numeric AND b.time_run_ended <> time_end_numeric3 THEN
                     time_ended_numeric - time_end_numeric2 + 86400
@@ -2307,7 +2264,7 @@ FROM
                     59
                 ELSE
                     56
-            END)
+            END */)
         ) b
     )
     UNION
@@ -2322,7 +2279,7 @@ FROM
                 mendez_pattern AS pattern,
                 COUNT(*) AS runs
             FROM splits_overview_runner
-            WHERE mendez_pattern <> '' AND lrt_time_dec < 60
+            WHERE mendez_pattern <> '' AND lrt_time < '60'::INTERVAL
             GROUP BY 1
         ) a
 
@@ -2331,7 +2288,7 @@ FROM
             SELECT
                 COUNT(*) AS total
             FROM splits_overview_runner
-            WHERE split_number = 30 AND lrt_time_dec < 60
+            WHERE split_number = 30 AND lrt_time < '60'::INTERVAL
         ) b
     )
     UNION
@@ -2346,7 +2303,7 @@ FROM
                 catapult_pattern AS pattern,
                 COUNT(*) AS runs
             FROM splits_overview_runner
-            WHERE catapult_pattern <> '' AND lrt_time_dec < 40
+            WHERE catapult_pattern <> '' AND lrt_time < '40'::INTERVAL
             GROUP BY 1
         ) a
 
@@ -2355,7 +2312,7 @@ FROM
             SELECT
                 COUNT(*) AS total
             FROM splits_overview_runner
-            WHERE split_number = 65 AND lrt_time_dec < 40
+            WHERE split_number = 65 AND lrt_time < '40'::INTERVAL
         ) b
     )
     UNION
@@ -2595,22 +2552,49 @@ FROM
 
 DROP TABLE IF EXISTS consecutive_patterns_runner;
 CREATE TABLE consecutive_patterns_runner AS
-SELECT *
-FROM (
-SELECT lago_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, lago_pattern, ROW_NUMBER() OVER (PARTITION BY lago_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT a.run_id, lago_pattern,
-ROW_NUMBER() OVER (ORDER BY a.run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY lago_pattern ORDER BY a.run_id) AS row_number2
-FROM splits_overview_runner a
-LEFT JOIN doorsplit_history3_runner b ON a.run_id=b.run_id AND a.split_number=b.split_number
-WHERE (a.split_number=14 AND a.lrt_time_dec<117) OR (a.split_number=13 AND cle2_reset=14 AND
-CASE WHEN time_end_numeric2>time_ended_numeric AND b.time_run_ended<>time_end_numeric3 THEN time_ended_numeric-time_end_numeric2+86400 ELSE time_ended_numeric-time_end_numeric2 END>=CASE WHEN runner_name LIKE '%lu%'
-AND runner_name LIKE '%is%' THEN 59 ELSE 56 END))
-ORDER BY run_id)
-GROUP BY 1
+SELECT
+    *
+FROM
+(
+    SELECT
+        lago_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            lago_pattern,
+            ROW_NUMBER() OVER (PARTITION BY lago_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                a.run_id,
+                lago_pattern,
+                ROW_NUMBER() OVER (ORDER BY a.run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY lago_pattern ORDER BY a.run_id) AS row_number2
+            FROM splits_overview_runner a
+
+            LEFT JOIN doorsplit_history3_runner b
+            ON a.run_id = b.run_id AND a.split_number = b.split_number
+            WHERE
+            (a.split_number = 14 AND a.lrt_time < '117'::INTERVAL) OR
+            (a.split_number = 13 AND cle2_reset = 14) /* TODO: Fix this AND
+            CASE
+                WHEN time_end_numeric2 > time_ended_numeric AND b.time_run_ended <> time_end_numeric3 THEN
+                    time_ended_numeric - time_end_numeric2 + 86400
+                ELSE
+                    time_ended_numeric - time_end_numeric2
+                END
+            >=
+            CASE
+                WHEN runner_name LIKE '%lu%' AND runner_name LIKE '%is%' THEN
+                    59
+                ELSE
+                    56
+            END*/)
+            ORDER BY run_id
+        )
+        GROUP BY 1
 UNION
 SELECT mendez_pattern, MAX(rank) AS maximum_consecutive_patterns
 FROM(
@@ -2620,7 +2604,7 @@ SELECT DISTINCT run_id, mendez_pattern,
 ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
 ROW_NUMBER() OVER (PARTITION BY mendez_pattern ORDER BY run_id) AS row_number2
 FROM splits_overview_runner
-WHERE mendez_pattern<>'' AND lrt_time_dec<60)
+WHERE mendez_pattern<>'' AND lrt_time<'60'::INTERVAL)
 ORDER BY run_id)
 GROUP BY 1
 UNION
@@ -2632,7 +2616,7 @@ SELECT DISTINCT run_id, catapult_pattern,
 ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
 ROW_NUMBER() OVER (PARTITION BY catapult_pattern ORDER BY run_id) AS row_number2
 FROM splits_overview_runner
-WHERE catapult_pattern<>'' AND lrt_time_dec<40)
+WHERE catapult_pattern<>'' AND lrt_time<'40'::INTERVAL)
 ORDER BY run_id)
 GROUP BY 1
 UNION
@@ -2765,7 +2749,6 @@ WHERE key_card_pattern<>''
 )
 ORDER BY run_id)
 GROUP BY 1
-
 )
 ORDER BY lago_pattern;
 
@@ -2782,13 +2765,11 @@ CREATE TABLE gold_hunt_detector_runner AS
 SELECT
     split_number,
     split_name,
-    gold,
-    gold2,
+    lrt_time_gold,
+    lrt_time_gold_formatted,
     run_id,
     run_started_at,
-    finished_run,
     final_lrt_time,
-    pb,
     pace,
     pace2,
     best_pace,
@@ -2822,34 +2803,25 @@ SELECT
     a.run_started_at,
     a.final_lrt_time,
     a.pb,
-    a.chapter_gold2,
-    CASE
-        WHEN cumulative_chapter_gold2 < 60 THEN
-            TO_CHAR(cumulative_chapter_gold2, 'FM00.000')
-        ELSE
-            FLOOR(cumulative_chapter_gold2 / 60) || ':' || TO_CHAR(cumulative_chapter_gold2 % 60, 'FM00.000')
-    END AS doorsplit_combined_gold,
-    cumulative_chapter_gold2 AS doorsplit_combined_gold2,
+    cumulative_chapter_gold2 AS doorsplit_combined_gold,
     a.cumulative_chapter_gold,
     cumulative_door_gold,
-    cumulative_door_gold_num,
-    avg_chapter_time2,
     chapter_gold_at_that_time AS previous_chapter_gold
-FROM chapter_golds3_runner a
+FROM chapter_golds2_runner a
 
 LEFT JOIN
 (
     SELECT
         chapter,
-        SUM(gold) AS cumulative_chapter_gold2
+        SUM(lrt_time_gold) AS cumulative_chapter_gold2
     FROM
     (
         SELECT
             chapter,
-            a.gold,
-            a.gold2,
+            a.lrt_time_gold,
+            a.lrt_time_gold_formatted,
             a.split_number,
-            MIN(cumulative_door_gold) AS cumulative_door_gold
+            MIN(cumulative_gold_sum) AS cumulative_door_gold
         FROM doorsplit_golds2_runner a
         LEFT JOIN
         (
@@ -2860,8 +2832,8 @@ LEFT JOIN
         ) b ON a.split_number = b.split_number
         GROUP BY
             chapter,
-            a.gold,
-            a.gold2,
+            a.lrt_time_gold,
+            a.lrt_time_gold_formatted,
             a.split_number
         ORDER BY a.split_number
     ) b
@@ -2879,7 +2851,6 @@ LEFT JOIN
             split_number,
             chapter,
             cumulative_door_gold,
-            cumulative_door_gold_num,
             ROW_NUMBER() OVER(PARTITION BY chapter ORDER BY split_number DESC) AS rang
         FROM splits_overview_runner
     ) a
@@ -2894,7 +2865,7 @@ LEFT JOIN
         chapter,
         chapter_gold_at_that_time
     FROM splits_overview_runner
-    WHERE chapter_time2 = chapter_gold2
+    WHERE chapter_time = chapter_gold
 ) d
 ON a.chapter = d.chapter AND a.run_id = d.run_id;
 
@@ -2903,54 +2874,30 @@ ON a.chapter = d.chapter AND a.run_id = d.run_id;
 DROP TABLE IF EXISTS section_golds_sheet_runner;
 CREATE TABLE section_golds_sheet_runner AS
 SELECT
-    a._section,
     a.run_id,
+    a._section,
     a.run_started_at,
     a.final_lrt_time,
     a.pb,
-    a.section_gold2,
-    CASE
-        WHEN cumulative_chapter_gold3 < 10 THEN
-            TO_CHAR(cumulative_chapter_gold3, 'FM0.000')
-        WHEN cumulative_chapter_gold3 < 60 THEN
-            TO_CHAR(cumulative_chapter_gold3, 'FM00.000')
-        WHEN cumulative_chapter_gold3 < 3600 THEN
-            FLOOR(cumulative_chapter_gold3 / 60) || ':' || TO_CHAR(cumulative_chapter_gold3 % 60, 'FM00.000')
-        ELSE
-            FLOOR(cumulative_chapter_gold3 / 3600) || ':' || FLOOR((cumulative_chapter_gold3 - 3600) / 60) || ':' || TO_CHAR(cumulative_chapter_gold3 % 60, 'FM00.000')
-    END AS chapter_combined_gold,
-    cumulative_chapter_gold3 AS chapter_combined_gold2,
-    CASE
-        WHEN cumulative_chapter_gold2 < 10 THEN
-            TO_CHAR(cumulative_chapter_gold2, 'FM0.000')
-        WHEN cumulative_chapter_gold2 < 60 THEN
-            TO_CHAR(cumulative_chapter_gold2, 'FM00.000')
-        WHEN cumulative_chapter_gold2 < 3600 THEN
-            FLOOR(cumulative_chapter_gold2 / 60) || ':' || TO_CHAR(cumulative_chapter_gold2 % 60, 'FM00.000')
-        ELSE
-            FLOOR(cumulative_chapter_gold2 / 3600) || ':' || FLOOR((cumulative_chapter_gold2 - 3600) / 60) || ':' || TO_CHAR(cumulative_chapter_gold2 % 60, 'FM00.000')
-    END AS doorsplit_combined_gold,
-    cumulative_chapter_gold2 AS doorsplit_combined_gold2,
+    cumulative_chapter_gold3 AS chapter_combined_gold,
+    cumulative_chapter_gold2 AS doorsplit_combined_gold,
     a.cumulative_section_gold,
     cumulative_chapter_gold,
-    cumulative_chapter_gold_num,
     cumulative_door_gold,
-    cumulative_door_gold_num,
-    a.section_avg2,
     section_gold_at_that_time AS previous_section_gold
-FROM section_golds3_runner a
+FROM section_golds2_runner a
 
 LEFT JOIN
 (
     SELECT
         _section,
-        SUM(gold) AS cumulative_chapter_gold2
+        SUM(lrt_time_gold) AS cumulative_chapter_gold2
     FROM
     (
         SELECT DISTINCT
             _section,
-            a.gold,
-            a.gold2,
+            a.lrt_time_gold,
+            a.lrt_time_gold_formatted,
             a.split_number
         FROM doorsplit_golds2_runner a
 
@@ -2976,7 +2923,6 @@ LEFT JOIN
             split_number,
             _section,
             cumulative_door_gold,
-            cumulative_door_gold_num,
             ROW_NUMBER() OVER(PARTITION BY _section ORDER BY split_number DESC) AS rang
         FROM splits_overview_runner
     ) a
@@ -2994,10 +2940,9 @@ LEFT JOIN
         SELECT
             _section,
             a.chapter_gold,
-            a.chapter_gold2,
             a.chapter,
             MIN(cumulative_chapter_gold) AS cumulative_chapter_gold
-        FROM chapter_golds3_runner a
+        FROM chapter_golds2_runner a
 
         LEFT JOIN
         (
@@ -3010,7 +2955,6 @@ LEFT JOIN
         GROUP BY
             _section,
             a.chapter_gold,
-            a.chapter_gold2,
             a.chapter
         ORDER BY a.chapter
     ) b
@@ -3028,7 +2972,6 @@ LEFT JOIN
             chapter,
             _section,
             cumulative_chapter_gold,
-            cumulative_chapter_gold_num,
             ROW_NUMBER() OVER(PARTITION BY _section ORDER BY chapter DESC) AS rang
         FROM splits_overview_runner
     ) a
@@ -3042,7 +2985,7 @@ LEFT JOIN
         _section,
         section_gold_at_that_time
     FROM splits_overview_runner
-    WHERE section_time2 = section_gold2
+    WHERE section_time = section_gold
 ) f
 ON a._section = f._section AND a.run_id = f.run_id
 ORDER BY
@@ -3095,10 +3038,11 @@ FROM
         END AS weekday,
         SUM(run_duration) AS playtime,
         COUNT(DISTINCT run_id) AS attempts,
-        COUNT(DISTINCT CASE WHEN pb = 1 THEN run_id ELSE NULL END) AS number_of_pbs,
-        ROUND(ROUND(ROUND(COUNT(DISTINCT CASE WHEN pb = 1 THEN run_id ELSE NULL END), 4)/ROUND(COUNT(DISTINCT run_id), 4), 4) * 100, 2) || '%' AS pb_ratio,
-        ROUND(SUM(run_duration))/CASE WHEN ROUND(COUNT(DISTINCT CASE WHEN pb = 1 THEN run_id ELSE NULL END)) = 0 THEN NULL ELSE
-        ROUND(COUNT(DISTINCT CASE WHEN pb = 1 THEN run_id ELSE NULL END)) END playtime_to_get_a_pb
+        COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END) AS number_of_pbs,
+        ROUND(ROUND(ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END), 4)/ROUND(COUNT(DISTINCT run_id), 4), 4) * 100, 2) || '%' AS pb_ratio--,
+        /* TODO: Fix this
+        ROUND(SUM(run_duration))/CASE WHEN ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END)) = 0 THEN NULL ELSE
+        ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END)) END playtime_to_get_a_pb*/
     FROM attempts_data5_runner
     GROUP BY 1
 ) a
@@ -3112,10 +3056,10 @@ LEFT JOIN
             ELSE
                 extract(DOW FROM run_started_at)
         END AS weekday,
-        SUM(golded_split) AS golds,
-        SUM(golded_chapter) AS chapter_golds,
-        SUM(golded_section) AS section_golds,
-        SUM(was_best_pace) AS best_paces
+        SUM(golded_split::INT) AS golds,
+        SUM(golded_chapter::INT) AS chapter_golds,
+        SUM(golded_section::INT) AS section_golds,
+        SUM(was_best_pace::INT) AS best_paces
     FROM splits_overview_runner
     GROUP BY 1
 ) b
