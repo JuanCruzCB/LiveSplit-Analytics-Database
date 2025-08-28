@@ -2591,164 +2591,310 @@ FROM
                     59
                 ELSE
                     56
-            END*/)
-            ORDER BY run_id
+            END*/
         )
-        GROUP BY 1
-UNION
-SELECT mendez_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, mendez_pattern, ROW_NUMBER() OVER (PARTITION BY mendez_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, mendez_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY mendez_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE mendez_pattern<>'' AND lrt_time<'60'::INTERVAL)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT catapult_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, catapult_pattern, ROW_NUMBER() OVER (PARTITION BY catapult_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, catapult_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY catapult_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE catapult_pattern<>'' AND lrt_time<'40'::INTERVAL)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT cabin_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, cabin_pattern, ROW_NUMBER() OVER (PARTITION BY cabin_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, cabin_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY cabin_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE cabin_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT water_hall_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, water_hall_pattern, ROW_NUMBER() OVER (PARTITION BY water_hall_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, water_hall_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY water_hall_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE water_hall_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT novis1_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, novis1_pattern, ROW_NUMBER() OVER (PARTITION BY novis1_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, novis1_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY novis1_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE novis1_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT gallery_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, gallery_pattern, ROW_NUMBER() OVER (PARTITION BY gallery_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, gallery_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY gallery_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE gallery_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT novis2_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, novis2_pattern, ROW_NUMBER() OVER (PARTITION BY novis2_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, novis2_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY novis2_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE novis2_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT novis3_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, novis3_pattern, ROW_NUMBER() OVER (PARTITION BY novis3_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, novis3_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY novis3_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE novis3_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT u3_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, u3_pattern, ROW_NUMBER() OVER (PARTITION BY u3_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, u3_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY u3_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE u3_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT krauser_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, krauser_pattern, ROW_NUMBER() OVER (PARTITION BY krauser_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, krauser_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY krauser_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE krauser_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT war_room_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, war_room_pattern, ROW_NUMBER() OVER (PARTITION BY war_room_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, war_room_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY war_room_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE war_room_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
-UNION
-SELECT key_card_pattern, MAX(rank) AS maximum_consecutive_patterns
-FROM(
-SELECT run_id, key_card_pattern, ROW_NUMBER() OVER (PARTITION BY key_card_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-FROM(
-SELECT DISTINCT run_id, key_card_pattern,
-ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-ROW_NUMBER() OVER (PARTITION BY key_card_pattern ORDER BY run_id) AS row_number2
-FROM splits_overview_runner
-WHERE key_card_pattern<>''
-)
-ORDER BY run_id)
-GROUP BY 1
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        mendez_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            mendez_pattern,
+            ROW_NUMBER() OVER (PARTITION BY mendez_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                mendez_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY mendez_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE mendez_pattern <> '' AND lrt_time < '60'::INTERVAL
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        catapult_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            catapult_pattern,
+            ROW_NUMBER() OVER (PARTITION BY catapult_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                catapult_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY catapult_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE catapult_pattern <> '' AND lrt_time < '40'::INTERVAL
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        cabin_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            cabin_pattern,
+            ROW_NUMBER() OVER (PARTITION BY cabin_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                cabin_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY cabin_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE cabin_pattern <> ''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        water_hall_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            water_hall_pattern,
+            ROW_NUMBER() OVER (PARTITION BY water_hall_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                water_hall_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY water_hall_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE water_hall_pattern <> ''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        novis1_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            novis1_pattern,
+            ROW_NUMBER() OVER (PARTITION BY novis1_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                novis1_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY novis1_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE novis1_pattern <> ''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        gallery_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            gallery_pattern,
+            ROW_NUMBER() OVER (PARTITION BY gallery_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                gallery_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY gallery_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE gallery_pattern <> ''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        novis2_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            novis2_pattern,
+            ROW_NUMBER() OVER (PARTITION BY novis2_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                novis2_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY novis2_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE novis2_pattern <> ''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        novis3_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            novis3_pattern,
+            ROW_NUMBER() OVER (PARTITION BY novis3_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                novis3_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY novis3_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE novis3_pattern <> ''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        u3_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            u3_pattern,
+            ROW_NUMBER() OVER (PARTITION BY u3_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                u3_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY u3_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE u3_pattern <> ''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        krauser_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            krauser_pattern,
+            ROW_NUMBER() OVER (PARTITION BY krauser_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                krauser_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY krauser_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE krauser_pattern <> ''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        war_room_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            war_room_pattern,
+            ROW_NUMBER() OVER (PARTITION BY war_room_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                war_room_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY war_room_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner
+            WHERE war_room_pattern <> ''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
+
+    UNION
+
+    SELECT
+        key_card_pattern,
+        MAX(rank) AS maximum_consecutive_patterns
+    FROM
+    (
+        SELECT
+            run_id,
+            key_card_pattern,
+            ROW_NUMBER() OVER (PARTITION BY key_card_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
+        FROM
+        (
+            SELECT DISTINCT
+                run_id,
+                key_card_pattern,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
+                ROW_NUMBER() OVER (PARTITION BY key_card_pattern ORDER BY run_id) AS row_number2
+            FROM splits_overview_runner WHERE key_card_pattern<>''
+        )
+        ORDER BY run_id
+    )
+    GROUP BY 1
 )
 ORDER BY lago_pattern;
 
