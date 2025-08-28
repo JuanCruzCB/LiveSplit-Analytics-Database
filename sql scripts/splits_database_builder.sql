@@ -1,45 +1,85 @@
 /* Importing the original splits file */
 
 DROP TABLE IF EXISTS splits_runner;
-CREATE TABLE splits_runner (notepad_info VARCHAR (255));
+CREATE TABLE splits_runner (cle SERIAL, notepad_info VARCHAR (255));
 
-COPY splits_runner FROM 'path' WITH DELIMITER ','; /* NOTE: The path to the splits file needs to be public, so that Postgres can access it */
+COPY splits_runner(notepad_info) FROM 'path' WITH DELIMITER ','; /* NOTE: The path to the splits file needs to be public, so that Postgres can access it */
 
 /* We imported the whole splits including the LiveSplit settings AND stuff, now we want to only keep the part with the segments history (to get the golds, best paces, etc.)=part 1 */
 
 DROP TABLE IF EXISTS notepad_splits_runner;
 CREATE TABLE notepad_splits_runner AS
-SELECT LTRIM(notepad_info, ' ') AS notepad_info
-FROM (SELECT *, ROW_NUMBER() OVER () AS cle
-FROM splits_runner) a
+SELECT
+    LTRIM(notepad_info, ' ') AS notepad_info
+FROM (SELECT
+    notepad_info,
+    cle
+FROM splits_runner
+ORDER BY cle)
 WHERE cle >
-(SELECT cle
-FROM (SELECT *, ROW_NUMBER() OVER ()+1 AS cle
-FROM splits_runner) a
-WHERE notepad_info LIKE '%</AttemptHistory>%')
-AND cle<
-(SELECT cle
-FROM (SELECT *, ROW_NUMBER() OVER () AS cle
-FROM splits_runner) a
-WHERE notepad_info LIKE '%<AutoSplitterSettings%');
+(
+    SELECT
+        line_number_offset
+    FROM (SELECT
+    notepad_info,
+    cle + 1 AS line_number_offset
+FROM splits_runner
+ORDER BY cle)
+    WHERE notepad_info LIKE '%</AttemptHistory>%'
+)
+AND cle <
+(
+    SELECT
+        cle
+    FROM (SELECT
+    notepad_info,
+    cle
+FROM splits_runner
+ORDER BY cle)
+    WHERE notepad_info LIKE '%<AutoSplitterSettings%'
+);
 
 /* We do the same for the attempts (to get the date of the run, if the run was finished, if it was a PB, etc.)=part 2*/
 
 DROP TABLE IF EXISTS notepad_attempts_runner;
 CREATE TABLE notepad_attempts_runner AS
-SELECT LTRIM(notepad_info, ' ') AS notepad_info, 'runner' AS runner_name
-FROM (SELECT *, ROW_NUMBER() OVER () AS cle
-FROM splits_runner) a
+SELECT
+    LTRIM(notepad_info, ' ') AS notepad_info, 'runner' AS runner_name
+FROM (SELECT
+    notepad_info,
+    cle
+FROM splits_runner
+ORDER BY cle)
 WHERE cle >
-(SELECT cle
-FROM (SELECT *, ROW_NUMBER() OVER () AS cle
-FROM splits_runner) a
-WHERE notepad_info LIKE '%<AttemptHistory>%')
-AND cle<
-(SELECT cle
-FROM (SELECT *, ROW_NUMBER() OVER () AS cle
-FROM splits_runner) a
-WHERE notepad_info LIKE '%</AttemptHistory>%');
+(
+    SELECT
+        cle
+    FROM (SELECT
+    notepad_info,
+    cle
+FROM splits_runner
+ORDER BY cle)
+    WHERE notepad_info LIKE '%<AttemptHistory>%'
+)
+AND cle <
+(
+    SELECT
+        cle
+    FROM (SELECT
+    notepad_info,
+    cle
+FROM splits_runner
+ORDER BY cle)
+    WHERE notepad_info LIKE '%</AttemptHistory>%'
+);
+        cle
+    FROM (SELECT
+    notepad_info,
+    cle
+FROM splits_runner
+ORDER BY cle)
+    WHERE notepad_info LIKE '%</AttemptHistory>%'
+);
 
 DROP TABLE IF EXISTS splits_treatment_runner;
 CREATE TABLE splits_treatment_runner AS
