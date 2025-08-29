@@ -450,7 +450,6 @@ SELECT
     run_id,
     split_number,
     SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_number) AS run_cumulative_rta
-
 FROM doorsplit_history1_runner
 ORDER BY
     run_id,
@@ -593,53 +592,37 @@ SELECT
     LTRIM(TO_CHAR(sum_of_med, 'HH24:MI:SS.FF3'), '0:') AS sum_of_med_formatted
 FROM avg_med_cumulative;
 
-/* For each individual segment, we get the gold (fastest time ever on that segment) with ties if there are any. Also add these times well formatted for readability. */
+/* For each individual segment, we get the gold (fastest time ever on that segment) with ties if there are any. */
 
 DROP TABLE IF EXISTS doorsplit_golds1_runner;
 CREATE TABLE doorsplit_golds1_runner AS
 SELECT
-    ds.run_id,
-    ds_golds.split_number,
-    ds.split_name,
-    ds.chapter,
-    ds_golds.gold AS lrt_time_gold,
-    ds_golds.gold_formatted AS lrt_time_gold_formatted,
-    ROW_NUMBER() OVER(PARTITION BY ds.split_number ORDER BY split_started_at) AS gold_occurrence,
-    ds.split_started_at,
-    ds.split_ended_at,
-    ds.run_started_at,
-    ds.run_ended_at,
-    ds.final_lrt_time
-FROM
-(
-    SELECT
-        split_number,
-        MIN(lrt_time) AS gold,
-        LTRIM(TO_CHAR(MIN(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS gold_formatted
-    FROM doorsplit_history3_runner
-    GROUP BY split_number
-    ORDER BY split_number
-) ds_golds
+    run_id,
+    split_number,
+    split_name,
+    chapter,
+    _section,
+    ROW_NUMBER(*) OVER(PARTITION BY lrt_time) AS lrt_time_occurrence,
+    lrt_time,
+    lrt_time_formatted,
+    rta_time,
+    rta_time_formatted,
+    finished_run,
+    pb,
+    final_lrt_time,
+    final_rta_time,
+    run_started_at,
+    run_ended_at,
+    run_duration,
+    split_started_at,
+    split_ended_at
+FROM doorsplit_history3_runner
+WHERE lrt_time_rank = 1
+ORDER BY
+    split_number,
+    lrt_time_occurrence;
 
-LEFT JOIN
-(
-    SELECT
-        run_id,
-        split_number,
-        split_name,
-        chapter,
-        lrt_time,
-        run_started_at,
-        run_ended_at,
-        split_started_at,
-        split_ended_at,
-        final_lrt_time
-    FROM doorsplit_history3_runner
-) ds
-ON ds_golds.split_number = ds.split_number AND ds_golds.gold = ds.lrt_time
-ORDER BY ds_golds.split_number, ds.run_id;
-
-/* Add the cumulative sum of best by doors. */
+/* Add the sum of best and sum of best formatted. */
 
 DROP TABLE IF EXISTS doorsplit_golds2_runner;
 CREATE TABLE doorsplit_golds2_runner AS
@@ -647,45 +630,54 @@ SELECT
     golds.run_id,
     golds.split_number,
     golds.split_name,
-    golds.lrt_time_gold,
-    golds.lrt_time_gold_formatted,
-    golds.gold_occurrence,
-    cumulative.cumulative_gold_sum,
-    golds.split_started_at,
-    golds.split_ended_at,
+    golds.chapter,
+    golds._section,
+    golds.lrt_time_occurrence,
+    golds.lrt_time,
+    golds.lrt_time_formatted,
+    cumulative.sum_of_best,
+    LTRIM(TO_CHAR(cumulative.sum_of_best, 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted,
+    golds.rta_time,
+    golds.rta_time_formatted,
+    golds.finished_run,
+    golds.pb,
+    golds.final_lrt_time,
+    golds.final_rta_time,
     golds.run_started_at,
     golds.run_ended_at,
-    golds.final_lrt_time
+    golds.run_duration,
+    golds.split_started_at,
+    golds.split_ended_at
 FROM doorsplit_golds1_runner golds
 
 LEFT JOIN
 (
     SELECT
         split_number,
-        SUM(lrt_time_gold) OVER(ORDER BY split_number) AS cumulative_gold_sum
+        SUM(lrt_time) OVER(ORDER BY split_number) AS sum_of_best
     FROM
     (
         SELECT DISTINCT
             split_number,
-            lrt_time_gold
+            lrt_time
         FROM doorsplit_golds1_runner
     )
 ) cumulative
 ON golds.split_number = cumulative.split_number;
 
-/* All times ever obtained for each segment, and whether that segment was a gold at the time or not. Also show the ranking of each individual LRT time relative to all LRT times ever obtained for that segment. */
+/* TODO: This needs to be cleaned out and shortened, using doorsplit_history3_runner and/or doorsplit_golds2_runner. We want gold_at_the_time, gold_rank_at_the_time, overall gold_rank and golded_split (boolean). */
 
-DROP TABLE IF EXISTS doorsplit_golds_history1_runner;
+/* DROP TABLE IF EXISTS doorsplit_golds_history1_runner;
 CREATE TABLE doorsplit_golds_history1_runner AS
 SELECT
     run_id,
     split_number,
     split_name,
-    lrt_time,
+    gold,
     LTRIM(TO_CHAR(lrt_time, 'HH24:MI:SS.FF3'), '0:') AS lrt_time_formatted,
     RANK() OVER (PARTITION BY split_number ORDER BY lrt_time) AS rank_split,
-    lrt_time_gold,
-    lrt_time_gold_formatted,
+    lrt_time,
+    gold_formatted,
     run_started_at,
     finished_run,
     final_lrt_time,
@@ -697,8 +689,8 @@ FROM
     SELECT
         a.split_number,
         a.split_name,
-        c.lrt_time_gold,
-        c.lrt_time_gold_formatted,
+        c.lrt_time AS gold,
+        c.lrt_time_formatted AS gold_formatted,
         a.lrt_time,
         a.run_id,
         a.run_started_at,
@@ -718,16 +710,16 @@ FROM
         SELECT DISTINCT
             split_number,
             split_name,
-            lrt_time_gold,
-            lrt_time_gold_formatted
+            lrt_time,
+            lrt_time_formatted
         FROM doorsplit_golds1_runner
     ) c
     ON a.split_number = c.split_number
     GROUP BY
         a.split_number,
         a.split_name,
-        c.lrt_time_gold,
-        c.lrt_time_gold_formatted,
+        c.lrt_time,
+        c.lrt_time_formatted,
         a.lrt_time,
         a.run_id,
         a.run_started_at,
@@ -736,11 +728,11 @@ FROM
         a.pb,
         a.lrt_time_formatted
 )
-ORDER BY split_number, run_id;
+ORDER BY split_number, run_id; */
 
 /* ??? */
 
-DROP TABLE IF EXISTS doorsplit_golds_history2_runner;
+/*DROP TABLE IF EXISTS doorsplit_golds_history2_runner;
 CREATE TABLE doorsplit_golds_history2_runner AS
 SELECT
     a.*,
@@ -791,7 +783,7 @@ LEFT JOIN
     ON a.split_number = b.split_number AND a.run_id >= b.run_id
     GROUP BY a.split_number, a.run_id
 ) e
-ON a.split_number = e.split_number AND a.run_id = e.run_id;
+ON a.split_number = e.split_number AND a.run_id = e.run_id;*/
 
 --#endregion DOORS
 
@@ -1870,8 +1862,8 @@ FROM
         a.run_duration,
         a.rta_time,
         a.rta_time_formatted,
-        e.lrt_time_gold,
-        e.lrt_time_gold_formatted,
+        e.lrt_time AS ds_gold,
+        e.lrt_time_formatted AS ds_gold_formatted,
         pace,
         pace2,
         best_pace,
@@ -2071,14 +2063,14 @@ FROM
                 extract(DOW FROM a.run_started_at)
         END AS weekday, -- Can probably be simplified using the MOD function
         h.lrt_pb AS pb_at_that_time,
-        golded_split,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ --golded_split,
         golded_chapter,
         golded_section,
         was_best_pace,
         cumulative_chapter_gold,
         cumulative_section_gold,
         cumulative_door_gold,
-        gold_at_that_time,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ --gold_at_that_time,
         chapter_gold_at_that_time,
         section_gold_at_that_time,
         best_pace_at_that_time,
@@ -2102,10 +2094,10 @@ FROM
         section_rank_at_that_time,
         finished_sections,
         finished_sections_at_that_time,
-        rank_split,
-        split_rank_at_that_time,
-        finished_splits,
-        finished_splits_at_that_time,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- rank_split,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- split_rank_at_that_time,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- finished_splits,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- finished_splits_at_that_time,
         rank_pace,
         pace_rank_at_that_time,
         finished_paces,
@@ -2120,19 +2112,20 @@ FROM
     (
         SELECT
             split_number,
-            lrt_time_gold_formatted,
-            lrt_time_gold,
-            MIN(cumulative_gold_sum) AS cumulative_door_gold
+            lrt_time_formatted,
+            lrt_time,
+            MIN(sum_of_best) AS cumulative_door_gold
         FROM doorsplit_golds2_runner
         GROUP BY
             split_number,
-            lrt_time_gold_formatted,
-            lrt_time_gold
+            lrt_time_formatted,
+            lrt_time
     ) e
     ON a.split_number = e.split_number
 
+    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed
     LEFT JOIN doorsplit_golds_history2_runner ee
-    ON a.split_number = ee.split_number AND a.run_id = ee.run_id
+    ON a.split_number = ee.split_number AND a.run_id = ee.run_id */
 
     LEFT JOIN chapter_history2_runner c
     ON a.run_id = c.run_id AND a.chapter = c.chapter
@@ -2911,8 +2904,8 @@ CREATE TABLE gold_hunt_detector_runner AS
 SELECT
     split_number,
     split_name,
-    lrt_time_gold,
-    lrt_time_gold_formatted,
+    lrt_time,
+    lrt_time_formatted,
     run_id,
     run_started_at,
     final_lrt_time,
@@ -2959,15 +2952,15 @@ LEFT JOIN
 (
     SELECT
         chapter,
-        SUM(lrt_time_gold) AS cumulative_chapter_gold2
+        SUM(lrt_time) AS cumulative_chapter_gold2
     FROM
     (
         SELECT
-            chapter,
-            a.lrt_time_gold,
-            a.lrt_time_gold_formatted,
+            a.chapter,
+            a.lrt_time,
+            a.lrt_time_formatted,
             a.split_number,
-            MIN(cumulative_gold_sum) AS cumulative_door_gold
+            MIN(sum_of_best) AS cumulative_door_gold
         FROM doorsplit_golds2_runner a
         LEFT JOIN
         (
@@ -2977,9 +2970,9 @@ LEFT JOIN
             FROM splits_overview_runner
         ) b ON a.split_number = b.split_number
         GROUP BY
-            chapter,
-            a.lrt_time_gold,
-            a.lrt_time_gold_formatted,
+            a.chapter,
+            a.lrt_time,
+            a.lrt_time_formatted,
             a.split_number
         ORDER BY a.split_number
     ) b
@@ -3037,13 +3030,13 @@ LEFT JOIN
 (
     SELECT
         _section,
-        SUM(lrt_time_gold) AS cumulative_chapter_gold2
+        SUM(lrt_time) AS cumulative_chapter_gold2
     FROM
     (
         SELECT DISTINCT
-            _section,
-            a.lrt_time_gold,
-            a.lrt_time_gold_formatted,
+            a._section,
+            a.lrt_time,
+            a.lrt_time_formatted,
             a.split_number
         FROM doorsplit_golds2_runner a
 
@@ -3144,13 +3137,15 @@ ORDER BY
             3
     END;
 
-/* Getting the history of PBs by the day of the week */
+/* TODO: Put this back after doorsplit_golds_history2_runner gets fixed Getting the history of PBs by the day of the week */
+
 
 DROP TABLE IF EXISTS weekday_data_runner;
 CREATE TABLE weekday_data_runner AS
 SELECT
     a.*,
-    golds,
+    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
+    --golds,
     chapter_golds,
     section_golds,
     best_paces,
@@ -3161,15 +3156,18 @@ SELECT
             ELSE
                 number_of_pbs
         END AS attempts_to_get_a_pb,
-    ROUND((ROUND(golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS golds_ratio,
+    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
+    --ROUND((ROUND(golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS golds_ratio,
     ROUND((ROUND(chapter_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS chapter_golds_ratio,
     ROUND((ROUND(section_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS section_golds_ratio,
     ROUND((ROUND(best_paces, 4) / ROUND(attempts, 4))*100, 2) || '%' AS best_paces_ratio,
-    ROUND(ROUND(attempts, 2) / CASE WHEN golds = 0 THEN NULL ELSE golds END, 2) AS attempts_to_get_a_gold,
+    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
+    --ROUND(ROUND(attempts, 2) / CASE WHEN golds = 0 THEN NULL ELSE golds END, 2) AS attempts_to_get_a_gold,
     ROUND(ROUND(attempts, 2) / CASE WHEN chapter_golds = 0 THEN NULL ELSE chapter_golds END, 2) AS attempts_to_get_a_chapter_gold,
     ROUND(ROUND(attempts, 2) / CASE WHEN section_golds = 0 THEN NULL ELSE section_golds END, 2) AS attempts_to_get_a_section_gold,
     ROUND(ROUND(attempts, 2) / CASE WHEN best_paces = 0 THEN NULL ELSE best_paces END, 2) AS attempts_to_get_a_best_pace,
-    playtime / CASE WHEN golds = 0 THEN NULL ELSE golds END AS playtime_to_get_a_gold,
+    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
+    --playtime / CASE WHEN golds = 0 THEN NULL ELSE golds END AS playtime_to_get_a_gold,
     playtime / CASE WHEN chapter_golds = 0 THEN NULL ELSE chapter_golds END AS playtime_to_get_a_chapter_gold,
     playtime / CASE WHEN section_golds = 0 THEN NULL ELSE section_golds END AS playtime_to_get_a_section_gold,
     playtime / CASE WHEN best_paces = 0 THEN NULL ELSE best_paces END AS playtime_to_get_a_best_pace
@@ -3202,7 +3200,8 @@ LEFT JOIN
             ELSE
                 extract(DOW FROM run_started_at)
         END AS weekday,
-        SUM(golded_split::INT) AS golds,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
+        --SUM(golded_split::INT) AS golds,
         SUM(golded_chapter::INT) AS chapter_golds,
         SUM(golded_section::INT) AS section_golds,
         SUM(was_best_pace::INT) AS best_paces
