@@ -789,152 +789,95 @@ ON a.split_number = e.split_number AND a.run_id = e.run_id;*/
 
 --#region CHAPTERS
 
-/* All the chapter times ever obtained. */
+/* All the chapter times ever obtained for each chapter, along with their rank relative to that chapter. */
 
 DROP TABLE IF EXISTS chapter_history1_runner;
 CREATE TABLE chapter_history1_runner AS
-SELECT
-    run_id,
-    chapter,
-    SUM(chapter_time) AS chapter_time,
-    LTRIM(TO_CHAR(SUM(chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_formatted,
-    RANK() OVER (PARTITION BY chapter ORDER BY chapter_time) AS rank_chapter,
-    run_started_at,
-    finished_run,
-    pb,
-    final_lrt_time
-FROM
-(
-    SELECT a.*
-    FROM
-    (
-        SELECT
-            chapter,
-            run_id,
-            run_started_at,
-            finished_run,
-            final_lrt_time,
-            pb,
-            SUM(lrt_time) AS chapter_time,
-            COUNT(*) AS number_of_splits
-        FROM doorsplit_history3_runner
-        GROUP BY
-            chapter,
-            run_id,
-            run_started_at,
-            finished_run,
-            final_lrt_time,
-            pb
-    ) a
-
-    JOIN splits_per_chapter b
-    ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
-)
-GROUP BY
-    chapter,
-    chapter_time,
-    run_id,
-    run_started_at,
-    finished_run,
-    final_lrt_time,
-    pb
-ORDER BY chapter, run_id;
-
-/* ??? */
-
-DROP TABLE IF EXISTS chapter_history2_runner;
-CREATE TABLE chapter_history2_runner AS
-SELECT
-    run_id,
-    chapter,
-    chapter_time,
-    chapter_time_formatted,
-    rank_chapter,
-    chapter_time <= min OR min IS NULL AS golded_chapter,
-    min AS chapter_gold_at_that_time,
-    chapter_rank_at_that_time,
-    finished_chapters,
-    finished_chapters_at_that_time,
-    run_started_at,
-    finished_run,
-    pb
+SELECT DISTINCT
+    ds.run_id,
+    ds.chapter,
+    ds._section,
+    RANK() OVER (PARTITION BY ds.chapter ORDER BY ds.chapter_time) AS chapter_time_rank,
+    ds.chapter_time,
+    LTRIM(TO_CHAR(ds.chapter_time, 'HH24:MI:SS.FF3'), '0:') AS chapter_time_formatted,
+    ds.finished_run,
+    ds.pb,
+    ds.final_lrt_time,
+    ds.final_rta_time,
+    ds.run_started_at,
+    ds.run_ended_at,
+    ds.run_duration,
+    ds.chapter_started_at,
+    ds.chapter_ended_at
 FROM
 (
     SELECT
-        a.rank_chapter,
-        a.chapter,
-        a.run_id,
-        a.run_started_at,
-        a.finished_run,
-        a.pb,
-        a.chapter_time,
-        a.chapter_time_formatted,
-        MIN(b.chapter_time) AS min,
-        MIN(b.chapter_time_formatted) AS min2,
-        finished_chapters,
-        chapter_rank_at_that_time,
-        finished_chapters_at_that_time
-    FROM chapter_history1_runner a
+        COUNT(*) OVER(PARTITION BY run_id, chapter) AS num_splits,
+        MIN(split_started_at) OVER(PARTITION BY run_id, chapter) AS chapter_started_at,
+        MAX(split_ended_at) OVER(PARTITION BY run_id, chapter) AS chapter_ended_at,
+        SUM(lrt_time) OVER(PARTITION BY run_id, chapter) AS chapter_time,
+        *
+    FROM doorsplit_history3_runner
+) ds
+INNER JOIN splits_per_chapter per
+ON per.chapter = ds.chapter AND per.number_of_splits = ds.num_splits
+ORDER BY chapter, run_id;
 
-    LEFT JOIN chapter_history1_runner b
-    ON a.chapter = b.chapter AND a.run_id > b.run_id
+/* Total number of times each chapter has been finished in the history. */
 
-    LEFT JOIN
-    (
-        SELECT
-            chapter,
-            COUNT(*) AS finished_chapters
-        FROM chapter_history1_runner
-        GROUP BY chapter
-    ) c
-    ON a.chapter = c.chapter
+DROP TABLE IF EXISTS finished_chapters_runner;
+CREATE TABLE finished_chapters_runner AS
+SELECT DISTINCT
+    chapter,
+    COUNT(*) OVER(PARTITION BY chapter)
+FROM chapter_history1_runner
+ORDER BY chapter;
 
-    LEFT JOIN
-    (
-        SELECT *
-        FROM
-        (
-            SELECT
-                a.*,
-                b.chapter_time AS chapter_time3,
-                b.run_id AS id2,
-                RANK() OVER (PARTITION BY a.chapter, a.run_id ORDER BY b.chapter_time) AS chapter_rank_at_that_time
-            FROM chapter_history1_runner a
+/* The average and median times for each chapter, along with well formatted versions. Also cumulative average and median times.  */
 
-            JOIN chapter_history1_runner b
-            ON a.chapter = b.chapter AND a.run_id >= b.run_id
-        ) a
-        WHERE run_id = id2
-    ) d
-    ON a.chapter = d.chapter AND a.run_id = d.run_id
+DROP TABLE IF EXISTS avg_med_chapters_runner;
+CREATE TABLE avg_med_chapters_runner AS
+WITH avg_med AS
+(
+    SELECT
+        chapter,
+        _section,
+        AVG(chapter_time) AS chapter_time_avg,
+        LTRIM(TO_CHAR(AVG(chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_avg_formatted,
+        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_time) AS chapter_time_med,
+        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_med_formatted
+    FROM chapter_history1_runner
+    GROUP BY
+        chapter,
+        _section
+),
+avg_med_cumulative AS
+(
+    SELECT
+        chapter,
+        _section,
+        chapter_time_avg,
+        chapter_time_avg_formatted,
+        SUM(chapter_time_avg) OVER (ORDER BY chapter) AS sum_of_avg,
+        chapter_time_med,
+        chapter_time_med_formatted,
+        SUM(chapter_time_med) OVER (ORDER BY chapter) AS sum_of_med
+    FROM avg_med
+    ORDER BY chapter
+)
 
-    LEFT JOIN
-    (
-        SELECT
-            a.chapter,
-            a.run_id,
-            COUNT(*) AS finished_chapters_at_that_time
-        FROM chapter_history1_runner a
-
-        JOIN chapter_history1_runner b
-        ON a.chapter = b.chapter AND a.run_id >= b.run_id
-        GROUP BY a.chapter, a.run_id
-    ) e
-    ON a.chapter = e.chapter AND a.run_id = e.run_id
-GROUP BY
-    finished_chapters_at_that_time,
-    chapter_rank_at_that_time,
-    finished_chapters,
-    a.rank_chapter,
-    a.chapter,
-    a.run_id,
-    a.run_started_at,
-    a.finished_run,
-    a.pb,
-    a.chapter_time,
-    a.chapter_time_formatted
-ORDER BY chapter, run_id
-) a;
+SELECT
+    chapter,
+    _section,
+    chapter_time_avg,
+    chapter_time_avg_formatted,
+    sum_of_avg,
+    LTRIM(TO_CHAR(sum_of_avg, 'HH24:MI:SS.FF3'), '0:') AS sum_of_avg_formatted,
+    chapter_time_med,
+    chapter_time_med_formatted,
+    sum_of_med,
+    LTRIM(TO_CHAR(sum_of_med, 'HH24:MI:SS.FF3'), '0:') AS sum_of_med_formatted
+FROM avg_med_cumulative;
 
 /* Getting the chapter golds and chapter averages. */
 
@@ -2127,7 +2070,7 @@ FROM
     LEFT JOIN doorsplit_golds_history2_runner ee
     ON a.split_number = ee.split_number AND a.run_id = ee.run_id */
 
-    LEFT JOIN chapter_history2_runner c
+    LEFT JOIN chapter_history1_runner c
     ON a.run_id = c.run_id AND a.chapter = c.chapter
 
     LEFT JOIN section_history3_runner d
