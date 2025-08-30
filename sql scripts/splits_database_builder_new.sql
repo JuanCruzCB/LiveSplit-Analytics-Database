@@ -739,6 +739,36 @@ INNER JOIN splits_per_chapter per
 ON per.chapter = ds.chapter AND per.number_of_splits = ds.num_splits
 ORDER BY chapter, run_id;
 
+/* Adding the chapter time rank relative to when the chapter was done. */
+
+DROP TABLE IF EXISTS chapter_history2_runner;
+CREATE TABLE chapter_history2_runner AS
+SELECT
+    run_id,
+    chapter,
+    _section,
+    (
+         SELECT
+            COUNT(*)
+         FROM chapter_history1_runner ch2
+         WHERE ch2.chapter = ch1.chapter
+            AND ch2.run_id <= ch1.run_id
+            AND ch2.chapter_time < ch1.chapter_time
+    ) + 1 AS chapter_time_rank_at_that_time,
+    chapter_time_rank,
+    chapter_time,
+    chapter_time_formatted,
+    finished_run,
+    pb,
+    final_lrt_time,
+    final_rta_time,
+    run_started_at,
+    run_ended_at,
+    run_duration,
+    chapter_started_at,
+    chapter_ended_at
+FROM chapter_history1_runner ch1;
+
 /* Total number of times each chapter has been finished in the history. */
 
 DROP TABLE IF EXISTS finished_chapters_runner;
@@ -746,10 +776,10 @@ CREATE TABLE finished_chapters_runner AS
 SELECT DISTINCT
     chapter,
     COUNT(*) OVER(PARTITION BY chapter)
-FROM chapter_history1_runner
+FROM chapter_history2_runner
 ORDER BY chapter;
 
-/* The average and median times for each chapter, along with well formatted versions. Also cumulative average and median times.  */
+/* The average and median times for each chapter, along with well formatted versions. Also cumulative average and median times. */
 
 DROP TABLE IF EXISTS avg_med_chapters_runner;
 CREATE TABLE avg_med_chapters_runner AS
@@ -762,7 +792,7 @@ WITH avg_med AS
         LTRIM(TO_CHAR(AVG(chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_avg_formatted,
         PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_time) AS chapter_time_med,
         LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_med_formatted
-    FROM chapter_history1_runner
+    FROM chapter_history2_runner
     GROUP BY
         chapter,
         _section
@@ -1986,7 +2016,7 @@ FROM
     LEFT JOIN doorsplit_golds_history2_runner ee
     ON a.split_number = ee.split_number AND a.run_id = ee.run_id */
 
-    LEFT JOIN chapter_history1_runner c
+    LEFT JOIN chapter_history2_runner c
     ON a.run_id = c.run_id AND a.chapter = c.chapter
 
     LEFT JOIN section_history3_runner d
