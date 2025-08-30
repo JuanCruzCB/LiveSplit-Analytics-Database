@@ -1090,211 +1090,80 @@ ON golds._section = cumulative._section;
 
 --#region PACES
 
-/* Getting the pace (AND best pace) of each run after each split_name */
+/* History of all paces of all runs, for as long as each run lasted. The pace is simply the cumulative sum of the LRT/RTA time split per split. */
+
+DROP TABLE IF EXISTS pace_history1_runner;
+CREATE TABLE pace_history1_runner AS
+SELECT
+    run_id,
+    split_number,
+    split_name,
+    chapter,
+    _section,
+    SUM(lrt_time) OVER(PARTITION BY run_id ORDER BY split_number) AS lrt_pace,
+    SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_number) AS rta_pace
+FROM doorsplit_history3_runner
+ORDER BY
+    run_id,
+    split_number;
+
+/* Add the rank of each pace from the history relative to that split. Also add readable LRT and RTA pace. */
+
+DROP TABLE IF EXISTS pace_history2_runner;
+CREATE TABLE pace_history2_runner AS
+SELECT
+    run_id,
+    split_number,
+    split_name,
+    chapter,
+    _section,
+    RANK() OVER(PARTITION BY split_number ORDER BY lrt_pace) AS lrt_pace_rank,
+    lrt_pace,
+    LTRIM(TO_CHAR(lrt_pace, 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_formatted,
+    rta_pace,
+    LTRIM(TO_CHAR(rta_pace, 'HH24:MI:SS.FF3'), '0:') AS rta_pace_formatted
+FROM pace_history1_runner
+ORDER BY
+    run_id,
+    split_number;
+
+/* Best overall pace for each split. */
 
 DROP TABLE IF EXISTS best_paces_runner;
 CREATE TABLE best_paces_runner AS
 SELECT
-    pace.*,
-    best_pace,
-    --avg_pace,
-    -- median_pace,
-    pace AS pace2,
-    best_pace AS best_pace2--,
-    --avg_pace AS avg_pace2,
-    --median_pace AS median_pace2
-FROM
-(
-    SELECT
-        aa.split_number,
-        aa.run_id,
-        aa.split_name,
-        COUNT(*) AS number_of_splits,
-        SUM(bb.lrt_time) AS pace
-    FROM
-    (
-        SELECT
-            *
-        FROM doorsplit_history3_runner a
-    ) aa
+    run_id,
+    split_number,
+    split_name,
+    chapter,
+    _section,
+    lrt_pace,
+    lrt_pace_formatted,
+    rta_pace,
+    rta_pace_formatted
+FROM pace_history2_runner
+WHERE lrt_pace_rank = 1
+ORDER BY split_number;
 
-    JOIN
-    (
-        SELECT
-            *
-        FROM doorsplit_history3_runner a
-    ) bb
-    ON aa.split_number >= bb.split_number AND aa.run_id = bb.run_id
-    GROUP BY
-        aa.run_id,
-        aa.split_name,
-        aa.split_number
-    HAVING COUNT(*) = aa.split_number
-    ORDER BY
-        aa.run_id,
-        aa.split_number
-) pace
+/* The average and median paces for each doorsplit, along with well formatted versions. */
 
-LEFT JOIN
-(
-    SELECT
-        split_name,
-        split_number,
-        MIN(pace) AS best_pace--,
-        --AVG(pace)::DECIMAL AS avg_pace,
-        --CAST(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY pace) AS DECIMAL) AS median_pace
-    FROM
-    (
-        SELECT
-            aa.split_number,
-            aa.run_id,
-            aa.split_name,
-            COUNT(*) AS number_of_splits,
-            SUM(bb.lrt_time) AS pace
-        FROM
-        (
-            SELECT
-                *
-            FROM doorsplit_history3_runner a
-        ) aa
-
-        JOIN
-        (
-            SELECT
-                *
-            FROM doorsplit_history3_runner a
-        ) bb
-        ON aa.split_number >= bb.split_number AND aa.run_id = bb.run_id
-        GROUP BY
-            aa.run_id,
-            aa.split_name,
-            aa.split_number
-        ORDER BY
-            aa.run_id,
-            aa.split_number
-    )
-    WHERE run_id > 0 AND number_of_splits = split_number
-    GROUP BY
-        split_name,
-        split_number
-    ORDER BY split_number
-) best_pace
-ON pace.split_number = best_pace.split_number;
-
-/* ??? */
-
-DROP TABLE IF EXISTS best_paces_history1_runner;
-CREATE TABLE best_paces_history1_runner AS
+DROP TABLE IF EXISTS avg_med_paces_runner;
+CREATE TABLE avg_med_paces_runner AS
 SELECT
     split_number,
-    run_id,
     split_name,
-    number_of_splits,
-    pace,
-    best_pace,
-    pace2,
-    best_pace2,
-    pace <= min OR min IS NULL AS was_best_pace,
-    min AS best_pace_at_that_time,
-    min AS best_pace_at_that_time2,
-    --avg_pace,
-    --median_pace,
-    --avg_pace2,
-    --median_pace2,
-    RANK() OVER (PARTITION BY split_number ORDER BY pace) AS rank_pace
-FROM
-(
-    SELECT
-        a.split_number,
-        a.run_id,
-        a.split_name,
-        a.number_of_splits,
-        a.pace,
-        a.best_pace,
-        a.pace2,
-        a.best_pace2,
-        --a.avg_pace,
-        --a.median_pace,
-        --a.avg_pace2,
-        --a.median_pace2,
-        MIN(b.pace) AS min,
-        MIN(b.pace2) AS min2
-    FROM best_paces_runner a
-
-    LEFT JOIN best_paces_runner b
-    ON a.split_number = b.split_number AND a.run_id > b.run_id
-    GROUP BY
-        a.split_number,
-        a.run_id,
-        a.split_name,
-        a.number_of_splits,
-        a.pace,
-        a.best_pace,
-        a.pace2,
-        a.best_pace2--,
-        --a.avg_pace,
-        --a.median_pace,
-        --a.avg_pace2,
-        --a.median_pace2
-) a
-ORDER BY
-    split_number DESC,
-    run_id;
-
-/* ??? */
-
-DROP TABLE IF EXISTS best_paces_history2_runner;
-CREATE TABLE best_paces_history2_runner AS
-SELECT
-    a.*,
-    pace_rank_at_that_time,
-    finished_paces,
-    finished_paces_at_that_time
-FROM best_paces_history1_runner a
-
-LEFT JOIN
-(
-    SELECT
-        split_number,
-        COUNT(*) AS finished_paces
-    FROM best_paces_history1_runner
-    GROUP BY 1
-) c
-ON a.split_number = c.split_number
-
-LEFT JOIN
-(
-    SELECT
-        *
-    FROM
-    (
-        SELECT
-            a.*,
-            b.pace AS pace_time3,
-            b.run_id AS id2,
-            RANK() OVER (PARTITION BY a.split_number, a.run_id ORDER BY b.pace) AS pace_rank_at_that_time
-        FROM best_paces_history1_runner a
-
-        JOIN best_paces_history1_runner b
-        ON a.split_number = b.split_number AND a.run_id >= b.run_id
-    ) a
-    WHERE run_id = id2
-) d
-ON a.split_number = d.split_number AND a.run_id = d.run_id
-
-LEFT JOIN
-(
-    SELECT
-        a.split_number,
-        a.run_id,
-        COUNT(*) AS finished_paces_at_that_time
-    FROM best_paces_history1_runner a
-
-    JOIN best_paces_history1_runner b
-    ON a.split_number = b.split_number AND a.run_id >= b.run_id
-    GROUP BY 1, 2
-) e
-ON a.split_number = e.split_number AND a.run_id = e.run_id;
+    chapter,
+    _section,
+    AVG(lrt_pace) AS lrt_pace_avg,
+    LTRIM(TO_CHAR(AVG(lrt_pace), 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_avg_formatted,
+    PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_pace) AS lrt_pace_med,
+    LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_pace), 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_med_formatted
+FROM pace_history2_runner
+GROUP BY
+    split_number,
+    split_name,
+    chapter,
+    _section;
 
 --#endregion
 
@@ -1397,8 +1266,8 @@ FROM
         a.rta_time_formatted,
         e.lrt_time AS ds_gold,
         e.lrt_time_formatted AS ds_gold_formatted,
-        pace,
-        pace2,
+        lrt_pace,
+        lrt_pace_formatted,
         best_pace,
         best_pace2,
         chapter_time,
@@ -1638,7 +1507,7 @@ FROM
         ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_number ORDER BY id2 DESC) AS rang
     FROM doorsplit_history3_runner a
 
-    LEFT JOIN best_paces_history2_runner b
+    LEFT JOIN pace_history2_runner b
     ON a.run_id = b.run_id AND a.split_number = b.split_number
 
     LEFT JOIN
