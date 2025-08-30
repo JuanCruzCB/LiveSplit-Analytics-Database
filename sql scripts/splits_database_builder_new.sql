@@ -489,11 +489,19 @@ DROP TABLE IF EXISTS doorsplit_history3_runner;
 CREATE TABLE doorsplit_history3_runner AS
 SELECT
     run_id,
-    ds.split_number,
+    ds1.split_number,
     defs.split_name,
     chapter,
     _section,
-    RANK() OVER (PARTITION BY ds.split_number ORDER BY lrt_time) AS lrt_time_rank,
+    (
+         SELECT
+            COUNT(*)
+         FROM doorsplit_history2_runner ds2
+         WHERE ds2.split_number = ds1.split_number
+            AND ds2.run_id <= ds1.run_id
+            AND ds2.lrt_time < ds1.lrt_time
+    ) + 1 AS lrt_time_rank_at_that_time,
+    RANK() OVER (PARTITION BY ds1.split_number ORDER BY lrt_time) AS lrt_time_rank,
     lrt_time,
     lrt_time_formatted,
     rta_time,
@@ -506,23 +514,23 @@ SELECT
     run_ended_at,
     run_duration,
     CASE
-        WHEN ds.split_number = 1 THEN
+        WHEN ds1.split_number = 1 THEN
             run_started_at
         ELSE
             run_started_at + run_cumulative_rta_lag
     END AS split_started_at,
     CASE
-        WHEN ds.split_number = 123 THEN
+        WHEN ds1.split_number = 123 THEN
             run_ended_at
         ELSE
             run_started_at + run_cumulative_rta
     END AS split_ended_at
-FROM doorsplit_history2_runner ds
+FROM doorsplit_history2_runner ds1
 
 LEFT JOIN default_split_names defs
-ON ds.split_number = defs.split_number
+ON ds1.split_number = defs.split_number
 ORDER BY
-    ds.split_number,
+    ds1.split_number,
     run_id;
 
 /* Total number of times each doorsplit has been finished in the history. */
@@ -665,125 +673,33 @@ LEFT JOIN
 ) cumulative
 ON golds.split_number = cumulative.split_number;
 
-/* TODO: This needs to be cleaned out and shortened, using doorsplit_history3_runner and/or doorsplit_golds2_runner. We want gold_at_the_time, gold_rank_at_the_time, overall gold_rank and golded_split (boolean). */
+/* The history of all golds ever obtained for each split, chronologically. */
 
-/* DROP TABLE IF EXISTS doorsplit_golds_history1_runner;
-CREATE TABLE doorsplit_golds_history1_runner AS
+DROP TABLE IF EXISTS doorsplit_golds_history_runner;
+CREATE TABLE doorsplit_golds_history_runner AS
 SELECT
     run_id,
     split_number,
     split_name,
-    gold,
-    LTRIM(TO_CHAR(lrt_time, 'HH24:MI:SS.FF3'), '0:') AS lrt_time_formatted,
-    RANK() OVER (PARTITION BY split_number ORDER BY lrt_time) AS rank_split,
+    chapter,
+    _section,
+    lrt_time_rank,
     lrt_time,
-    gold_formatted,
-    run_started_at,
+    lrt_time_formatted,
+    rta_time,
+    rta_time_formatted,
     finished_run,
-    final_lrt_time,
     pb,
-    lrt_time <= min OR min IS NULL AS golded_split,
-    min AS gold_at_that_time
-FROM
-(
-    SELECT
-        a.split_number,
-        a.split_name,
-        c.lrt_time AS gold,
-        c.lrt_time_formatted AS gold_formatted,
-        a.lrt_time,
-        a.run_id,
-        a.run_started_at,
-        a.finished_run,
-        a.final_lrt_time,
-        a.pb,
-        a.lrt_time_formatted,
-        MIN(b.lrt_time) AS min,
-        MIN(b.lrt_time_formatted) AS min2
-    FROM doorsplit_history3_runner a
-
-    LEFT JOIN doorsplit_history3_runner b
-    ON a.split_number = b.split_number AND a.run_id > b.run_id
-
-    LEFT JOIN
-    (
-        SELECT DISTINCT
-            split_number,
-            split_name,
-            lrt_time,
-            lrt_time_formatted
-        FROM doorsplit_golds1_runner
-    ) c
-    ON a.split_number = c.split_number
-    GROUP BY
-        a.split_number,
-        a.split_name,
-        c.lrt_time,
-        c.lrt_time_formatted,
-        a.lrt_time,
-        a.run_id,
-        a.run_started_at,
-        a.finished_run,
-        a.final_lrt_time,
-        a.pb,
-        a.lrt_time_formatted
-)
-ORDER BY split_number, run_id; */
-
-/* ??? */
-
-/*DROP TABLE IF EXISTS doorsplit_golds_history2_runner;
-CREATE TABLE doorsplit_golds_history2_runner AS
-SELECT
-    a.*,
-    split_rank_at_that_time,
-    finished_splits,
-    finished_splits_at_that_time
-FROM doorsplit_golds_history1_runner a
-
-LEFT JOIN
-(
-    SELECT
-        split_number,
-        COUNT(*) AS finished_splits
-    FROM doorsplit_golds_history1_runner
-    GROUP BY split_number
-) c
-ON a.split_number = c.split_number
-
-LEFT JOIN
-(
-    SELECT
-        *
-    FROM
-    (
-        SELECT
-            a.*,
-            b.lrt_time,
-            b.run_id AS run_id2,
-            RANK() OVER (PARTITION BY a.split_number, a.run_id ORDER BY b.lrt_time) AS split_rank_at_that_time
-        FROM doorsplit_golds_history1_runner a
-
-        JOIN doorsplit_golds_history1_runner b
-        ON a.split_number = b.split_number AND a.run_id >= b.run_id
-    ) a
-    WHERE run_id = run_id2
-) d
-ON a.split_number = d.split_number AND a.run_id = d.run_id
-
-LEFT JOIN
-(
-    SELECT
-        a.split_number,
-        a.run_id,
-        COUNT(*) AS finished_splits_at_that_time
-    FROM doorsplit_golds_history1_runner a
-
-    JOIN doorsplit_golds_history1_runner b
-    ON a.split_number = b.split_number AND a.run_id >= b.run_id
-    GROUP BY a.split_number, a.run_id
-) e
-ON a.split_number = e.split_number AND a.run_id = e.run_id;*/
+    final_lrt_time,
+    final_rta_time,
+    run_started_at,
+    run_ended_at,
+    run_duration,
+    split_started_at,
+    split_ended_at
+FROM doorsplit_history3_runner
+WHERE lrt_time_rank_at_that_time = 1
+ORDER BY split_number, run_id;
 
 --#endregion DOORS
 
