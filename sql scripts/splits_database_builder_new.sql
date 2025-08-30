@@ -1169,70 +1169,61 @@ GROUP BY
 
 --#region RESETS
 
-/* Resets history to get the % of resets for each split_name */
+/* Getting the total number of times each doorsplit was finished as well as the total attempts overall. */
 
-DROP TABLE IF EXISTS resets_history1_runner;
-CREATE TABLE resets_history1_runner AS
-SELECT
-    a.*,
-    attempts
-FROM
-(
-    SELECT
-        split_number,
-        split_name,
-        COUNT(*) AS runs
-    FROM doorsplit_history3_runner
-    GROUP BY
-        split_number,
-        split_name
-    ORDER BY split_number
-) a
-
-CROSS JOIN
-(
-    SELECT
-        COUNT(*) AS attempts
-    FROM attempts_data5_runner
-    GROUP BY runner_name
-) b;
-
-/* ??? */
-
-DROP TABLE IF EXISTS resets_history2_runner;
-CREATE TABLE resets_history2_runner AS
+DROP TABLE IF EXISTS resets1_runner;
+CREATE TABLE resets1_runner AS
 SELECT
     split_number,
     split_name,
-    runs,
-    resets,
-    (ROUND(resets) / ROUND(
-        CASE
-            WHEN lag IS NULL THEN
-                runs + resets
-            ELSE
-                lag
-        END)
-    ) * 100 AS percentage_resets
-FROM
+    chapter,
+    _section,
+    times_finished,
+    attempts.total_attempts
+FROM finished_doorsplits_runner fin
+CROSS JOIN
 (
     SELECT
-        *,
-        LAG(runs) OVER() AS lag
-    FROM
-    (
-        SELECT
-            split_number,
-            split_name,
-            runs,
-            CASE
-                WHEN LAG(runs) OVER () - runs IS NULL THEN
-                    attempts - runs
-                ELSE
-                    LAG(runs) OVER () - runs
-            END AS resets
-        FROM resets_history1_runner
-    )
+        COUNT(*) AS total_attempts
+    FROM attempts_data5_runner
+) attempts;
+
+/* Getting the percentage of times we reset on each doorsplit.
+This is calculated by doing A / (A + B) where:
+
+A = 'The number of times we started the split but never finished it'
+B = 'The number of times we finished the split'
+
+The number of times we started a split but never finished it is obtained by doing:
+
+'number of times we finished the previous split' - 'number of times we finished the current split'
+
+except for the very first split where we do:
+
+'total attempts' - 'number of times we finished the first split'. */
+
+DROP TABLE IF EXISTS resets2_runner;
+CREATE TABLE resets2_runner AS
+SELECT
+    split_number,
+    split_name,
+    chapter,
+    _section,
+    times_finished,
+    times_reset,
+    ROUND((times_reset * 100.0) / COALESCE(times_finished_prev,  times_reset + times_finished), 4) AS percentage_reset,
+    total_attempts
+FROM (
+    SELECT
+        split_number,
+        split_name,
+        chapter,
+        _section,
+        times_finished,
+        total_attempts,
+        LAG(times_finished) OVER () AS times_finished_prev,
+        COALESCE(LAG(times_finished) OVER () - times_finished, total_attempts - times_finished) AS times_reset
+    FROM resets1_runner
 );
 
 --#endregion
