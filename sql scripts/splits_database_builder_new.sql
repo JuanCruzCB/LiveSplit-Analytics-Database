@@ -825,212 +825,242 @@ SELECT
     LTRIM(TO_CHAR(sum_of_med, 'HH24:MI:SS.FF3'), '0:') AS sum_of_med_formatted
 FROM avg_med_cumulative;
 
-/* Getting the chapter golds and chapter averages. */
+/* For each individual chapter, we get the gold (fastest time ever on that chapter) with ties if there are any. */
 
 DROP TABLE IF EXISTS chapter_golds1_runner;
 CREATE TABLE chapter_golds1_runner AS
 SELECT
-    ch_golds.*,
-    avg_chapter_time,
-    median_chapter_time AS median_chapter_time
-FROM
-(
-    SELECT
-        aa.*,
-        bb.run_id,
-        run_started_at,
-        finished_run,
-        final_lrt_time,
-        pb
-    FROM
-    (
-        SELECT
-            chapter,
-            MIN(chapter_time) AS chapter_gold
-        FROM
-        (
-            SELECT a.*
-            FROM
-            (
-                SELECT
-                    chapter,
-                    run_id,
-                    SUM(lrt_time) AS chapter_time,
-                    COUNT(*) AS number_of_splits
-                FROM doorsplit_history3_runner
-                GROUP BY chapter, run_id
-                ORDER BY chapter
-            ) a
+    run_id,
+    chapter,
+    _section,
+    ROW_NUMBER(*) OVER(PARTITION BY chapter_time) AS chapter_time_occurrence,
+    chapter_time,
+    chapter_time_formatted,
+    finished_run,
+    pb,
+    final_lrt_time,
+    final_rta_time,
+    run_started_at,
+    run_ended_at,
+    run_duration,
+    chapter_started_at,
+    chapter_ended_at
+FROM chapter_history2_runner
+WHERE chapter_time_rank = 1
+ORDER BY
+    chapter,
+    run_id;
 
-            JOIN splits_per_chapter b
-            ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
-        )
-        GROUP BY 1
-        ORDER BY 1
-    ) aa
-
-    LEFT JOIN
-    (
-        SELECT *
-        FROM
-        (
-            SELECT a.*
-            FROM
-            (
-                SELECT
-                    chapter,
-                    run_id,
-                    run_started_at,
-                    finished_run,
-                    final_lrt_time,
-                    pb,
-                    SUM(lrt_time) AS chapter_time,
-                    COUNT(*) AS number_of_splits
-                FROM doorsplit_history3_runner
-                GROUP BY
-                    chapter,
-                    run_id,
-                    run_started_at,
-                    finished_run,
-                    final_lrt_time,
-                    pb
-                ORDER BY chapter
-            ) a
-
-            JOIN splits_per_chapter b
-            ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
-        )
-    ) bb
-    ON aa.chapter_gold = bb.chapter_time
-) ch_golds
-
-LEFT JOIN
-(
-    SELECT
-        chapter,
-        AVG(chapter_time) AS avg_chapter_time
-    FROM
-    (
-        SELECT a.*
-        FROM
-        (
-            SELECT
-                chapter,
-                run_id,
-                run_started_at,
-                finished_run,
-                final_lrt_time,
-                pb,
-                SUM(lrt_time) AS chapter_time,
-                COUNT(*) AS number_of_splits
-            FROM doorsplit_history3_runner
-            GROUP BY
-                chapter,
-                run_id,
-                run_started_at,
-                finished_run,
-                final_lrt_time,
-                pb
-        ) a
-
-        JOIN splits_per_chapter b
-        ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
-    )
-    GROUP BY 1
-    ORDER BY 1
-) ch_average
-ON ch_golds.chapter = ch_average.chapter
-
-LEFT JOIN
-(
-    SELECT
-        chapter,
-        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY chapter_time) AS median_chapter_time
-    FROM
-    (
-        SELECT a.*
-        FROM
-        (
-            SELECT
-                chapter,
-                run_id,
-                run_started_at,
-                finished_run,
-                final_lrt_time,
-                pb,
-                SUM(lrt_time) AS chapter_time,
-                COUNT(*) AS number_of_splits
-            FROM doorsplit_history3_runner
-            GROUP BY
-                chapter,
-                run_id,
-                run_started_at,
-                finished_run,
-                final_lrt_time,
-                pb
-        ) a
-
-        JOIN splits_per_chapter b
-        ON a.chapter = b.chapter AND a.number_of_splits = b.number_of_splits
-    )
-    GROUP BY 1
-    ORDER BY 1
-) ch_median
-ON ch_golds.chapter = ch_median.chapter;
-
-/* ??? */
+/* Add the cumulative sum of best by chapters. */
 
 DROP TABLE IF EXISTS chapter_golds2_runner;
 CREATE TABLE chapter_golds2_runner AS
 SELECT
-    chapter,
-    run_id,
-    run_started_at,
-    final_lrt_time,
-    pb,
-    chapter_gold,
-    cumulative_chapter_gold,
-    avg_chapter_time,
-    median_chapter_time
-FROM
+    golds.run_id,
+    golds.chapter,
+    golds._section,
+    golds.chapter_time_occurrence,
+    golds.chapter_time,
+    golds.chapter_time_formatted,
+    cumulative.sum_of_best,
+    LTRIM(TO_CHAR(cumulative.sum_of_best, 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted,
+    golds.finished_run,
+    golds.pb,
+    golds.final_lrt_time,
+    golds.final_rta_time,
+    golds.run_started_at,
+    golds.run_ended_at,
+    golds.run_duration,
+    golds.chapter_started_at,
+    golds.chapter_ended_at
+FROM chapter_golds1_runner golds
+
+LEFT JOIN
 (
     SELECT
-        a.chapter,
-        a.chapter_gold,
-        a.run_id,
-        a.run_started_at,
-        a.finished_run,
-        a.final_lrt_time,
-        a.pb,
-        a.avg_chapter_time,
-        a.median_chapter_time,
-        SUM(b.chapter_gold) AS cumulative_chapter_gold
-    FROM chapter_golds1_runner a
-
-    LEFT JOIN
+        chapter,
+        SUM(chapter_time) OVER(ORDER BY chapter) AS sum_of_best
+    FROM
     (
         SELECT DISTINCT
             chapter,
-            chapter_gold
+            chapter_time
         FROM chapter_golds1_runner
-    ) b
-    ON a.chapter >= b.chapter
-    GROUP BY
-        a.chapter,
-        a.chapter_gold,
-        a.run_id,
-        a.run_started_at,
-        a.finished_run,
-        a.final_lrt_time,
-        a.pb,
-        a.avg_chapter_time,
-        a.median_chapter_time
-) a
-ORDER BY chapter;
+    )
+) cumulative
+ON golds.chapter = cumulative.chapter;
 
 --#endregion
 
 --#region SECTIONS
+
+/* Section times of all the attempts */
+
+DROP TABLE IF EXISTS section_history1_runner;
+CREATE TABLE section_history1_runner AS
+SELECT
+    _section,
+    run_id,
+    run_started_at,
+    finished_run,
+    final_lrt_time,
+    pb,
+    SUM(section_time) AS section_time
+FROM
+(
+    SELECT
+        a.*
+    FROM
+    (
+        SELECT
+            _section,
+            run_id,
+            run_started_at,
+            finished_run,
+            final_lrt_time,
+            pb,
+            SUM(lrt_time) AS section_time,
+            COUNT(*) AS number_of_splits
+        FROM doorsplit_history3_runner
+        GROUP BY
+            _section,
+            run_id,
+            run_started_at,
+            finished_run,
+            final_lrt_time,
+            pb
+    ) a
+
+    JOIN splits_per_section b
+    ON a._section = b._section AND a.number_of_splits = b.number_of_splits
+)
+GROUP BY
+    1,
+    2,
+    run_started_at,
+    finished_run,
+    final_lrt_time,
+    pb
+ORDER BY 1;
+
+/* Putting the section golds in LiveSplit format (previously numbers) */
+
+DROP TABLE IF EXISTS section_history2_runner;
+CREATE TABLE section_history2_runner AS
+SELECT
+    *,
+    section_time AS section_time2,
+    RANK() OVER (PARTITION BY _section ORDER BY section_time) AS rank_section
+FROM section_history1_runner
+ORDER BY
+    CASE
+        WHEN _section='Village' THEN
+            1
+        WHEN _section='Castle' THEN
+            2
+        ELSE
+            3
+    END,
+    section_time;
+
+/* ??? */
+
+DROP TABLE IF EXISTS section_history3_runner;
+CREATE TABLE section_history3_runner AS
+SELECT
+    _section,
+    run_id,
+    run_started_at,
+    finished_run,
+    final_lrt_time,
+    pb,
+    section_time,
+    section_time2,
+    section_time <= min OR min IS NULL AS golded_section,
+    min AS section_gold_at_that_time,
+    rank_section,
+    section_rank_at_that_time,
+    finished_sections,
+    finished_sections_at_that_time
+FROM
+(
+    SELECT
+        a._section,
+        a.run_id,
+        a.run_started_at,
+        a.finished_run,
+        a.final_lrt_time,
+        a.pb,
+        a.section_time,
+        a.section_time2,
+        MIN(b.section_time) AS min,
+        MIN(b.section_time2) AS min2,
+        a.rank_section,
+        finished_sections,
+        finished_sections_at_that_time,
+        section_rank_at_that_time
+    FROM section_history2_runner a
+
+    LEFT JOIN section_history2_runner b
+    ON a._section = b._section AND a.run_id > b.run_id
+
+    LEFT JOIN
+    (
+        SELECT
+            _section,
+            COUNT(*) AS finished_sections
+        FROM section_history2_runner
+        GROUP BY _section
+    ) c
+    ON a._section = c._section
+
+    LEFT JOIN
+    (
+        SELECT
+            *
+        FROM
+        (
+            SELECT
+                a.*,
+                b.section_time AS section_time3,
+                b.run_id AS id2,
+                RANK() OVER (PARTITION BY a._section, a.run_id ORDER BY b.section_time) AS section_rank_at_that_time
+            FROM section_history2_runner a
+
+            JOIN section_history2_runner b
+            ON a._section = b._section AND a.run_id >= b.run_id
+        ) a
+        WHERE run_id = id2
+    ) d
+    ON a._section = d._section AND a.run_id = d.run_id
+
+    LEFT JOIN
+    (
+        SELECT
+            a._section,
+            a.run_id,
+            COUNT(*) AS finished_sections_at_that_time
+        FROM section_history2_runner a
+
+        JOIN section_history2_runner b
+        ON a._section = b._section AND a.run_id >= b.run_id
+        GROUP BY 1, 2
+    ) e
+    ON a._section = e._section AND a.run_id = e.run_id
+    GROUP BY
+        a.rank_section,
+        finished_sections,
+        finished_sections_at_that_time,
+        section_rank_at_that_time,
+        a._section,
+        a.run_id,
+        a.run_started_at,
+        a.finished_run,
+        a.final_lrt_time,
+        a.pb,
+        a.section_time,
+        a.section_time2
+) a;
 
 /* Sections golds AND averages */
 
@@ -1273,174 +1303,6 @@ ORDER BY
         ELSE
             3
     END;
-
-/* Section times of all the attempts */
-
-DROP TABLE IF EXISTS section_history1_runner;
-CREATE TABLE section_history1_runner AS
-SELECT
-    _section,
-    run_id,
-    run_started_at,
-    finished_run,
-    final_lrt_time,
-    pb,
-    SUM(section_time) AS section_time
-FROM
-(
-    SELECT
-        a.*
-    FROM
-    (
-        SELECT
-            _section,
-            run_id,
-            run_started_at,
-            finished_run,
-            final_lrt_time,
-            pb,
-            SUM(lrt_time) AS section_time,
-            COUNT(*) AS number_of_splits
-        FROM doorsplit_history3_runner
-        GROUP BY
-            _section,
-            run_id,
-            run_started_at,
-            finished_run,
-            final_lrt_time,
-            pb
-    ) a
-
-    JOIN splits_per_section b
-    ON a._section = b._section AND a.number_of_splits = b.number_of_splits
-)
-GROUP BY
-    1,
-    2,
-    run_started_at,
-    finished_run,
-    final_lrt_time,
-    pb
-ORDER BY 1;
-
-/* Putting the section golds in LiveSplit format (previously numbers) */
-
-DROP TABLE IF EXISTS section_history2_runner;
-CREATE TABLE section_history2_runner AS
-SELECT
-    *,
-    section_time AS section_time2,
-    RANK() OVER (PARTITION BY _section ORDER BY section_time) AS rank_section
-FROM section_history1_runner
-ORDER BY
-    CASE
-        WHEN _section='Village' THEN
-            1
-        WHEN _section='Castle' THEN
-            2
-        ELSE
-            3
-    END,
-    section_time;
-
-/* ??? */
-
-DROP TABLE IF EXISTS section_history3_runner;
-CREATE TABLE section_history3_runner AS
-SELECT
-    _section,
-    run_id,
-    run_started_at,
-    finished_run,
-    final_lrt_time,
-    pb,
-    section_time,
-    section_time2,
-    section_time <= min OR min IS NULL AS golded_section,
-    min AS section_gold_at_that_time,
-    rank_section,
-    section_rank_at_that_time,
-    finished_sections,
-    finished_sections_at_that_time
-FROM
-(
-    SELECT
-        a._section,
-        a.run_id,
-        a.run_started_at,
-        a.finished_run,
-        a.final_lrt_time,
-        a.pb,
-        a.section_time,
-        a.section_time2,
-        MIN(b.section_time) AS min,
-        MIN(b.section_time2) AS min2,
-        a.rank_section,
-        finished_sections,
-        finished_sections_at_that_time,
-        section_rank_at_that_time
-    FROM section_history2_runner a
-
-    LEFT JOIN section_history2_runner b
-    ON a._section = b._section AND a.run_id > b.run_id
-
-    LEFT JOIN
-    (
-        SELECT
-            _section,
-            COUNT(*) AS finished_sections
-        FROM section_history2_runner
-        GROUP BY _section
-    ) c
-    ON a._section = c._section
-
-    LEFT JOIN
-    (
-        SELECT
-            *
-        FROM
-        (
-            SELECT
-                a.*,
-                b.section_time AS section_time3,
-                b.run_id AS id2,
-                RANK() OVER (PARTITION BY a._section, a.run_id ORDER BY b.section_time) AS section_rank_at_that_time
-            FROM section_history2_runner a
-
-            JOIN section_history2_runner b
-            ON a._section = b._section AND a.run_id >= b.run_id
-        ) a
-        WHERE run_id = id2
-    ) d
-    ON a._section = d._section AND a.run_id = d.run_id
-
-    LEFT JOIN
-    (
-        SELECT
-            a._section,
-            a.run_id,
-            COUNT(*) AS finished_sections_at_that_time
-        FROM section_history2_runner a
-
-        JOIN section_history2_runner b
-        ON a._section = b._section AND a.run_id >= b.run_id
-        GROUP BY 1, 2
-    ) e
-    ON a._section = e._section AND a.run_id = e.run_id
-    GROUP BY
-        a.rank_section,
-        finished_sections,
-        finished_sections_at_that_time,
-        section_rank_at_that_time,
-        a._section,
-        a.run_id,
-        a.run_started_at,
-        a.finished_run,
-        a.final_lrt_time,
-        a.pb,
-        a.section_time,
-        a.section_time2
-) a;
 
 --#endregion
 
