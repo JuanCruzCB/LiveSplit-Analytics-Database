@@ -524,13 +524,7 @@ SELECT
             run_ended_at
         ELSE
             run_started_at + run_cumulative_rta
-    END AS split_ended_at,
-    CASE
-        WHEN MAX(ds1.split_number) OVER(PARTITION BY run_id) <> 123 THEN
-            MAX(ds1.split_number) OVER(PARTITION BY run_id) + 1
-        ELSE
-            NULL
-    END AS split_number_reset
+    END AS split_ended_at
 FROM doorsplit_history2_runner ds1
 
 LEFT JOIN default_split_names defs
@@ -538,6 +532,45 @@ ON ds1.split_number = defs.split_number
 ORDER BY
     ds1.split_number,
     run_id;
+
+/* Add the number of the split where the run reset, which is NULL if the run was finished. Also add the duration of the split where the run reset. */
+
+DROP TABLE IF EXISTS doorsplit_history4_runner;
+CREATE TABLE doorsplit_history4_runner AS
+SELECT
+    run_id,
+    split_number,
+    split_name,
+    chapter,
+    _section,
+    lrt_time_rank_at_that_time,
+    lrt_time_rank,
+    lrt_time,
+    lrt_time_formatted,
+    rta_time,
+    rta_time_formatted,
+    finished_run,
+    pb,
+    final_lrt_time,
+    final_rta_time,
+    run_started_at,
+    run_ended_at,
+    run_duration,
+    split_started_at,
+    split_ended_at,
+    CASE
+        WHEN MAX(split_number) OVER(PARTITION BY run_id) <> 123 THEN
+            MAX(split_number) OVER(PARTITION BY run_id) + 1
+        ELSE
+            NULL
+    END AS split_number_reset,
+    CASE
+        WHEN MIN(run_ended_at::TIMESTAMP(0) - split_ended_at::TIMESTAMP(0)) OVER(PARTITION BY run_id) > '0'::INTERVAL THEN
+            MIN(run_ended_at::TIMESTAMP(0) - split_ended_at::TIMESTAMP(0)) OVER(PARTITION BY run_id)
+        ELSE
+            NULL
+    END AS split_reset_duration
+FROM doorsplit_history3_runner;
 
 /* Total number of times each doorsplit has been finished and has been golded in the history. */
 
@@ -550,7 +583,7 @@ SELECT DISTINCT
     _section,
     COUNT(*) OVER(PARTITION BY split_number) AS times_finished,
     SUM(CASE WHEN lrt_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) OVER(PARTITION BY split_number) AS times_golded
-FROM doorsplit_history3_runner
+FROM doorsplit_history4_runner
 ORDER BY split_number;
 
 /* The average and median times for each doorsplit, along with well formatted versions. Also cumulative average and median times. */
@@ -568,7 +601,7 @@ WITH avg_med AS
         LTRIM(TO_CHAR(AVG(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_avg_formatted,
         PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS lrt_time_med,
         LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_med_formatted
-    FROM doorsplit_history3_runner
+    FROM doorsplit_history4_runner
     GROUP BY
         split_number,
         split_name,
@@ -631,7 +664,7 @@ SELECT
     run_duration,
     split_started_at,
     split_ended_at
-FROM doorsplit_history3_runner
+FROM doorsplit_history4_runner
 WHERE lrt_time_rank = 1
 ORDER BY
     split_number,
@@ -704,7 +737,7 @@ SELECT
     run_duration,
     split_started_at,
     split_ended_at
-FROM doorsplit_history3_runner
+FROM doorsplit_history4_runner
 WHERE lrt_time_rank_at_that_time = 1
 ORDER BY
     split_number,
@@ -742,7 +775,7 @@ FROM
         MAX(split_ended_at) OVER(PARTITION BY run_id, chapter) AS chapter_ended_at,
         SUM(lrt_time) OVER(PARTITION BY run_id, chapter) AS chapter_time,
         *
-    FROM doorsplit_history3_runner
+    FROM doorsplit_history4_runner
 ) ds
 INNER JOIN splits_per_chapter per
 ON per.chapter = ds.chapter AND per.number_of_splits = ds.num_splits
@@ -934,7 +967,7 @@ FROM
         MAX(split_ended_at) OVER(PARTITION BY run_id, _section) AS section_ended_at,
         SUM(lrt_time) OVER(PARTITION BY run_id, _section) AS section_time,
         *
-    FROM doorsplit_history3_runner
+    FROM doorsplit_history4_runner
 ) ds
 INNER JOIN splits_per_section per
 ON per._section = ds._section AND per.number_of_splits = ds.num_splits
@@ -1108,7 +1141,7 @@ SELECT
     _section,
     SUM(lrt_time) OVER(PARTITION BY run_id ORDER BY split_number) AS lrt_pace,
     SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_number) AS rta_pace
-FROM doorsplit_history3_runner
+FROM doorsplit_history4_runner
 ORDER BY
     run_id,
     split_number;
@@ -1175,7 +1208,17 @@ GROUP BY
 
 --#region RESETS
 
-/* Getting the total number of times each doorsplit was finished as well as the total attempts overall. */
+/* For each doorsplit, get:
+
+- The total number of times it was finished
+- The total number of resets: this is the number of times we started the split but didn't finish it. It is obtained by doing:
+    'number of times we finished the previous split' - 'number of times we finished the current split'.
+
+    except for the very first split where we do:
+
+    'total attempts' - 'number of times we finished the first split'.
+- The total attempts overall.
+*/
 
 DROP TABLE IF EXISTS resets1_runner;
 CREATE TABLE resets1_runner AS
@@ -1185,8 +1228,10 @@ SELECT
     chapter,
     _section,
     times_finished,
+    LAG(times_finished) OVER () AS times_finished_prev,
+    COALESCE(LAG(times_finished) OVER () - times_finished, total_attempts - times_finished) AS times_reset,
     attempts.total_attempts
-FROM finished_doorsplits_runner fin
+FROM finished_doorsplits_runner
 CROSS JOIN
 (
     SELECT
@@ -1194,19 +1239,7 @@ CROSS JOIN
     FROM attempts_data5_runner
 ) attempts;
 
-/* Getting the percentage of times we reset on each doorsplit.
-This is calculated by doing A / B where:
-
-A = 'The number of times we started the current split but never finished it'
-B = 'The number of times we finished the previous split'
-
-The number of times we started a split but never finished it is obtained by doing:
-
-'number of times we finished the previous split' - 'number of times we finished the current split'
-
-except for the very first split where we do:
-
-'total attempts' - 'number of times we finished the first split'. */
+/* Getting the percentage of times we reset on each doorsplit. */
 
 DROP TABLE IF EXISTS resets2_runner;
 CREATE TABLE resets2_runner AS
@@ -1219,18 +1252,7 @@ SELECT
     times_reset,
     ROUND((times_reset * 100.0) / COALESCE(times_finished_prev,  times_reset + times_finished), 4) AS percentage_reset,
     total_attempts
-FROM (
-    SELECT
-        split_number,
-        split_name,
-        chapter,
-        _section,
-        times_finished,
-        total_attempts,
-        LAG(times_finished) OVER () AS times_finished_prev,
-        COALESCE(LAG(times_finished) OVER () - times_finished, total_attempts - times_finished) AS times_reset
-    FROM resets1_runner
-);
+FROM resets1_runner;
 
 --#endregion
 
@@ -1245,12 +1267,14 @@ SELECT
     split_number,
     split_name,
     lrt_time_formatted,
+    split_number_reset,
+    split_reset_duration,
     CASE
         WHEN split_number = 14 AND lrt_time <= '1:36.0'::INTERVAL THEN
             '1-a No dive'
         WHEN split_number = 14 AND lrt_time <= '1:42.0'::INTERVAL THEN
             '1-b Late dive'
-        WHEN split_number = 14 OR (split_number = 13 AND split_number_reset = 14) THEN
+        WHEN split_number = 14 OR (split_number = 13 AND split_number_reset = 14 AND split_reset_duration >= '56'::INTERVAL) THEN
             '1-c Early dive'
         ELSE
             ''
@@ -1415,7 +1439,7 @@ SELECT
         ELSE
             ''
     END AS key_card_pattern
-FROM doorsplit_history3_runner
+FROM doorsplit_history4_runner
 WHERE split_number IN(13, 14, 26, 30, 38, 41, 43, 64, 65, 74, 110, 112, 113, 117);
 
 /* Get the percentage of each RNG pattern for the categorized RNG patterns. */
@@ -1448,7 +1472,7 @@ FROM
                 COUNT(*) AS runs
             FROM splits_overview_runner a
 
-            LEFT JOIN doorsplit_history3_runner b
+            LEFT JOIN doorsplit_history4_runner b
             ON a.run_id = b.run_id AND a.split_number = b.split_number
             WHERE
             (a.split_number = 14 AND a.lrt_time < '117'::INTERVAL) OR
@@ -1475,7 +1499,7 @@ FROM
                 COUNT(*) AS total
             FROM splits_overview_runner a
 
-            LEFT JOIN doorsplit_history3_runner b
+            LEFT JOIN doorsplit_history4_runner b
             ON a.run_id = b.run_id AND a.split_number = b.split_number
             WHERE
             (a.split_number = 14 AND a.lrt_time < '117'::INTERVAL) OR
@@ -1778,8 +1802,8 @@ FROM
 
 /* Same but to get the consecutive patterns (LIKE how many early dives IN a row */
 
-DROP TABLE IF EXISTS consecutive_patterns_runner;
-CREATE TABLE consecutive_patterns_runner AS
+DROP TABLE IF EXISTS consecutive_rng_patterns_runner;
+CREATE TABLE consecutive_rng_patterns_runner AS
 SELECT
     *
 FROM
@@ -1802,7 +1826,7 @@ FROM
                 ROW_NUMBER() OVER (PARTITION BY lago_pattern ORDER BY a.run_id) AS row_number2
             FROM splits_overview_runner a
 
-            LEFT JOIN doorsplit_history3_runner b
+            LEFT JOIN doorsplit_history4_runner b
             ON a.run_id = b.run_id AND a.split_number = b.split_number
             WHERE
             (a.split_number = 14 AND a.lrt_time < '117'::INTERVAL) OR
@@ -2227,7 +2251,7 @@ FROM
         finished_paces,
         finished_paces_at_that_time,
         ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_number ORDER BY id2 DESC) AS rang
-    FROM doorsplit_history3_runner a
+    FROM doorsplit_history4_runner a
 
     LEFT JOIN pace_history2_runner b
     ON a.run_id = b.run_id AND a.split_number = b.split_number
@@ -2274,7 +2298,7 @@ FROM
             SELECT
                 run_id,
                 MAX(split_number) + 1 AS max
-            FROM doorsplit_history3_runner
+            FROM doorsplit_history4_runner
             GROUP BY run_id
         ) a
 
@@ -2283,7 +2307,7 @@ FROM
             SELECT DISTINCT
                 split_number,
                 split_name
-            FROM doorsplit_history3_runner
+            FROM doorsplit_history4_runner
         ) b
         ON a.max = b.split_number
     ) resets
