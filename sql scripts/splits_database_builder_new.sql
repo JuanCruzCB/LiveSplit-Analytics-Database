@@ -524,7 +524,13 @@ SELECT
             run_ended_at
         ELSE
             run_started_at + run_cumulative_rta
-    END AS split_ended_at
+    END AS split_ended_at,
+    CASE
+        WHEN MAX(ds1.split_number) OVER(PARTITION BY run_id) <> 123 THEN
+            MAX(ds1.split_number) OVER(PARTITION BY run_id) + 1
+        ELSE
+            NULL
+    END AS split_number_reset
 FROM doorsplit_history2_runner ds1
 
 LEFT JOIN default_split_names defs
@@ -1189,10 +1195,10 @@ CROSS JOIN
 ) attempts;
 
 /* Getting the percentage of times we reset on each doorsplit.
-This is calculated by doing A / (A + B) where:
+This is calculated by doing A / B where:
 
-A = 'The number of times we started the split but never finished it'
-B = 'The number of times we finished the split'
+A = 'The number of times we started the current split but never finished it'
+B = 'The number of times we finished the previous split'
 
 The number of times we started a split but never finished it is obtained by doing:
 
@@ -1228,358 +1234,194 @@ FROM (
 
 --#endregion
 
---#region MAIN TABLE
-
-/* Final main table that has everything */
-
-DROP TABLE IF EXISTS splits_overview_runner;
-CREATE TABLE splits_overview_runner AS
-SELECT
-    *
-FROM
-(
-    SELECT
-        a.run_id,
-        a.split_name,
-        a.chapter,
-        a._section,
-        a.lrt_time,
-        a.lrt_time_formatted,
-        a.run_started_at,
-        a.finished_run,
-        a.final_lrt_time,
-        a.pb,
-        a.split_number,
-        a.final_rta_time,
-        a.run_ended_at,
-        a.run_duration,
-        a.rta_time,
-        a.rta_time_formatted,
-        e.lrt_time AS ds_gold,
-        e.lrt_time_formatted AS ds_gold_formatted,
-        lrt_pace,
-        lrt_pace_formatted,
-        best_pace,
-        best_pace2,
-        chapter_time,
-        chapter_time_formatted,
-        section_time,
-        section_time2,
-        chapter_gold,
-        section_gold,
-        CASE
-            WHEN a.finished_run THEN
-                NULL
-            ELSE
-                split_of_reset
-        END AS split_of_reset,
-        CASE
-            WHEN a.finished_run THEN
-                NULL
-            ELSE
-                cle2_reset
-        END AS cle2_reset,
-        CASE
-            WHEN a.split_number = 30 AND a.lrt_time <= '54.5'::INTERVAL THEN
-                '2-a Fast Mendez'
-            WHEN a.split_number = 30 AND a.lrt_time <= '57'::INTERVAL THEN
-                '2-b Medium Mendez'
-            WHEN a.split_number = 30 THEN
-                '2-c Slow Mendez'
-            ELSE
-                ''
-        END AS mendez_pattern,
-        CASE
-            WHEN a.split_number = 14 AND a.lrt_time <= '96'::INTERVAL THEN
-                '1-a No dive'
-            WHEN a.split_number = 14 AND a.lrt_time <= '102'::INTERVAL THEN
-                '1-b Late dive'
-            WHEN a.split_number = 14 OR (a.split_number = 13 AND cle2_reset = 14) THEN
-                '1-c Early dive'
-            ELSE
-                ''
-        END AS lago_pattern,
-        CASE
-            WHEN a.split_number = 65 AND a.lrt_time <= '31'::INTERVAL THEN
-                '3-a Perfect catapult'
-            WHEN a.split_number = 65 AND a.lrt_time <= '33'::INTERVAL THEN
-                '3-b Stagger catapult'
-            WHEN a.split_number = 65 THEN
-                '3-c Boulder catapult'
-            ELSE
-                ''
-        END AS catapult_pattern,
-        CASE
-            WHEN a.split_number = 26 AND a.lrt_time <= '113'::INTERVAL THEN
-                '4-a Great cabin'
-            WHEN a.split_number = 26 AND a.lrt_time <= '118'::INTERVAL THEN
-                '4-b Good cabin'
-            WHEN a.split_number = 26 AND a.lrt_time <= '123'::INTERVAL THEN
-                '4-c Average cabin'
-            WHEN a.split_number = 26 AND a.lrt_time <= '130'::INTERVAL THEN
-                '4-d Bad cabin'
-            WHEN a.split_number = 26 THEN
-                '4-e Terrible cabin'
-            ELSE
-                ''
-        END AS cabin_pattern,
-        CASE
-            WHEN a.split_number=38 AND a.lrt_time<='196'::INTERVAL THEN
-                '5-a Great water hall'
-            WHEN a.split_number=38 AND a.lrt_time<='199'::INTERVAL THEN
-                '5-b Good water hall'
-            WHEN a.split_number=38 AND a.lrt_time<='202'::INTERVAL THEN
-                '5-c Average water hall'
-            WHEN a.split_number=38 AND a.lrt_time<='205'::INTERVAL THEN
-                '5-d Bad water hall'
-            WHEN a.split_number=38 THEN
-                '5-e Terrible water hall'
-            ELSE
-                ''
-        END AS water_hall_pattern,
-        CASE
-            WHEN a.split_number=41 AND a.lrt_time<='82'::INTERVAL THEN
-                '6-a Great novis 1'
-            WHEN a.split_number=41 AND a.lrt_time<='84'::INTERVAL THEN
-                '6-b Good novis 1'
-            WHEN a.split_number=41 AND a.lrt_time<='86'::INTERVAL THEN
-                '6-c Average novis 1'
-            WHEN a.split_number=41 AND a.lrt_time<='88'::INTERVAL THEN
-                '6-d Bad novis 1'
-            WHEN a.split_number=41 THEN
-                '6-e Terrible novis 1'
-            ELSE
-                ''
-        END AS novis1_pattern,
-        CASE
-            WHEN a.split_number=43 AND a.lrt_time<='102'::INTERVAL THEN
-                '7-a Great gallery'
-            WHEN a.split_number=43 AND a.lrt_time<='105'::INTERVAL THEN
-                '7-b Good gallery'
-            WHEN a.split_number=43 AND a.lrt_time<='108'::INTERVAL THEN
-                '7-c Average gallery'
-            WHEN a.split_number=43 AND a.lrt_time<='110'::INTERVAL THEN
-                '7-d Bad gallery'
-            WHEN a.split_number=43 THEN
-                '7-e Terrible gallery'
-            ELSE
-                ''
-        END AS gallery_pattern,
-        CASE
-            WHEN a.split_number=64 AND a.lrt_time<='33.5'::INTERVAL THEN
-                '8-a Great novis 2'
-            WHEN a.split_number=64 AND a.lrt_time<='35'::INTERVAL THEN
-                '8-b Good novis 2'
-            WHEN a.split_number=64 AND a.lrt_time<='38'::INTERVAL THEN
-                '8-c Average novis 2'
-            WHEN a.split_number=64 AND a.lrt_time<='40'::INTERVAL THEN
-                '8-d Bad novis 2'
-            WHEN a.split_number=64 THEN
-                '8-e Terrible novis 2'
-            ELSE
-                ''
-        END AS novis2_pattern,
-        CASE
-            WHEN a.split_number=74 AND a.lrt_time<='77'::INTERVAL THEN
-                '9-a Great novis 3'
-            WHEN a.split_number=74 AND a.lrt_time<='79'::INTERVAL THEN
-                '9-b Good novis 3'
-            WHEN a.split_number=74 AND a.lrt_time<='82'::INTERVAL THEN
-                '9-c Average novis 3'
-            WHEN a.split_number=74 AND a.lrt_time<='85'::INTERVAL THEN
-                '9-d Bad novis 3'
-            WHEN a.split_number=74 THEN
-                '9-e Terrible novis 3'
-            ELSE
-                ''
-        END AS novis3_pattern,
-        CASE
-            WHEN a.split_number=110 AND a.lrt_time<='95.5'::INTERVAL THEN
-                '90-a Great u3'
-            WHEN a.split_number=110 AND a.lrt_time<='99'::INTERVAL THEN
-                '90-b Good u3'
-            WHEN a.split_number=110 AND a.lrt_time<='101'::INTERVAL THEN
-                '90-c Average u3'
-            WHEN a.split_number=110 AND a.lrt_time<='103'::INTERVAL THEN
-                '90-d Bad u3'
-            WHEN a.split_number=110 THEN
-                '90-e Terrible u3'
-            ELSE
-                ''
-        END AS u3_pattern,
-        CASE
-            WHEN a.split_number=112 AND a.lrt_time<='139'::INTERVAL THEN
-                '91-a Great Krauser'
-            WHEN a.split_number=112 AND a.lrt_time<='142'::INTERVAL THEN
-                '91-b Good Krauser'
-            WHEN a.split_number=112 AND a.lrt_time<='145'::INTERVAL THEN
-                '91-c Average Krauser'
-            WHEN a.split_number=112 AND a.lrt_time<='148'::INTERVAL THEN
-                '91-d Bad Krauser'
-            WHEN a.split_number=112 THEN
-                '91-e Terrible Krauser'
-            ELSE
-                ''
-        END AS krauser_pattern,
-        CASE
-            WHEN a.split_number=113 AND a.lrt_time<='111'::INTERVAL THEN
-                '92-a Great war room'
-            WHEN a.split_number=113 AND a.lrt_time<='114'::INTERVAL THEN
-                '92-b Good war room'
-            WHEN a.split_number=113 AND a.lrt_time<='117'::INTERVAL THEN
-                '92-c Average war room'
-            WHEN a.split_number=113 AND a.lrt_time<='120'::INTERVAL THEN
-                '92-d Bad war room'
-            WHEN a.split_number=113 THEN
-                '92-e Terrible war room'
-            ELSE
-                ''
-        END AS war_room_pattern,
-        CASE
-            WHEN a.split_number=117 AND a.lrt_time<='55'::INTERVAL THEN
-                '93-a Great key card'
-            WHEN a.split_number=117 AND a.lrt_time<='57'::INTERVAL THEN
-                '93-b Good key card'
-            WHEN a.split_number=117 AND a.lrt_time<='59'::INTERVAL THEN
-                '93-c Average key card'
-            WHEN a.split_number=117 AND a.lrt_time<='61'::INTERVAL THEN
-                '93-d Bad key card'
-            WHEN a.split_number=117 THEN
-                '93-e Terrible key card'
-            ELSE
-                ''
-        END AS key_card_pattern,
-        CASE
-            WHEN extract(DOW FROM a.run_started_at) = 0 THEN
-                7
-            ELSE
-                extract(DOW FROM a.run_started_at)
-        END AS weekday, -- Can probably be simplified using the MOD function
-        h.lrt_pb AS pb_at_that_time,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ --golded_split,
-        golded_chapter,
-        golded_section,
-        was_best_pace,
-        cumulative_chapter_gold,
-        cumulative_section_gold,
-        cumulative_door_gold,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ --gold_at_that_time,
-        chapter_gold_at_that_time,
-        section_gold_at_that_time,
-        best_pace_at_that_time,
-        best_pace_at_that_time2,
-        --door_avg,
-        --door_median,
-        --door_avg2,
-        --door_median2,
-        median_chapter_time,
-        --avg_pace,
-        --median_pace,
-        --avg_pace2,
-        --median_pace2,
-        section_median,
-        'runner' AS runner_name,
-        rank_chapter,
-        chapter_rank_at_that_time,
-        finished_chapters,
-        finished_chapters_at_that_time,
-        rank_section,
-        section_rank_at_that_time,
-        finished_sections,
-        finished_sections_at_that_time,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- rank_split,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- split_rank_at_that_time,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- finished_splits,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- finished_splits_at_that_time,
-        rank_pace,
-        pace_rank_at_that_time,
-        finished_paces,
-        finished_paces_at_that_time,
-        ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_number ORDER BY id2 DESC) AS rang
-    FROM doorsplit_history3_runner a
-
-    LEFT JOIN pace_history2_runner b
-    ON a.run_id = b.run_id AND a.split_number = b.split_number
-
-    LEFT JOIN
-    (
-        SELECT
-            split_number,
-            lrt_time_formatted,
-            lrt_time,
-            MIN(sum_of_best) AS cumulative_door_gold
-        FROM doorsplit_golds2_runner
-        GROUP BY
-            split_number,
-            lrt_time_formatted,
-            lrt_time
-    ) e
-    ON a.split_number = e.split_number
-
-    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed
-    LEFT JOIN doorsplit_golds_history2_runner ee
-    ON a.split_number = ee.split_number AND a.run_id = ee.run_id */
-
-    LEFT JOIN chapter_history2_runner c
-    ON a.run_id = c.run_id AND a.chapter = c.chapter
-
-    LEFT JOIN section_history2_runner d
-    ON a.run_id = d.run_id AND a._section = d._section
-
-    LEFT JOIN chapter_golds2_runner f
-    ON a.chapter = f.chapter
-
-    LEFT JOIN section_golds2_runner g
-    ON a._section = g._section
-
-    LEFT JOIN
-    (
-        SELECT
-            a.run_id,
-            b.split_name AS split_of_reset,
-            b.split_number AS cle2_reset
-        FROM
-        (
-            SELECT
-                run_id,
-                MAX(split_number) + 1 AS max
-            FROM doorsplit_history3_runner
-            GROUP BY run_id
-        ) a
-
-        LEFT JOIN
-        (
-            SELECT DISTINCT
-                split_number,
-                split_name
-            FROM doorsplit_history3_runner
-        ) b
-        ON a.max = b.split_number
-    ) resets
-    ON resets.run_id = a.run_id
-
-    LEFT JOIN
-    (
-        SELECT
-            *,
-            run_id::DECIMAL AS id2
-        FROM pb_history_runner
-    ) h
-    ON a.run_id > h.id2
-) aa
-WHERE rang = 1
-ORDER BY
-    run_id,
-    split_number;
-
---#endregion
-
 --#region RNG
 
-/* RNG splits (LIKE Lago) to get the % of patterns (LIKE % of early dives, etc.) */
+/* Categorize the times obtained in certain splits into different RNG patterns. */
 
-DROP TABLE IF EXISTS rng_splits_runner;
-CREATE TABLE rng_splits_runner AS
+DROP TABLE IF EXISTS rng_patterns_categories_runner;
+CREATE TABLE rng_patterns_categories_runner AS
+SELECT
+    run_id,
+    split_number,
+    split_name,
+    lrt_time_formatted,
+    CASE
+        WHEN split_number = 14 AND lrt_time <= '1:36.0'::INTERVAL THEN
+            '1-a No dive'
+        WHEN split_number = 14 AND lrt_time <= '1:42.0'::INTERVAL THEN
+            '1-b Late dive'
+        WHEN split_number = 14 OR (split_number = 13 AND split_number_reset = 14) THEN
+            '1-c Early dive'
+        ELSE
+            ''
+    END AS lago_pattern,
+    CASE
+        WHEN split_number = 26 AND lrt_time <= '1:53.0'::INTERVAL THEN
+            '4-a Great cabin'
+        WHEN split_number = 26 AND lrt_time <= '1:58.0'::INTERVAL THEN
+            '4-b Good cabin'
+        WHEN split_number = 26 AND lrt_time <= '2:03.0'::INTERVAL THEN
+            '4-c Average cabin'
+        WHEN split_number = 26 AND lrt_time <= '2:10.0'::INTERVAL THEN
+            '4-d Bad cabin'
+        WHEN split_number = 26 THEN
+            '4-e Terrible cabin'
+        ELSE
+            ''
+    END AS cabin_pattern,
+    CASE
+        WHEN split_number = 30 AND lrt_time <= '54.5'::INTERVAL THEN
+            '2-a Fast Mendez'
+        WHEN split_number = 30 AND lrt_time <= '57'::INTERVAL THEN
+            '2-b Medium Mendez'
+        WHEN split_number = 30 THEN
+            '2-c Slow Mendez'
+        ELSE
+            ''
+    END AS mendez_pattern,
+    CASE
+        WHEN split_number = 38 AND lrt_time <= '3:16.0'::INTERVAL THEN
+            '5-a Great water hall'
+        WHEN split_number = 38 AND lrt_time <= '3:19.0'::INTERVAL THEN
+            '5-b Good water hall'
+        WHEN split_number = 38 AND lrt_time <= '3:22.0'::INTERVAL THEN
+            '5-c Average water hall'
+        WHEN split_number = 38 AND lrt_time <= '3:25.0'::INTERVAL THEN
+            '5-d Bad water hall'
+        WHEN split_number = 38 THEN
+            '5-e Terrible water hall'
+        ELSE
+            ''
+    END AS water_hall_pattern,
+    CASE
+        WHEN split_number = 41 AND lrt_time <= '1:22.0'::INTERVAL THEN
+            '6-a Great novis 1'
+        WHEN split_number = 41 AND lrt_time <= '1:24.0'::INTERVAL THEN
+            '6-b Good novis 1'
+        WHEN split_number = 41 AND lrt_time <= '1:26.0'::INTERVAL THEN
+            '6-c Average novis 1'
+        WHEN split_number = 41 AND lrt_time <= '1:28.0'::INTERVAL THEN
+            '6-d Bad novis 1'
+        WHEN split_number = 41 THEN
+            '6-e Terrible novis 1'
+        ELSE
+            ''
+    END AS novis1_pattern,
+    CASE
+        WHEN split_number = 43 AND lrt_time <= '1:42.0'::INTERVAL THEN
+            '7-a Great gallery'
+        WHEN split_number = 43 AND lrt_time <= '1:45.0'::INTERVAL THEN
+            '7-b Good gallery'
+        WHEN split_number = 43 AND lrt_time <= '1:48.0'::INTERVAL THEN
+            '7-c Average gallery'
+        WHEN split_number = 43 AND lrt_time <= '1:50.0'::INTERVAL THEN
+            '7-d Bad gallery'
+        WHEN split_number = 43 THEN
+            '7-e Terrible gallery'
+        ELSE
+            ''
+    END AS gallery_pattern,
+    CASE
+        WHEN split_number = 64 AND lrt_time <= '33.5'::INTERVAL THEN
+            '8-a Great novis 2'
+        WHEN split_number = 64 AND lrt_time <= '35'::INTERVAL THEN
+            '8-b Good novis 2'
+        WHEN split_number = 64 AND lrt_time <= '38'::INTERVAL THEN
+            '8-c Average novis 2'
+        WHEN split_number = 64 AND lrt_time <= '40'::INTERVAL THEN
+            '8-d Bad novis 2'
+        WHEN split_number = 64 THEN
+            '8-e Terrible novis 2'
+        ELSE
+            ''
+    END AS novis2_pattern,
+    CASE
+        WHEN split_number = 65 AND lrt_time <= '31'::INTERVAL THEN
+            '3-a Perfect catapult'
+        WHEN split_number = 65 AND lrt_time <= '33'::INTERVAL THEN
+            '3-b Stagger catapult'
+        WHEN split_number = 65 THEN
+            '3-c Boulder catapult'
+        ELSE
+            ''
+    END AS catapult_pattern,
+    CASE
+        WHEN split_number = 74 AND lrt_time <= '1:17.0'::INTERVAL THEN
+            '9-a Great novis 3'
+        WHEN split_number = 74 AND lrt_time <= '1:19.0'::INTERVAL THEN
+            '9-b Good novis 3'
+        WHEN split_number = 74 AND lrt_time <= '1:22.0'::INTERVAL THEN
+            '9-c Average novis 3'
+        WHEN split_number = 74 AND lrt_time <= '1:25.0'::INTERVAL THEN
+            '9-d Bad novis 3'
+        WHEN split_number = 74 THEN
+            '9-e Terrible novis 3'
+        ELSE
+            ''
+    END AS novis3_pattern,
+    CASE
+        WHEN split_number = 110 AND lrt_time <= '1:35.5'::INTERVAL THEN
+            '90-a Great u3'
+        WHEN split_number = 110 AND lrt_time <= '1:39.0'::INTERVAL THEN
+            '90-b Good u3'
+        WHEN split_number = 110 AND lrt_time <= '1:41.0'::INTERVAL THEN
+            '90-c Average u3'
+        WHEN split_number = 110 AND lrt_time <= '1:43.0'::INTERVAL THEN
+            '90-d Bad u3'
+        WHEN split_number = 110 THEN
+            '90-e Terrible u3'
+        ELSE
+            ''
+    END AS u3_pattern,
+    CASE
+        WHEN split_number = 112 AND lrt_time <= '2:19.0'::INTERVAL THEN
+            '91-a Great Krauser'
+        WHEN split_number = 112 AND lrt_time <= '2:22.0'::INTERVAL THEN
+            '91-b Good Krauser'
+        WHEN split_number = 112 AND lrt_time <= '2:25.0'::INTERVAL THEN
+            '91-c Average Krauser'
+        WHEN split_number = 112 AND lrt_time <= '2:28.0'::INTERVAL THEN
+            '91-d Bad Krauser'
+        WHEN split_number = 112 THEN
+            '91-e Terrible Krauser'
+        ELSE
+            ''
+    END AS krauser_pattern,
+    CASE
+        WHEN split_number = 113 AND lrt_time <= '1:51.0'::INTERVAL THEN
+            '92-a Great war room'
+        WHEN split_number = 113 AND lrt_time <= '1:54.0'::INTERVAL THEN
+            '92-b Good war room'
+        WHEN split_number = 113 AND lrt_time <= '1:57.0'::INTERVAL THEN
+            '92-c Average war room'
+        WHEN split_number = 113 AND lrt_time <= '2:00.0'::INTERVAL THEN
+            '92-d Bad war room'
+        WHEN split_number = 113 THEN
+            '92-e Terrible war room'
+        ELSE
+            ''
+    END AS war_room_pattern,
+    CASE
+        WHEN split_number = 117 AND lrt_time <= '55'::INTERVAL THEN
+            '93-a Great key card'
+        WHEN split_number = 117 AND lrt_time <= '57'::INTERVAL THEN
+            '93-b Good key card'
+        WHEN split_number = 117 AND lrt_time <= '59'::INTERVAL THEN
+            '93-c Average key card'
+        WHEN split_number = 117 AND lrt_time <= '1:01.0'::INTERVAL THEN
+            '93-d Bad key card'
+        WHEN split_number = 117 THEN
+            '93-e Terrible key card'
+        ELSE
+            ''
+    END AS key_card_pattern
+FROM doorsplit_history3_runner
+WHERE split_number IN(13, 14, 26, 30, 38, 41, 43, 64, 65, 74, 110, 112, 113, 117);
+
+/* Get the percentage of each RNG pattern for the categorized RNG patterns. */
+
+DROP TABLE IF EXISTS rng_patterns_percentages_runner;
+CREATE TABLE rng_patterns_percentages_runner AS
 SELECT
     pattern,
     SUBSTR(pattern, 4, LENGTH(pattern) - 3) AS pattern2,
@@ -2283,6 +2125,183 @@ FROM
     GROUP BY 1
 )
 ORDER BY lago_pattern;
+
+--#endregion
+
+--#region MAIN TABLE
+
+/* Final main table that has everything */
+
+DROP TABLE IF EXISTS splits_overview_runner;
+CREATE TABLE splits_overview_runner AS
+SELECT
+    *
+FROM
+(
+    SELECT
+        a.run_id,
+        a.split_name,
+        a.chapter,
+        a._section,
+        a.lrt_time,
+        a.lrt_time_formatted,
+        a.run_started_at,
+        a.finished_run,
+        a.final_lrt_time,
+        a.pb,
+        a.split_number,
+        a.final_rta_time,
+        a.run_ended_at,
+        a.run_duration,
+        a.rta_time,
+        a.rta_time_formatted,
+        e.lrt_time AS ds_gold,
+        e.lrt_time_formatted AS ds_gold_formatted,
+        lrt_pace,
+        lrt_pace_formatted,
+        best_pace,
+        best_pace2,
+        chapter_time,
+        chapter_time_formatted,
+        section_time,
+        section_time2,
+        chapter_gold,
+        section_gold,
+        CASE
+            WHEN a.finished_run THEN
+                NULL
+            ELSE
+                split_of_reset
+        END AS split_of_reset,
+        CASE
+            WHEN a.finished_run THEN
+                NULL
+            ELSE
+                cle2_reset
+        END AS cle2_reset,
+        /* TODO: Select rng pattern classification */
+        CASE
+            WHEN extract(DOW FROM a.run_started_at) = 0 THEN
+                7
+            ELSE
+                extract(DOW FROM a.run_started_at)
+        END AS weekday, -- Can probably be simplified using the MOD function
+        h.lrt_pb AS pb_at_that_time,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ --golded_split,
+        golded_chapter,
+        golded_section,
+        was_best_pace,
+        cumulative_chapter_gold,
+        cumulative_section_gold,
+        cumulative_door_gold,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ --gold_at_that_time,
+        chapter_gold_at_that_time,
+        section_gold_at_that_time,
+        best_pace_at_that_time,
+        best_pace_at_that_time2,
+        --door_avg,
+        --door_median,
+        --door_avg2,
+        --door_median2,
+        median_chapter_time,
+        --avg_pace,
+        --median_pace,
+        --avg_pace2,
+        --median_pace2,
+        section_median,
+        'runner' AS runner_name,
+        rank_chapter,
+        chapter_rank_at_that_time,
+        finished_chapters,
+        finished_chapters_at_that_time,
+        rank_section,
+        section_rank_at_that_time,
+        finished_sections,
+        finished_sections_at_that_time,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- rank_split,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- split_rank_at_that_time,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- finished_splits,
+        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- finished_splits_at_that_time,
+        rank_pace,
+        pace_rank_at_that_time,
+        finished_paces,
+        finished_paces_at_that_time,
+        ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_number ORDER BY id2 DESC) AS rang
+    FROM doorsplit_history3_runner a
+
+    LEFT JOIN pace_history2_runner b
+    ON a.run_id = b.run_id AND a.split_number = b.split_number
+
+    LEFT JOIN
+    (
+        SELECT
+            split_number,
+            lrt_time_formatted,
+            lrt_time,
+            MIN(sum_of_best) AS cumulative_door_gold
+        FROM doorsplit_golds2_runner
+        GROUP BY
+            split_number,
+            lrt_time_formatted,
+            lrt_time
+    ) e
+    ON a.split_number = e.split_number
+
+    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed
+    LEFT JOIN doorsplit_golds_history2_runner ee
+    ON a.split_number = ee.split_number AND a.run_id = ee.run_id */
+
+    LEFT JOIN chapter_history2_runner c
+    ON a.run_id = c.run_id AND a.chapter = c.chapter
+
+    LEFT JOIN section_history2_runner d
+    ON a.run_id = d.run_id AND a._section = d._section
+
+    LEFT JOIN chapter_golds2_runner f
+    ON a.chapter = f.chapter
+
+    LEFT JOIN section_golds2_runner g
+    ON a._section = g._section
+
+    LEFT JOIN
+    (
+        SELECT
+            a.run_id,
+            b.split_name AS split_of_reset,
+            b.split_number AS cle2_reset
+        FROM
+        (
+            SELECT
+                run_id,
+                MAX(split_number) + 1 AS max
+            FROM doorsplit_history3_runner
+            GROUP BY run_id
+        ) a
+
+        LEFT JOIN
+        (
+            SELECT DISTINCT
+                split_number,
+                split_name
+            FROM doorsplit_history3_runner
+        ) b
+        ON a.max = b.split_number
+    ) resets
+    ON resets.run_id = a.run_id
+
+    LEFT JOIN
+    (
+        SELECT
+            *,
+            run_id::DECIMAL AS id2
+        FROM pb_history_runner
+    ) h
+    ON a.run_id > h.id2
+) aa
+WHERE rang = 1
+ORDER BY
+    run_id,
+    split_number;
 
 --#endregion
 
