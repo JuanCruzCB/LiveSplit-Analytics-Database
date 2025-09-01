@@ -1264,891 +1264,789 @@ DROP TABLE IF EXISTS rng_patterns_categories_runner;
 CREATE TABLE rng_patterns_categories_runner AS
 SELECT
     run_id,
-    split_number,
-    split_name,
-    lrt_time_formatted,
-    split_number_reset,
-    split_reset_duration,
-    CASE
-        WHEN split_number = 14 AND lrt_time <= '1:36.0'::INTERVAL THEN
-            '1-a No dive'
-        WHEN split_number = 14 AND lrt_time <= '1:42.0'::INTERVAL THEN
-            '1-b Late dive'
-        WHEN split_number = 14 OR (split_number = 13 AND split_number_reset = 14 AND split_reset_duration >= '56'::INTERVAL) THEN
-            '1-c Early dive'
-        ELSE
-            ''
-    END AS lago_pattern,
-    CASE
-        WHEN split_number = 26 AND lrt_time <= '1:53.0'::INTERVAL THEN
-            '4-a Great cabin'
-        WHEN split_number = 26 AND lrt_time <= '1:58.0'::INTERVAL THEN
-            '4-b Good cabin'
-        WHEN split_number = 26 AND lrt_time <= '2:03.0'::INTERVAL THEN
-            '4-c Average cabin'
-        WHEN split_number = 26 AND lrt_time <= '2:10.0'::INTERVAL THEN
-            '4-d Bad cabin'
-        WHEN split_number = 26 THEN
-            '4-e Terrible cabin'
-        ELSE
-            ''
-    END AS cabin_pattern,
-    CASE
-        WHEN split_number = 30 AND lrt_time <= '54.5'::INTERVAL THEN
-            '2-a Fast Mendez'
-        WHEN split_number = 30 AND lrt_time <= '57'::INTERVAL THEN
-            '2-b Medium Mendez'
-        WHEN split_number = 30 THEN
-            '2-c Slow Mendez'
-        ELSE
-            ''
-    END AS mendez_pattern,
-    CASE
-        WHEN split_number = 38 AND lrt_time <= '3:16.0'::INTERVAL THEN
-            '5-a Great water hall'
-        WHEN split_number = 38 AND lrt_time <= '3:19.0'::INTERVAL THEN
-            '5-b Good water hall'
-        WHEN split_number = 38 AND lrt_time <= '3:22.0'::INTERVAL THEN
-            '5-c Average water hall'
-        WHEN split_number = 38 AND lrt_time <= '3:25.0'::INTERVAL THEN
-            '5-d Bad water hall'
-        WHEN split_number = 38 THEN
-            '5-e Terrible water hall'
-        ELSE
-            ''
-    END AS water_hall_pattern,
-    CASE
-        WHEN split_number = 41 AND lrt_time <= '1:22.0'::INTERVAL THEN
-            '6-a Great novis 1'
-        WHEN split_number = 41 AND lrt_time <= '1:24.0'::INTERVAL THEN
-            '6-b Good novis 1'
-        WHEN split_number = 41 AND lrt_time <= '1:26.0'::INTERVAL THEN
-            '6-c Average novis 1'
-        WHEN split_number = 41 AND lrt_time <= '1:28.0'::INTERVAL THEN
-            '6-d Bad novis 1'
-        WHEN split_number = 41 THEN
-            '6-e Terrible novis 1'
-        ELSE
-            ''
-    END AS novis1_pattern,
-    CASE
-        WHEN split_number = 43 AND lrt_time <= '1:42.0'::INTERVAL THEN
-            '7-a Great gallery'
-        WHEN split_number = 43 AND lrt_time <= '1:45.0'::INTERVAL THEN
-            '7-b Good gallery'
-        WHEN split_number = 43 AND lrt_time <= '1:48.0'::INTERVAL THEN
-            '7-c Average gallery'
-        WHEN split_number = 43 AND lrt_time <= '1:50.0'::INTERVAL THEN
-            '7-d Bad gallery'
-        WHEN split_number = 43 THEN
-            '7-e Terrible gallery'
-        ELSE
-            ''
-    END AS gallery_pattern,
-    CASE
-        WHEN split_number = 64 AND lrt_time <= '33.5'::INTERVAL THEN
-            '8-a Great novis 2'
-        WHEN split_number = 64 AND lrt_time <= '35'::INTERVAL THEN
-            '8-b Good novis 2'
-        WHEN split_number = 64 AND lrt_time <= '38'::INTERVAL THEN
-            '8-c Average novis 2'
-        WHEN split_number = 64 AND lrt_time <= '40'::INTERVAL THEN
-            '8-d Bad novis 2'
-        WHEN split_number = 64 THEN
-            '8-e Terrible novis 2'
-        ELSE
-            ''
-    END AS novis2_pattern,
-    CASE
-        WHEN split_number = 65 AND lrt_time <= '31'::INTERVAL THEN
-            '3-a Perfect catapult'
-        WHEN split_number = 65 AND lrt_time <= '33'::INTERVAL THEN
-            '3-b Stagger catapult'
-        WHEN split_number = 65 THEN
-            '3-c Boulder catapult'
-        ELSE
-            ''
-    END AS catapult_pattern,
-    CASE
-        WHEN split_number = 74 AND lrt_time <= '1:17.0'::INTERVAL THEN
-            '9-a Great novis 3'
-        WHEN split_number = 74 AND lrt_time <= '1:19.0'::INTERVAL THEN
-            '9-b Good novis 3'
-        WHEN split_number = 74 AND lrt_time <= '1:22.0'::INTERVAL THEN
-            '9-c Average novis 3'
-        WHEN split_number = 74 AND lrt_time <= '1:25.0'::INTERVAL THEN
-            '9-d Bad novis 3'
-        WHEN split_number = 74 THEN
-            '9-e Terrible novis 3'
-        ELSE
-            ''
-    END AS novis3_pattern,
-    CASE
-        WHEN split_number = 110 AND lrt_time <= '1:35.5'::INTERVAL THEN
-            '90-a Great u3'
-        WHEN split_number = 110 AND lrt_time <= '1:39.0'::INTERVAL THEN
-            '90-b Good u3'
-        WHEN split_number = 110 AND lrt_time <= '1:41.0'::INTERVAL THEN
-            '90-c Average u3'
-        WHEN split_number = 110 AND lrt_time <= '1:43.0'::INTERVAL THEN
-            '90-d Bad u3'
-        WHEN split_number = 110 THEN
-            '90-e Terrible u3'
-        ELSE
-            ''
-    END AS u3_pattern,
-    CASE
-        WHEN split_number = 112 AND lrt_time <= '2:19.0'::INTERVAL THEN
-            '91-a Great Krauser'
-        WHEN split_number = 112 AND lrt_time <= '2:22.0'::INTERVAL THEN
-            '91-b Good Krauser'
-        WHEN split_number = 112 AND lrt_time <= '2:25.0'::INTERVAL THEN
-            '91-c Average Krauser'
-        WHEN split_number = 112 AND lrt_time <= '2:28.0'::INTERVAL THEN
-            '91-d Bad Krauser'
-        WHEN split_number = 112 THEN
-            '91-e Terrible Krauser'
-        ELSE
-            ''
-    END AS krauser_pattern,
-    CASE
-        WHEN split_number = 113 AND lrt_time <= '1:51.0'::INTERVAL THEN
-            '92-a Great war room'
-        WHEN split_number = 113 AND lrt_time <= '1:54.0'::INTERVAL THEN
-            '92-b Good war room'
-        WHEN split_number = 113 AND lrt_time <= '1:57.0'::INTERVAL THEN
-            '92-c Average war room'
-        WHEN split_number = 113 AND lrt_time <= '2:00.0'::INTERVAL THEN
-            '92-d Bad war room'
-        WHEN split_number = 113 THEN
-            '92-e Terrible war room'
-        ELSE
-            ''
-    END AS war_room_pattern,
-    CASE
-        WHEN split_number = 117 AND lrt_time <= '55'::INTERVAL THEN
-            '93-a Great key card'
-        WHEN split_number = 117 AND lrt_time <= '57'::INTERVAL THEN
-            '93-b Good key card'
-        WHEN split_number = 117 AND lrt_time <= '59'::INTERVAL THEN
-            '93-c Average key card'
-        WHEN split_number = 117 AND lrt_time <= '1:01.0'::INTERVAL THEN
-            '93-d Bad key card'
-        WHEN split_number = 117 THEN
-            '93-e Terrible key card'
-        ELSE
-            ''
-    END AS key_card_pattern
-FROM doorsplit_history4_runner
-WHERE split_number IN(13, 14, 26, 30, 38, 41, 43, 64, 65, 74, 110, 112, 113, 117);
+    MAX(lago_pattern) FILTER (WHERE lago_pattern <> '') AS lago_pattern,
+    MAX(cabin_pattern) FILTER (WHERE cabin_pattern <> '') AS cabin_pattern,
+    MAX(mendez_pattern) FILTER (WHERE mendez_pattern <> '') AS mendez_pattern,
+    MAX(water_hall_pattern) FILTER (WHERE water_hall_pattern <> '') AS water_hall_pattern,
+    MAX(novis1_pattern) FILTER (WHERE novis1_pattern <> '') AS novis1_pattern,
+    MAX(gallery_pattern) FILTER (WHERE gallery_pattern <> '') AS gallery_pattern,
+    MAX(novis2_pattern) FILTER (WHERE novis2_pattern <> '') AS novis2_pattern,
+    MAX(catapult_pattern) FILTER (WHERE catapult_pattern <> '') AS catapult_pattern,
+    MAX(novis3_pattern) FILTER (WHERE novis3_pattern <> '') AS novis3_pattern,
+    MAX(u3_pattern) FILTER (WHERE u3_pattern <> '') AS u3_pattern,
+    MAX(krauser_pattern) FILTER (WHERE krauser_pattern <> '') AS krauser_pattern,
+    MAX(war_room_pattern) FILTER (WHERE war_room_pattern <> '') AS war_room_pattern,
+    MAX(key_card_pattern) FILTER (WHERE key_card_pattern <> '') AS key_card_pattern
+FROM
+(
+    SELECT
+        run_id,
+        split_number,
+        split_name,
+        lrt_time_formatted,
+        split_number_reset,
+        split_reset_duration,
+        CASE
+            WHEN split_number = 14 AND lrt_time <= '1:36.0'::INTERVAL THEN
+                '014-a No dive'
+            WHEN split_number = 14 AND lrt_time <= '1:42.0'::INTERVAL THEN
+                '014-b Late dive'
+            WHEN split_number = 14 OR (split_number = 13 AND split_number_reset = 14 AND split_reset_duration >= '59'::INTERVAL) THEN
+                '014-c Early dive' -- Needs to be >= '56'::INTERVAL normally
+            ELSE
+                ''
+        END AS lago_pattern,
+        CASE
+            WHEN split_number = 26 AND lrt_time <= '1:53.0'::INTERVAL THEN
+                '026-a Great cabin'
+            WHEN split_number = 26 AND lrt_time <= '1:58.0'::INTERVAL THEN
+                '026-b Good cabin'
+            WHEN split_number = 26 AND lrt_time <= '2:03.0'::INTERVAL THEN
+                '026-c Average cabin'
+            WHEN split_number = 26 AND lrt_time <= '2:10.0'::INTERVAL THEN
+                '026-d Bad cabin'
+            WHEN split_number = 26 THEN
+                '026-e Terrible cabin'
+            ELSE
+                ''
+        END AS cabin_pattern,
+        CASE
+            WHEN split_number = 30 AND lrt_time <= '54.5'::INTERVAL THEN
+                '030-a Fast Mendez'
+            WHEN split_number = 30 AND lrt_time <= '57'::INTERVAL THEN
+                '030-b Medium Mendez'
+            WHEN split_number = 30 THEN
+                '030-c Slow Mendez'
+            ELSE
+                ''
+        END AS mendez_pattern,
+        CASE
+            WHEN split_number = 38 AND lrt_time <= '3:16.0'::INTERVAL THEN
+                '038-a Great water hall'
+            WHEN split_number = 38 AND lrt_time <= '3:19.0'::INTERVAL THEN
+                '038-b Good water hall'
+            WHEN split_number = 38 AND lrt_time <= '3:22.0'::INTERVAL THEN
+                '038-c Average water hall'
+            WHEN split_number = 38 AND lrt_time <= '3:25.0'::INTERVAL THEN
+                '038-d Bad water hall'
+            WHEN split_number = 38 THEN
+                '038-e Terrible water hall'
+            ELSE
+                ''
+        END AS water_hall_pattern,
+        CASE
+            WHEN split_number = 41 AND lrt_time <= '1:22.0'::INTERVAL THEN
+                '041-a Great novis 1'
+            WHEN split_number = 41 AND lrt_time <= '1:24.0'::INTERVAL THEN
+                '041-b Good novis 1'
+            WHEN split_number = 41 AND lrt_time <= '1:26.0'::INTERVAL THEN
+                '041-c Average novis 1'
+            WHEN split_number = 41 AND lrt_time <= '1:28.0'::INTERVAL THEN
+                '041-d Bad novis 1'
+            WHEN split_number = 41 THEN
+                '041-e Terrible novis 1'
+            ELSE
+                ''
+        END AS novis1_pattern,
+        CASE
+            WHEN split_number = 43 AND lrt_time <= '1:42.0'::INTERVAL THEN
+                '043-a Great gallery'
+            WHEN split_number = 43 AND lrt_time <= '1:45.0'::INTERVAL THEN
+                '043-b Good gallery'
+            WHEN split_number = 43 AND lrt_time <= '1:48.0'::INTERVAL THEN
+                '043-c Average gallery'
+            WHEN split_number = 43 AND lrt_time <= '1:50.0'::INTERVAL THEN
+                '043-d Bad gallery'
+            WHEN split_number = 43 THEN
+                '043-e Terrible gallery'
+            ELSE
+                ''
+        END AS gallery_pattern,
+        CASE
+            WHEN split_number = 64 AND lrt_time <= '33.5'::INTERVAL THEN
+                '064-a Great novis 2'
+            WHEN split_number = 64 AND lrt_time <= '35'::INTERVAL THEN
+                '064-b Good novis 2'
+            WHEN split_number = 64 AND lrt_time <= '38'::INTERVAL THEN
+                '064-c Average novis 2'
+            WHEN split_number = 64 AND lrt_time <= '40'::INTERVAL THEN
+                '064-d Bad novis 2'
+            WHEN split_number = 64 THEN
+                '064-e Terrible novis 2'
+            ELSE
+                ''
+        END AS novis2_pattern,
+        CASE
+            WHEN split_number = 65 AND lrt_time <= '31'::INTERVAL THEN
+                '065-a Perfect catapult'
+            WHEN split_number = 65 AND lrt_time <= '33'::INTERVAL THEN
+                '065-b Stagger catapult'
+            WHEN split_number = 65 THEN
+                '065-c Boulder catapult'
+            ELSE
+                ''
+        END AS catapult_pattern,
+        CASE
+            WHEN split_number = 74 AND lrt_time <= '1:17.0'::INTERVAL THEN
+                '074-a Great novis 3'
+            WHEN split_number = 74 AND lrt_time <= '1:19.0'::INTERVAL THEN
+                '074-b Good novis 3'
+            WHEN split_number = 74 AND lrt_time <= '1:22.0'::INTERVAL THEN
+                '074-c Average novis 3'
+            WHEN split_number = 74 AND lrt_time <= '1:25.0'::INTERVAL THEN
+                '074-d Bad novis 3'
+            WHEN split_number = 74 THEN
+                '074-e Terrible novis 3'
+            ELSE
+                ''
+        END AS novis3_pattern,
+        CASE
+            WHEN split_number = 110 AND lrt_time <= '1:35.5'::INTERVAL THEN
+                '110-a Great u3'
+            WHEN split_number = 110 AND lrt_time <= '1:39.0'::INTERVAL THEN
+                '110-b Good u3'
+            WHEN split_number = 110 AND lrt_time <= '1:41.0'::INTERVAL THEN
+                '110-c Average u3'
+            WHEN split_number = 110 AND lrt_time <= '1:43.0'::INTERVAL THEN
+                '110-d Bad u3'
+            WHEN split_number = 110 THEN
+                '110-e Terrible u3'
+            ELSE
+                ''
+        END AS u3_pattern,
+        CASE
+            WHEN split_number = 112 AND lrt_time <= '2:19.0'::INTERVAL THEN
+                '112-a Great Krauser'
+            WHEN split_number = 112 AND lrt_time <= '2:22.0'::INTERVAL THEN
+                '112-b Good Krauser'
+            WHEN split_number = 112 AND lrt_time <= '2:25.0'::INTERVAL THEN
+                '112-c Average Krauser'
+            WHEN split_number = 112 AND lrt_time <= '2:28.0'::INTERVAL THEN
+                '112-d Bad Krauser'
+            WHEN split_number = 112 THEN
+                '112-e Terrible Krauser'
+            ELSE
+                ''
+        END AS krauser_pattern,
+        CASE
+            WHEN split_number = 113 AND lrt_time <= '1:51.0'::INTERVAL THEN
+                '113-a Great war room'
+            WHEN split_number = 113 AND lrt_time <= '1:54.0'::INTERVAL THEN
+                '113-b Good war room'
+            WHEN split_number = 113 AND lrt_time <= '1:57.0'::INTERVAL THEN
+                '113-c Average war room'
+            WHEN split_number = 113 AND lrt_time <= '2:00.0'::INTERVAL THEN
+                '113-d Bad war room'
+            WHEN split_number = 113 THEN
+                '113-e Terrible war room'
+            ELSE
+                ''
+        END AS war_room_pattern,
+        CASE
+            WHEN split_number = 117 AND lrt_time <= '55'::INTERVAL THEN
+                '117-a Great key card'
+            WHEN split_number = 117 AND lrt_time <= '57'::INTERVAL THEN
+                '117-b Good key card'
+            WHEN split_number = 117 AND lrt_time <= '59'::INTERVAL THEN
+                '117-c Average key card'
+            WHEN split_number = 117 AND lrt_time <= '1:01.0'::INTERVAL THEN
+                '117-d Bad key card'
+            WHEN split_number = 117 THEN
+                '117-e Terrible key card'
+            ELSE
+                ''
+        END AS key_card_pattern
+    FROM doorsplit_history4_runner
+    WHERE split_number IN(13, 14, 26, 30, 38, 41, 43, 64, 65, 74, 110, 112, 113, 117)
+)
+GROUP BY run_id
+ORDER BY run_id;
 
-/* Get the percentage of each RNG pattern for the categorized RNG patterns. */
+/* Get the percentage of each RNG pattern for the categorized RNG patterns, as well as the maximum instances in a row for each. */
 
-DROP TABLE IF EXISTS rng_patterns_percentages_runner;
-CREATE TABLE rng_patterns_percentages_runner AS
+DROP TABLE IF EXISTS rng_patterns_stats_runner;
+CREATE TABLE rng_patterns_stats_runner AS
 SELECT
     pattern,
-    SUBSTR(pattern, 4, LENGTH(pattern) - 3) AS pattern2,
-    runs,
-    total,
-    percentage
+    REGEXP_REPLACE(pattern, '^[^ ]* ', '') AS pattern_formatted,
+    pattern_instances,
+    pattern_total,
+    pattern_percentage,
+    max_patterns_in_a_row
 FROM
 (
     SELECT
         pattern,
-        runs,
-        total,
-        percentage
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
                 lago_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner a
-
-            LEFT JOIN doorsplit_history4_runner b
-            ON a.run_id = b.run_id AND a.split_number = b.split_number
-            WHERE
-            (a.split_number = 14 AND a.lrt_time < '117'::INTERVAL) OR
-            (a.split_number = 13 AND cle2_reset = 14 /* TODO: Fix this AND
-            CASE
-                WHEN time_end_numeric2 > time_ended_numeric AND b.time_run_ended <> time_end_numeric3 THEN
-                    time_ended_numeric - time_end_numeric2 + 86400
-                ELSE
-                    time_ended_numeric - time_end_numeric2
-                END
-            >=
-            CASE
-                WHEN runner_name LIKE '%lu%' AND runner_name LIKE '%is%' THEN
-                    59
-                ELSE
-                    56
-            END*/)
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY lago_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY lago_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE lago_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
 
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner a
-
-            LEFT JOIN doorsplit_history4_runner b
-            ON a.run_id = b.run_id AND a.split_number = b.split_number
-            WHERE
-            (a.split_number = 14 AND a.lrt_time < '117'::INTERVAL) OR
-            (a.split_number = 13 AND cle2_reset = 14 /* TODO: Fix this AND
-            CASE
-                WHEN time_end_numeric2 > time_ended_numeric AND b.time_run_ended <> time_end_numeric3 THEN
-                    time_ended_numeric - time_end_numeric2 + 86400
-                ELSE
-                    time_ended_numeric - time_end_numeric2
-            END
-            >=
-            CASE
-                WHEN runner_name LIKE '%lu%' AND runner_name LIKE '%is%' THEN
-                    59
-                ELSE
-                    56
-            END */)
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE lago_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
-                mendez_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE mendez_pattern <> '' AND lrt_time < '60'::INTERVAL
-            GROUP BY 1
-        ) a
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 30 AND lrt_time < '60'::INTERVAL
-        ) b
-    )
-    UNION
-    (
-        SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
-        FROM
-        (
-            SELECT
-                catapult_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE catapult_pattern <> '' AND lrt_time < '40'::INTERVAL
-            GROUP BY 1
-        ) a
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 65 AND lrt_time < '40'::INTERVAL
-        ) b
-    )
-    UNION
-    (
-        SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
-        FROM
-        (
-            SELECT
+                run_id,
                 cabin_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE cabin_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY cabin_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY cabin_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE cabin_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 26
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE cabin_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
+                mendez_pattern AS pattern,
+                COUNT(*) OVER(PARTITION BY mendez_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY mendez_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE mendez_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE mendez_pattern IS NOT NULL
+        )
+    )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
+    UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
+    (
+        SELECT
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+        FROM
+        (
+            SELECT
+                run_id,
                 water_hall_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE water_hall_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY water_hall_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY water_hall_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE water_hall_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 38
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE mendez_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
                 novis1_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE novis1_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY novis1_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY novis1_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE novis1_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 41
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE novis1_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
                 gallery_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE gallery_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY gallery_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY gallery_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE gallery_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 43
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE gallery_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
                 novis2_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE novis2_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY novis2_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY novis2_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE novis2_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 64
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE novis2_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
+                catapult_pattern AS pattern,
+                COUNT(*) OVER(PARTITION BY catapult_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY catapult_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE catapult_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
+        CROSS JOIN
+        (
+            SELECT
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE catapult_pattern IS NOT NULL
+        )
+    )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
+    UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
+    (
+        SELECT
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+        FROM
+        (
+            SELECT
+                run_id,
                 novis3_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE novis3_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY novis3_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY novis3_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE novis3_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 74
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE novis3_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
                 u3_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE u3_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY u3_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY u3_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE u3_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 110
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE u3_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
                 krauser_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE krauser_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY krauser_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY krauser_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE krauser_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 112
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE krauser_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
                 war_room_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE war_room_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY war_room_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY war_room_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE war_room_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 113
-        ) b
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE war_room_pattern IS NOT NULL
+        )
     )
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
+
     UNION
+
+    SELECT
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage,
+        MAX(instances_in_a_row) AS max_patterns_in_a_row
+    FROM
     (
         SELECT
-            a.*,
-            total,
-            ROUND(runs) / ROUND(total) * 100 AS percentage
+            run_id,
+            pattern,
+            pattern_instances,
+            pattern_total,
+            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
+            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
         FROM
         (
             SELECT
+                run_id,
                 key_card_pattern AS pattern,
-                COUNT(*) AS runs
-            FROM splits_overview_runner
-            WHERE key_card_pattern <> ''
-            GROUP BY 1
-        ) a
+                COUNT(*) OVER(PARTITION BY key_card_pattern) AS pattern_instances,
+                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
+                ROW_NUMBER() OVER (PARTITION BY key_card_pattern ORDER BY run_id) AS pattern_instance
+            FROM rng_patterns_categories_runner
+            WHERE key_card_pattern IS NOT NULL
+            GROUP BY pattern, run_id
+        )
+
         CROSS JOIN
         (
             SELECT
-                COUNT(*) AS total
-            FROM splits_overview_runner
-            WHERE split_number = 117
-        ) b
-    )
-    ORDER BY pattern
-);
-
-/* Same but to get the consecutive patterns (LIKE how many early dives IN a row */
-
-DROP TABLE IF EXISTS consecutive_rng_patterns_runner;
-CREATE TABLE consecutive_rng_patterns_runner AS
-SELECT
-    *
-FROM
-(
-    SELECT
-        lago_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            lago_pattern,
-            ROW_NUMBER() OVER (PARTITION BY lago_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                a.run_id,
-                lago_pattern,
-                ROW_NUMBER() OVER (ORDER BY a.run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY lago_pattern ORDER BY a.run_id) AS row_number2
-            FROM splits_overview_runner a
-
-            LEFT JOIN doorsplit_history4_runner b
-            ON a.run_id = b.run_id AND a.split_number = b.split_number
-            WHERE
-            (a.split_number = 14 AND a.lrt_time < '117'::INTERVAL) OR
-            (a.split_number = 13 AND cle2_reset = 14) /* TODO: Fix this AND
-            CASE
-                WHEN time_end_numeric2 > time_ended_numeric AND b.time_run_ended <> time_end_numeric3 THEN
-                    time_ended_numeric - time_end_numeric2 + 86400
-                ELSE
-                    time_ended_numeric - time_end_numeric2
-                END
-            >=
-            CASE
-                WHEN runner_name LIKE '%lu%' AND runner_name LIKE '%is%' THEN
-                    59
-                ELSE
-                    56
-            END*/
+                COUNT(*) AS pattern_total
+            FROM rng_patterns_categories_runner
+            WHERE key_card_pattern IS NOT NULL
         )
-        ORDER BY run_id
     )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        mendez_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            mendez_pattern,
-            ROW_NUMBER() OVER (PARTITION BY mendez_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                mendez_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY mendez_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE mendez_pattern <> '' AND lrt_time < '60'::INTERVAL
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        catapult_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            catapult_pattern,
-            ROW_NUMBER() OVER (PARTITION BY catapult_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                catapult_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY catapult_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE catapult_pattern <> '' AND lrt_time < '40'::INTERVAL
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        cabin_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            cabin_pattern,
-            ROW_NUMBER() OVER (PARTITION BY cabin_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                cabin_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY cabin_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE cabin_pattern <> ''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        water_hall_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            water_hall_pattern,
-            ROW_NUMBER() OVER (PARTITION BY water_hall_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                water_hall_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY water_hall_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE water_hall_pattern <> ''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        novis1_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            novis1_pattern,
-            ROW_NUMBER() OVER (PARTITION BY novis1_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                novis1_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY novis1_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE novis1_pattern <> ''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        gallery_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            gallery_pattern,
-            ROW_NUMBER() OVER (PARTITION BY gallery_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                gallery_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY gallery_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE gallery_pattern <> ''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        novis2_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            novis2_pattern,
-            ROW_NUMBER() OVER (PARTITION BY novis2_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                novis2_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY novis2_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE novis2_pattern <> ''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        novis3_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            novis3_pattern,
-            ROW_NUMBER() OVER (PARTITION BY novis3_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                novis3_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY novis3_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE novis3_pattern <> ''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        u3_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            u3_pattern,
-            ROW_NUMBER() OVER (PARTITION BY u3_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                u3_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY u3_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE u3_pattern <> ''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        krauser_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            krauser_pattern,
-            ROW_NUMBER() OVER (PARTITION BY krauser_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                krauser_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY krauser_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE krauser_pattern <> ''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        war_room_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            war_room_pattern,
-            ROW_NUMBER() OVER (PARTITION BY war_room_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                war_room_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY war_room_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner
-            WHERE war_room_pattern <> ''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
-
-    UNION
-
-    SELECT
-        key_card_pattern,
-        MAX(rank) AS maximum_consecutive_patterns
-    FROM
-    (
-        SELECT
-            run_id,
-            key_card_pattern,
-            ROW_NUMBER() OVER (PARTITION BY key_card_pattern, ROW_NUMBER - row_number2 ORDER BY run_id) AS rank
-        FROM
-        (
-            SELECT DISTINCT
-                run_id,
-                key_card_pattern,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS ROW_NUMBER,
-                ROW_NUMBER() OVER (PARTITION BY key_card_pattern ORDER BY run_id) AS row_number2
-            FROM splits_overview_runner WHERE key_card_pattern<>''
-        )
-        ORDER BY run_id
-    )
-    GROUP BY 1
+    GROUP BY
+        pattern,
+        pattern_instances,
+        pattern_total,
+        pattern_percentage
 )
-ORDER BY lago_pattern;
+ORDER BY pattern;
 
 --#endregion
 
