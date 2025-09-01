@@ -10,8 +10,8 @@ WITH DELIMITER ','; /* NOTE: The path to the splits file needs to be public, so 
 
 /* Adding the line number to each line of the file. */
 
-DROP TABLE IF EXISTS splits_file_indexed;
-CREATE TABLE splits_file_indexed AS
+DROP TABLE IF EXISTS splits_file_runner_indexed;
+CREATE TABLE splits_file_runner_indexed AS
 SELECT
     file_line,
     line_number
@@ -20,12 +20,12 @@ ORDER BY line_number;
 
 /* Adding the line number + 1 to each line of the file. */
 
-DROP TABLE IF EXISTS splits_file_indexed_offset;
-CREATE TABLE splits_file_indexed_offset AS
+DROP TABLE IF EXISTS splits_file_runner_indexed_offset;
+CREATE TABLE splits_file_runner_indexed_offset AS
 SELECT
     file_line,
     line_number + 1 AS line_number_offset
-FROM splits_file_runner
+FROM splits_file_runner_indexed
 ORDER BY line_number;
 
 --#endregion
@@ -38,19 +38,19 @@ DROP TABLE IF EXISTS segments_data1_runner;
 CREATE TABLE segments_data1_runner AS
 SELECT
     LTRIM(file_line, ' ') AS file_line_stripped
-FROM splits_file_indexed
+FROM splits_file_runner_indexed
 WHERE line_number >
 (
     SELECT
         line_number_offset
-    FROM splits_file_indexed_offset
+    FROM splits_file_runner_indexed_offset
     WHERE file_line LIKE '%</AttemptHistory>%'
 )
 AND line_number <
 (
     SELECT
         line_number
-    FROM splits_file_indexed
+    FROM splits_file_runner_indexed
     WHERE file_line LIKE '%<AutoSplitterSettings%'
 );
 
@@ -277,19 +277,19 @@ DROP TABLE IF EXISTS attempts_data1_runner;
 CREATE TABLE attempts_data1_runner AS
 SELECT
     LTRIM(file_line, ' ') AS file_line_stripped
-FROM splits_file_indexed
+FROM splits_file_runner_indexed
 WHERE line_number >
 (
     SELECT
         line_number
-    FROM splits_file_indexed
+    FROM splits_file_runner_indexed
     WHERE file_line LIKE '%<AttemptHistory>%'
 )
 AND line_number <
 (
     SELECT
         line_number
-    FROM splits_file_indexed
+    FROM splits_file_runner_indexed
     WHERE file_line LIKE '%</AttemptHistory>%'
 );
 
@@ -528,10 +528,7 @@ SELECT
 FROM doorsplit_history2_runner ds1
 
 LEFT JOIN default_split_names defs
-ON ds1.split_number = defs.split_number
-ORDER BY
-    ds1.split_number,
-    run_id;
+ON ds1.split_number = defs.split_number;
 
 /* Add the number of the split where the run reset, which is NULL if the run was finished. Also add the duration of the split where the run reset. */
 
@@ -570,7 +567,10 @@ SELECT
         ELSE
             NULL
     END AS split_reset_duration
-FROM doorsplit_history3_runner;
+FROM doorsplit_history3_runner
+ORDER BY
+    run_id,
+    split_number;
 
 /* Total number of times each doorsplit has been finished and has been golded in the history. */
 
