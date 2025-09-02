@@ -1184,7 +1184,7 @@ ORDER BY
     run_id,
     split_number;
 
-/* Add the rank of each pace from the history relative to that split. Also add readable LRT and RTA pace. */
+/* Add the overall rank of each pace from the history relative to that split, and also the relative pace rank relative to when that pace was obtained. Also add readable LRT and RTA pace. */
 
 DROP TABLE IF EXISTS pace_history2_runner;
 CREATE TABLE pace_history2_runner AS
@@ -1194,12 +1194,20 @@ SELECT
     split_name,
     chapter,
     _section,
+    (
+        SELECT
+            COUNT(*)
+        FROM pace_history1_runner p2
+        WHERE p2.split_number = p1.split_number
+            AND p2.run_id <= p1.run_id
+            AND p2.lrt_pace < p1.lrt_pace
+    ) + 1 AS pace_rank_at_that_time,
     RANK() OVER(PARTITION BY split_number ORDER BY lrt_pace) AS lrt_pace_rank,
     lrt_pace,
     LTRIM(TO_CHAR(lrt_pace, 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_formatted,
     rta_pace,
     LTRIM(TO_CHAR(rta_pace, 'HH24:MI:SS.FF3'), '0:') AS rta_pace_formatted
-FROM pace_history1_runner
+FROM pace_history1_runner p1
 ORDER BY
     run_id,
     split_number;
@@ -2125,7 +2133,7 @@ SELECT
     ph.lrt_pace_formatted,
     ph.rta_pace,
     ph.rta_pace_formatted,
-    -- TODO: Add best_pace_at_that_time
+    ph.pace_rank_at_that_time,
 
     bp.lrt_pace AS best_pace,
     bp.lrt_pace_formatted AS best_pace_formatted,
@@ -2166,9 +2174,6 @@ SELECT
     sg.section_time_formatted AS section_gold_formatted,
     sg.sum_of_best AS section_sum_of_best,
     sg.sum_of_best_formatted AS section_sum_of_best_formatted,
-
-    -- This is already on ds history fr.final_lrt_time,
-    --TODO: This is probably redundant? fr.lrt_pb,
 
     pbh.lrt_pb,
     pbh.days_it_took,
@@ -2381,9 +2386,7 @@ ON ch._section = sps._section
 GROUP BY ch._section, sps.sort
 ORDER BY sps.sort;
 
-/* TODO: Add best paces once it's implemented on splits_overview_runner.
-
-Getting the history of achievements by the day of the week. */
+/* Getting the history of achievements by the day of the week. */
 
 DROP TABLE IF EXISTS weekday_data_runner;
 CREATE TABLE weekday_data_runner AS
@@ -2397,7 +2400,7 @@ SELECT
     golds.ds_golds,
     golds.chapter_golds,
     golds.section_golds,
-    --golds.best_paces,
+    golds.best_paces,
     attempts /
         CASE
             WHEN number_of_pbs = 0 THEN
@@ -2408,15 +2411,15 @@ SELECT
     ROUND((ROUND(golds.ds_golds, 4) / ROUND(attempts, 4)) * 100, 2) || '%' AS golds_ratio,
     ROUND((ROUND(golds.chapter_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS chapter_golds_ratio,
     ROUND((ROUND(golds.section_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS section_golds_ratio,
-    --ROUND((ROUND(best_paces, 4) / ROUND(attempts, 4))*100, 2) || '%' AS best_paces_ratio,
+    ROUND((ROUND(golds.best_paces, 4) / ROUND(attempts, 4))*100, 2) || '%' AS best_paces_ratio,
     ROUND(ROUND(attempts, 2) / CASE WHEN golds.ds_golds = 0 THEN NULL ELSE golds.ds_golds END, 2) AS attempts_to_get_a_gold,
     ROUND(ROUND(attempts, 2) / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds END, 2) AS attempts_to_get_a_chapter_gold,
     ROUND(ROUND(attempts, 2) / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END, 2) AS attempts_to_get_a_section_gold,
-    --ROUND(ROUND(attempts, 2) / CASE WHEN best_paces = 0 THEN NULL ELSE best_paces END, 2) AS attempts_to_get_a_best_pace,
+    ROUND(ROUND(attempts, 2) / CASE WHEN golds.best_paces = 0 THEN NULL ELSE golds.best_paces END, 2) AS attempts_to_get_a_best_pace,
     playtime / CASE WHEN golds.ds_golds = 0 THEN NULL ELSE golds.ds_golds END AS playtime_to_get_a_gold,
     playtime / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds END AS playtime_to_get_a_chapter_gold,
-    playtime / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END AS playtime_to_get_a_section_gold--,
-    --playtime / CASE WHEN best_paces = 0 THEN NULL ELSE best_paces END AS playtime_to_get_a_best_pace
+    playtime / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END AS playtime_to_get_a_section_gold,
+    playtime / CASE WHEN golds.best_paces = 0 THEN NULL ELSE golds.best_paces END AS playtime_to_get_a_best_pace
 FROM
 (
     SELECT
@@ -2443,8 +2446,8 @@ LEFT JOIN
         run_started_on_weekday,
         SUM(CASE WHEN lrt_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS ds_golds,
         SUM(CASE WHEN chapter_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS chapter_golds,
-        SUM(CASE WHEN section_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS section_golds
-        --SUM(CASE WHEN pace_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS best_paces
+        SUM(CASE WHEN section_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS section_golds,
+        SUM(CASE WHEN pace_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS best_paces
     FROM splits_overview_runner
     GROUP BY run_started_on_weekday
 ) golds
