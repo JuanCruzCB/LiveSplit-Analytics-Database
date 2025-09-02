@@ -2057,170 +2057,196 @@ ORDER BY pattern;
 DROP TABLE IF EXISTS splits_overview_runner;
 CREATE TABLE splits_overview_runner AS
 SELECT
-    *
-FROM
+    dsh.run_id,
+    dsh.split_number,
+    dsh.split_name,
+    dsh.chapter,
+    dsh._section,
+    dsh.lrt_time_rank_at_that_time,
+    dsh.lrt_time_rank,
+    dsh.lrt_time,
+    dsh.lrt_time_formatted,
+    dsh.rta_time,
+    dsh.rta_time_formatted,
+    dsh.finished_run,
+    dsh.pb,
+    dsh.final_lrt_time,
+    dsh.final_rta_time,
+    dsh.run_started_at,
+    --dsh.day_week TODO: Add day_week to doorsplit_history4_runner (Either Monday, ..., Sunday or 1...7.)
+    dsh.run_ended_at,
+    dsh.run_duration,
+    dsh.split_started_at,
+    dsh.split_ended_at,
+    dsh.split_number_reset,
+    --dsh.split_name_reset TODO: Add split_name_reset to doorsplit_history4_runner
+    dsh.split_reset_duration,
+
+    ph.lrt_pace_rank,
+    ph.lrt_pace,
+    ph.lrt_pace_formatted,
+    ph.rta_pace,
+    ph.rta_pace_formatted,
+    -- TODO: Add best_pace_at_that_time
+
+    bp.lrt_pace AS best_pace,
+    bp.lrt_pace_formatted AS best_pace_formatted,
+
+    dsg.lrt_time AS ds_gold,
+    dsg.lrt_time_formatted AS ds_gold_formatted,
+    dsg.cumulative_door_gold AS ds_sum_of_best,
+
+    dsgh.lrt_time AS ds_gold_at_that_time,
+    dsgh.lrt_time_formatted as ds_gold_at_that_time_formatted,
+
+    ch.chapter_time_rank_at_that_time,
+    ch.chapter_time_rank,
+    ch.chapter_time,
+    ch.chapter_time_formatted,
+    ch.chapter_started_at,
+    ch.chapter_ended_at,
+
+    --TODO: Add chapter_gold_at_that_time on new table chapter_gold_history_runner
+    --cgh ...
+
+    sh.section_time_rank_at_that_time,
+    sh.section_time_rank,
+    sh.section_time,
+    sh.section_time_formatted,
+    sh.section_started_at,
+    sh.section_ended_at,
+
+    -- TODO: Add section_gold_at_that_time on new table section_gold_history_runner
+    -- sgh ...
+
+    cg.chapter_time AS chapter_gold,
+    cg.chapter_time_formatted AS chapter_gold_formatted,
+    cg.sum_of_best AS chapter_sum_of_best,
+    cg.sum_of_best_formatted AS chapter_sum_of_best_formatted,
+
+    sg.section_time AS section_gold,
+    sg.section_time_formatted AS section_gold_formatted,
+    sg.sum_of_best AS section_sum_of_best,
+    sg.sum_of_best_formatted AS section_sum_of_best_formatted,
+
+    -- This is already on ds history fr.final_lrt_time,
+    --TODO: This is probably redundant? fr.lrt_pb,
+
+    pbh.lrt_pb,
+    pbh.days_it_took,
+    pbh.attempts_it_took,
+    pbh.total_playtime_it_took,
+    pbh.days_of_attempts_it_took,
+
+    dsam.lrt_time_avg AS ds_time_avg,
+    dsam.lrt_time_avg_formatted AS ds_time_avg_formatted,
+    dsam.sum_of_avg AS ds_sum_of_avg,
+    dsam.sum_of_avg_formatted AS ds_sum_of_avg_formatted,
+    dsam.lrt_time_med AS ds_time_med,
+    dsam.lrt_time_med_formatted AS ds_time_med_formatted,
+    dsam.sum_of_med AS ds_sum_of_med,
+    dsam.sum_of_med_formatted AS ds_sum_of_med_formatted,
+
+    pam.lrt_pace_avg AS pace_avg,
+    pam.lrt_pace_avg_formatted AS pace_avg_formatted,
+    pam.lrt_pace_med AS pace_med,
+    pam.lrt_pace_med_formatted AS pace_med_formatted,
+
+    cam.chapter_time_avg,
+    cam.chapter_time_avg_formatted,
+    cam.sum_of_avg AS chapter_sum_of_avg,
+    cam.sum_of_avg_formatted AS chapter_sum_of_avg_formatted,
+    cam.chapter_time_med,
+    cam.chapter_time_med_formatted,
+    cam.sum_of_med AS chapter_sum_of_med,
+    cam.sum_of_med_formatted AS chapter_sum_of_med_formatted,
+
+    sam.section_time_avg,
+    sam.section_time_avg_formatted,
+    sam.sum_of_avg AS section_sum_of_avg,
+    sam.sum_of_avg_formatted AS section_sum_of_avg_formatted,
+    sam.section_time_med,
+    sam.section_time_med_formatted,
+    sam.sum_of_med AS section_sum_of_med,
+    sam.sum_of_med_formatted AS section_sum_of_med_formatted,
+
+    fds.times_finished AS ds_times_finished,
+    fds.times_golded AS ds_times_golded,
+
+    fc.times_finished AS chapter_times_finished,
+    fc.times_golded AS chapter_times_golded,
+
+    fs.times_finished AS section_times_finished,
+    fs.times_golded AS section_times_golded,
+
+    'runner' AS runner_name
+    -- Not sure if this is necessary: ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_number ORDER BY id2 DESC) AS rang
+
+FROM doorsplit_history4_runner dsh
+
+LEFT JOIN pace_history2_runner ph
+ON dsh.run_id = ph.run_id AND dsh.split_number = ph.split_number
+
+LEFT JOIN best_paces_runner bp
+ON dsh.split_number = bp.split_number
+
+LEFT JOIN
 (
     SELECT
-        a.run_id,
-        a.split_name,
-        a.chapter,
-        a._section,
-        a.lrt_time,
-        a.lrt_time_formatted,
-        a.run_started_at,
-        a.finished_run,
-        a.final_lrt_time,
-        a.pb,
-        a.split_number,
-        a.final_rta_time,
-        a.run_ended_at,
-        a.run_duration,
-        a.rta_time,
-        a.rta_time_formatted,
-        e.lrt_time AS ds_gold,
-        e.lrt_time_formatted AS ds_gold_formatted,
-        lrt_pace,
-        lrt_pace_formatted,
-        best_pace,
-        best_pace2,
-        chapter_time,
-        chapter_time_formatted,
-        section_time,
-        section_time2,
-        chapter_gold,
-        section_gold,
-        CASE
-            WHEN a.finished_run THEN
-                NULL
-            ELSE
-                split_of_reset
-        END AS split_of_reset,
-        CASE
-            WHEN a.finished_run THEN
-                NULL
-            ELSE
-                cle2_reset
-        END AS cle2_reset,
-        /* TODO: Select rng pattern classification */
-        CASE
-            WHEN extract(DOW FROM a.run_started_at) = 0 THEN
-                7
-            ELSE
-                extract(DOW FROM a.run_started_at)
-        END AS weekday, -- Can probably be simplified using the MOD function
-        h.lrt_pb AS pb_at_that_time,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ --golded_split,
-        golded_chapter,
-        golded_section,
-        was_best_pace,
-        cumulative_chapter_gold,
-        cumulative_section_gold,
-        cumulative_door_gold,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ --gold_at_that_time,
-        chapter_gold_at_that_time,
-        section_gold_at_that_time,
-        best_pace_at_that_time,
-        best_pace_at_that_time2,
-        --door_avg,
-        --door_median,
-        --door_avg2,
-        --door_median2,
-        median_chapter_time,
-        --avg_pace,
-        --median_pace,
-        --avg_pace2,
-        --median_pace2,
-        section_median,
-        'runner' AS runner_name,
-        rank_chapter,
-        chapter_rank_at_that_time,
-        finished_chapters,
-        finished_chapters_at_that_time,
-        rank_section,
-        section_rank_at_that_time,
-        finished_sections,
-        finished_sections_at_that_time,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- rank_split,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- split_rank_at_that_time,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- finished_splits,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */ -- finished_splits_at_that_time,
-        rank_pace,
-        pace_rank_at_that_time,
-        finished_paces,
-        finished_paces_at_that_time,
-        ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_number ORDER BY id2 DESC) AS rang
-    FROM doorsplit_history4_runner a
+        split_number,
+        lrt_time_formatted,
+        lrt_time,
+        MIN(sum_of_best) AS cumulative_door_gold
+    FROM doorsplit_golds2_runner
+    GROUP BY
+        split_number,
+        lrt_time_formatted,
+        lrt_time
+) dsg
+ON dsh.split_number = dsg.split_number
 
-    LEFT JOIN pace_history2_runner b
-    ON a.run_id = b.run_id AND a.split_number = b.split_number
+LEFT JOIN doorsplit_golds_history_runner dsgh
+ON dsh.split_number = dsgh.split_number AND dsh.run_id = dsgh.run_id
 
-    LEFT JOIN
-    (
-        SELECT
-            split_number,
-            lrt_time_formatted,
-            lrt_time,
-            MIN(sum_of_best) AS cumulative_door_gold
-        FROM doorsplit_golds2_runner
-        GROUP BY
-            split_number,
-            lrt_time_formatted,
-            lrt_time
-    ) e
-    ON a.split_number = e.split_number
+LEFT JOIN chapter_history2_runner ch
+ON dsh.run_id = ch.run_id AND dsh.chapter = ch.chapter
 
-    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed
-    LEFT JOIN doorsplit_golds_history2_runner ee
-    ON a.split_number = ee.split_number AND a.run_id = ee.run_id */
+LEFT JOIN section_history2_runner sh
+ON dsh.run_id = sh.run_id AND dsh._section = sh._section
 
-    LEFT JOIN chapter_history2_runner c
-    ON a.run_id = c.run_id AND a.chapter = c.chapter
+LEFT JOIN chapter_golds2_runner cg
+ON dsh.chapter = cg.chapter
 
-    LEFT JOIN section_history2_runner d
-    ON a.run_id = d.run_id AND a._section = d._section
+LEFT JOIN section_golds2_runner sg
+ON dsh._section = sg._section
 
-    LEFT JOIN chapter_golds2_runner f
-    ON a.chapter = f.chapter
+LEFT JOIN finished_runs_runner fr
+ON dsh.run_id = fr.run_id
 
-    LEFT JOIN section_golds2_runner g
-    ON a._section = g._section
+LEFT JOIN pb_history_runner pbh
+ON dsh.run_id = pbh.run_id
 
-    LEFT JOIN
-    (
-        SELECT
-            a.run_id,
-            b.split_name AS split_of_reset,
-            b.split_number AS cle2_reset
-        FROM
-        (
-            SELECT
-                run_id,
-                MAX(split_number) + 1 AS max
-            FROM doorsplit_history4_runner
-            GROUP BY run_id
-        ) a
+LEFT JOIN avg_med_doorsplits_runner dsam
+ON dsh.split_number = dsam.split_number
 
-        LEFT JOIN
-        (
-            SELECT DISTINCT
-                split_number,
-                split_name
-            FROM doorsplit_history4_runner
-        ) b
-        ON a.max = b.split_number
-    ) resets
-    ON resets.run_id = a.run_id
+LEFT JOIN avg_med_paces_runner pam
+ON dsh.split_number = pam.split_number
 
-    LEFT JOIN
-    (
-        SELECT
-            *,
-            run_id::DECIMAL AS id2
-        FROM pb_history_runner
-    ) h
-    ON a.run_id > h.id2
-) aa
-WHERE rang = 1
+LEFT JOIN avg_med_chapters_runner cam
+ON dsh.chapter = cam.chapter
+
+LEFT JOIN avg_med_sections_runner sam
+ON dsh._section = sam._section
+
+LEFT JOIN finished_doorsplits_runner fds
+ON dsh.split_number = fds.split_number
+
+LEFT JOIN finished_chapters_runner fc
+ON dsh.chapter = fc.chapter
+
+LEFT JOIN finished_sections_runner fs
+ON dsh._section = fs._section
+
 ORDER BY
     run_id,
     split_number;
