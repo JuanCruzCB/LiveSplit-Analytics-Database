@@ -2342,49 +2342,80 @@ ORDER BY split_number;
 
 /* Chapter golds but calculated in a different way: summing up all the doorsplit golds that belong to each chapter. */
 
-/* TODO: Add cumulative and well formatted versions. */
 DROP TABLE IF EXISTS chapter_golds_by_doors_runner;
 CREATE TABLE chapter_golds_by_doors_runner AS
 SELECT
     chapter,
-    SUM(lrt_time) AS chapter_gold_by_doors
-FROM doorsplit_golds2_runner
-WHERE lrt_time_occurrence = 1
-GROUP BY chapter
+    chapter_gold_by_doors,
+    LTRIM(TO_CHAR(chapter_gold_by_doors, 'HH24:MI:SS.FF3'), '0:') AS chapter_gold_by_doors_formatted,
+    SUM(chapter_gold_by_doors) OVER(ORDER BY chapter) AS sum_of_best,
+    LTRIM(TO_CHAR(SUM(chapter_gold_by_doors) OVER(ORDER BY chapter), 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted
+FROM
+(
+    SELECT
+        chapter,
+        SUM(lrt_time) AS chapter_gold_by_doors
+    FROM doorsplit_golds2_runner
+    WHERE lrt_time_occurrence = 1
+    GROUP BY chapter
+    ORDER BY chapter
+)
 ORDER BY chapter;
 
 /* Section golds but calculated in a different way: summing up all the doorsplit golds that belong to each section. */
 
-/* TODO: Add cumulative and well formatted versions. */
 DROP TABLE IF EXISTS section_golds_by_doors_runner;
 CREATE TABLE section_golds_by_doors_runner AS
 SELECT
-    dg._section,
-    SUM(dg.lrt_time) AS section_gold_by_doors
-FROM doorsplit_golds2_runner dg
+    _section,
+    section_gold_by_doors,
+    LTRIM(TO_CHAR(section_gold_by_doors, 'HH24:MI:SS.FF3'), '0:') AS section_gold_by_doors_formatted,
+    SUM(section_gold_by_doors) OVER(ORDER BY sort) AS sum_of_best,
+    LTRIM(TO_CHAR(SUM(section_gold_by_doors) OVER(ORDER BY sort), 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted
+FROM
+(
+    SELECT
+        dg._section,
+        SUM(dg.lrt_time) AS section_gold_by_doors,
+        sps.sort
+    FROM doorsplit_golds2_runner dg
 
-LEFT JOIN splits_per_section sps
-ON dg._section = sps._section
+    LEFT JOIN splits_per_section sps
+    ON dg._section = sps._section
 
-WHERE dg.lrt_time_occurrence = 1
-GROUP BY dg._section, sps.sort
-ORDER BY sps.sort;
+    WHERE dg.lrt_time_occurrence = 1
+    GROUP BY
+        dg._section,
+        sps.sort
+)
+ORDER BY sort;
 
 /* Section golds but calculated in a different way: summing up all the chapter golds that belong to each section. */
 
-/* TODO: Add cumulative and well formatted versions. */
 DROP TABLE IF EXISTS section_golds_by_chapters_runner;
 CREATE TABLE section_golds_by_chapters_runner AS
 SELECT
-    ch._section,
-    SUM(ch.chapter_time) AS section_gold_by_doors
-FROM chapter_golds2_runner ch
+    _section,
+    section_gold_by_chapters,
+    LTRIM(TO_CHAR(section_gold_by_chapters, 'HH24:MI:SS.FF3'), '0:') AS section_gold_by_chapters_formatted,
+    SUM(section_gold_by_chapters) OVER(ORDER BY sort) AS sum_of_best,
+    LTRIM(TO_CHAR(SUM(section_gold_by_chapters) OVER(ORDER BY sort), 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted
+FROM
+(
+    SELECT
+        ch._section,
+        SUM(ch.chapter_time) AS section_gold_by_chapters,
+        sps.sort
+    FROM chapter_golds2_runner ch
 
-LEFT JOIN splits_per_section sps
-ON ch._section = sps._section
+    LEFT JOIN splits_per_section sps
+    ON ch._section = sps._section
 
-GROUP BY ch._section, sps.sort
-ORDER BY sps.sort;
+    GROUP BY
+        ch._section,
+        sps.sort
+)
+ORDER BY sort;
 
 /* Getting the history of achievements by the day of the week. */
 
