@@ -72,14 +72,6 @@ FROM splits_runner
 ORDER BY cle)
     WHERE notepad_info LIKE '%</AttemptHistory>%'
 );
-        cle
-    FROM (SELECT
-    notepad_info,
-    cle
-FROM splits_runner
-ORDER BY cle)
-    WHERE notepad_info LIKE '%</AttemptHistory>%'
-);
 
 DROP TABLE IF EXISTS splits_treatment_runner;
 CREATE TABLE splits_treatment_runner AS
