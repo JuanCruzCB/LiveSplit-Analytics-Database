@@ -530,7 +530,7 @@ FROM doorsplit_history2_runner ds1
 LEFT JOIN default_split_names defs
 ON ds1.split_number = defs.split_number;
 
-/* Add the number of the split where the run reset, which is NULL if the run was finished. Also add the duration of the split where the run reset. */
+/* Add the number of the split where the run reset, which is NULL if the run was finished. Add the duration of the split where the run reset. Add the day of the week it was when the run was started. */
 
 DROP TABLE IF EXISTS doorsplit_history4_runner;
 CREATE TABLE doorsplit_history4_runner AS
@@ -550,6 +550,7 @@ SELECT
     pb,
     final_lrt_time,
     final_rta_time,
+    EXTRACT(ISODOW FROM run_started_at) AS run_started_on_weekday,
     run_started_at,
     run_ended_at,
     run_duration,
@@ -572,6 +573,43 @@ ORDER BY
     run_id,
     split_number;
 
+/* Add the name of the split where the run reset. */
+
+DROP TABLE IF EXISTS doorsplit_history5_runner;
+CREATE TABLE doorsplit_history5_runner AS
+SELECT
+    run_id,
+    ds.split_number,
+    ds.split_name,
+    chapter,
+    _section,
+    lrt_time_rank_at_that_time,
+    lrt_time_rank,
+    lrt_time,
+    lrt_time_formatted,
+    rta_time,
+    rta_time_formatted,
+    finished_run,
+    pb,
+    final_lrt_time,
+    final_rta_time,
+    run_started_on_weekday,
+    run_started_at,
+    run_ended_at,
+    run_duration,
+    split_started_at,
+    split_ended_at,
+    split_number_reset,
+    dsn.split_name AS split_name_reset,
+    split_reset_duration
+FROM doorsplit_history4_runner ds
+
+LEFT JOIN default_split_names dsn
+ON ds.split_number_reset = dsn.split_number
+ORDER BY
+    run_id,
+    split_number;
+
 /* Total number of times each doorsplit has been finished and has been golded in the history. */
 
 DROP TABLE IF EXISTS finished_doorsplits_runner;
@@ -583,7 +621,7 @@ SELECT DISTINCT
     _section,
     COUNT(*) OVER(PARTITION BY split_number) AS times_finished,
     SUM(CASE WHEN lrt_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) OVER(PARTITION BY split_number) AS times_golded
-FROM doorsplit_history4_runner
+FROM doorsplit_history5_runner
 ORDER BY split_number;
 
 /* The average and median times for each doorsplit, along with well formatted versions. Also cumulative average and median times. */
@@ -601,7 +639,7 @@ WITH avg_med AS
         LTRIM(TO_CHAR(AVG(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_avg_formatted,
         PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS lrt_time_med,
         LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_med_formatted
-    FROM doorsplit_history4_runner
+    FROM doorsplit_history5_runner
     GROUP BY
         split_number,
         split_name,
@@ -664,7 +702,7 @@ SELECT
     run_duration,
     split_started_at,
     split_ended_at
-FROM doorsplit_history4_runner
+FROM doorsplit_history5_runner
 WHERE lrt_time_rank = 1
 ORDER BY
     split_number,
@@ -737,7 +775,7 @@ SELECT
     run_duration,
     split_started_at,
     split_ended_at
-FROM doorsplit_history4_runner
+FROM doorsplit_history5_runner
 WHERE lrt_time_rank_at_that_time = 1
 ORDER BY
     split_number,
@@ -775,7 +813,7 @@ FROM
         MAX(split_ended_at) OVER(PARTITION BY run_id, chapter) AS chapter_ended_at,
         SUM(lrt_time) OVER(PARTITION BY run_id, chapter) AS chapter_time,
         *
-    FROM doorsplit_history4_runner
+    FROM doorsplit_history5_runner
 ) ds
 INNER JOIN splits_per_chapter per
 ON per.chapter = ds.chapter AND per.number_of_splits = ds.num_splits
@@ -967,7 +1005,7 @@ FROM
         MAX(split_ended_at) OVER(PARTITION BY run_id, _section) AS section_ended_at,
         SUM(lrt_time) OVER(PARTITION BY run_id, _section) AS section_time,
         *
-    FROM doorsplit_history4_runner
+    FROM doorsplit_history5_runner
 ) ds
 INNER JOIN splits_per_section per
 ON per._section = ds._section AND per.number_of_splits = ds.num_splits
@@ -1141,7 +1179,7 @@ SELECT
     _section,
     SUM(lrt_time) OVER(PARTITION BY run_id ORDER BY split_number) AS lrt_pace,
     SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_number) AS rta_pace
-FROM doorsplit_history4_runner
+FROM doorsplit_history5_runner
 ORDER BY
     run_id,
     split_number;
@@ -1456,7 +1494,7 @@ FROM
             ELSE
                 ''
         END AS key_card_pattern
-    FROM doorsplit_history4_runner
+    FROM doorsplit_history5_runner
     WHERE split_number IN(13, 14, 26, 30, 38, 41, 43, 64, 65, 74, 110, 112, 113, 117)
 )
 GROUP BY run_id
@@ -2072,14 +2110,14 @@ SELECT
     dsh.pb,
     dsh.final_lrt_time,
     dsh.final_rta_time,
+    dsh.run_started_on_weekday,
     dsh.run_started_at,
-    --dsh.day_week TODO: Add day_week to doorsplit_history4_runner (Either Monday, ..., Sunday or 1...7.)
     dsh.run_ended_at,
     dsh.run_duration,
     dsh.split_started_at,
     dsh.split_ended_at,
     dsh.split_number_reset,
-    --dsh.split_name_reset TODO: Add split_name_reset to doorsplit_history4_runner
+    dsh.split_name_reset,
     dsh.split_reset_duration,
 
     ph.lrt_pace_rank,
@@ -2182,7 +2220,7 @@ SELECT
     'runner' AS runner_name
     -- Not sure if this is necessary: ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_number ORDER BY id2 DESC) AS rang
 
-FROM doorsplit_history4_runner dsh
+FROM doorsplit_history5_runner dsh
 
 LEFT JOIN pace_history2_runner ph
 ON dsh.run_id = ph.run_id AND dsh.split_number = ph.split_number
