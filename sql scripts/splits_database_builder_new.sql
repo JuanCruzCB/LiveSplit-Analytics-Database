@@ -2381,17 +2381,23 @@ ON ch._section = sps._section
 GROUP BY ch._section, sps.sort
 ORDER BY sps.sort;
 
-/* TODO: Put this back after doorsplit_golds_history2_runner gets fixed Getting the history of PBs by the day of the week */
+/* TODO: Add best paces once it's implemented on splits_overview_runner.
+
+Getting the history of achievements by the day of the week. */
 
 DROP TABLE IF EXISTS weekday_data_runner;
 CREATE TABLE weekday_data_runner AS
 SELECT
-    a.*,
-    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
-    --golds,
-    chapter_golds,
-    section_golds,
-    best_paces,
+    pbs.day_of_the_week,
+    pbs.playtime,
+    pbs.attempts,
+    pbs.number_of_pbs,
+    pbs.pb_ratio,
+    pbs.playtime_to_get_a_pb,
+    golds.ds_golds,
+    golds.chapter_golds,
+    golds.section_golds,
+    --golds.best_paces,
     attempts /
         CASE
             WHEN number_of_pbs = 0 THEN
@@ -2399,59 +2405,50 @@ SELECT
             ELSE
                 number_of_pbs
         END AS attempts_to_get_a_pb,
-    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
-    --ROUND((ROUND(golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS golds_ratio,
-    ROUND((ROUND(chapter_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS chapter_golds_ratio,
-    ROUND((ROUND(section_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS section_golds_ratio,
-    ROUND((ROUND(best_paces, 4) / ROUND(attempts, 4))*100, 2) || '%' AS best_paces_ratio,
-    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
-    --ROUND(ROUND(attempts, 2) / CASE WHEN golds = 0 THEN NULL ELSE golds END, 2) AS attempts_to_get_a_gold,
-    ROUND(ROUND(attempts, 2) / CASE WHEN chapter_golds = 0 THEN NULL ELSE chapter_golds END, 2) AS attempts_to_get_a_chapter_gold,
-    ROUND(ROUND(attempts, 2) / CASE WHEN section_golds = 0 THEN NULL ELSE section_golds END, 2) AS attempts_to_get_a_section_gold,
-    ROUND(ROUND(attempts, 2) / CASE WHEN best_paces = 0 THEN NULL ELSE best_paces END, 2) AS attempts_to_get_a_best_pace,
-    /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
-    --playtime / CASE WHEN golds = 0 THEN NULL ELSE golds END AS playtime_to_get_a_gold,
-    playtime / CASE WHEN chapter_golds = 0 THEN NULL ELSE chapter_golds END AS playtime_to_get_a_chapter_gold,
-    playtime / CASE WHEN section_golds = 0 THEN NULL ELSE section_golds END AS playtime_to_get_a_section_gold,
-    playtime / CASE WHEN best_paces = 0 THEN NULL ELSE best_paces END AS playtime_to_get_a_best_pace
+    ROUND((ROUND(golds.ds_golds, 4) / ROUND(attempts, 4)) * 100, 2) || '%' AS golds_ratio,
+    ROUND((ROUND(golds.chapter_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS chapter_golds_ratio,
+    ROUND((ROUND(golds.section_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS section_golds_ratio,
+    --ROUND((ROUND(best_paces, 4) / ROUND(attempts, 4))*100, 2) || '%' AS best_paces_ratio,
+    ROUND(ROUND(attempts, 2) / CASE WHEN golds.ds_golds = 0 THEN NULL ELSE golds.ds_golds END, 2) AS attempts_to_get_a_gold,
+    ROUND(ROUND(attempts, 2) / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds END, 2) AS attempts_to_get_a_chapter_gold,
+    ROUND(ROUND(attempts, 2) / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END, 2) AS attempts_to_get_a_section_gold,
+    --ROUND(ROUND(attempts, 2) / CASE WHEN best_paces = 0 THEN NULL ELSE best_paces END, 2) AS attempts_to_get_a_best_pace,
+    playtime / CASE WHEN golds.ds_golds = 0 THEN NULL ELSE golds.ds_golds END AS playtime_to_get_a_gold,
+    playtime / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds END AS playtime_to_get_a_chapter_gold,
+    playtime / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END AS playtime_to_get_a_section_gold--,
+    --playtime / CASE WHEN best_paces = 0 THEN NULL ELSE best_paces END AS playtime_to_get_a_best_pace
 FROM
 (
     SELECT
-        CASE
-            WHEN extract(DOW FROM run_started_at) = 0 THEN
-                7
-            ELSE
-                extract(DOW FROM run_started_at)
-        END AS weekday,
+        EXTRACT(ISODOW FROM run_started_at) AS day_of_the_week,
         SUM(run_duration) AS playtime,
         COUNT(DISTINCT run_id) AS attempts,
         COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END) AS number_of_pbs,
-        ROUND(ROUND(ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END), 4)/ROUND(COUNT(DISTINCT run_id), 4), 4) * 100, 2) || '%' AS pb_ratio--,
-        /* TODO: Fix this
-        ROUND(SUM(run_duration))/CASE WHEN ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END)) = 0 THEN NULL ELSE
-        ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END)) END playtime_to_get_a_pb*/
+        ROUND(ROUND(ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END), 4) /
+            ROUND(COUNT(DISTINCT run_id), 4), 4) * 100, 3) || '%' AS pb_ratio,
+        SUM(run_duration) /
+            CASE
+                WHEN ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END)) = 0 THEN
+                    NULL
+                ELSE
+                    ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END))
+            END playtime_to_get_a_pb
     FROM attempts_data5_runner
-    GROUP BY 1
-) a
+    GROUP BY day_of_the_week
+) pbs
 
 LEFT JOIN
 (
     SELECT
-        CASE
-            WHEN extract(DOW FROM run_started_at) = 0 THEN
-                7
-            ELSE
-                extract(DOW FROM run_started_at)
-        END AS weekday,
-        /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed */
-        --SUM(golded_split::INT) AS golds,
-        SUM(golded_chapter::INT) AS chapter_golds,
-        SUM(golded_section::INT) AS section_golds,
-        SUM(was_best_pace::INT) AS best_paces
+        run_started_on_weekday,
+        SUM(CASE WHEN lrt_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS ds_golds,
+        SUM(CASE WHEN chapter_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS chapter_golds,
+        SUM(CASE WHEN section_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS section_golds
+        --SUM(CASE WHEN pace_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS best_paces
     FROM splits_overview_runner
-    GROUP BY 1
-) b
-ON a.weekday = b.weekday
-ORDER BY a.weekday;
+    GROUP BY run_started_on_weekday
+) golds
+ON pbs.day_of_the_week = golds.run_started_on_weekday
+ORDER BY pbs.day_of_the_week;
 
 --#endregion
