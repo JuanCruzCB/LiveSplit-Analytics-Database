@@ -2255,250 +2255,95 @@ ORDER BY
 
 --#region USEFUL QUERIES
 
-/* Script is finished, here we have some useful queries */
-
-/* Checking is a gold was done ON a gold hunt (bad run) by checking the delta between the pace of that run AND the best pace for each split_name */
+/* Checking if a doorsplit gold was done on a bad run (gold hunt) by checking the delta between the pace of that run and the best pace for each split. */
 
 DROP TABLE IF EXISTS gold_hunt_detector_runner;
 CREATE TABLE gold_hunt_detector_runner AS
 SELECT
+    run_id,
     split_number,
     split_name,
-    lrt_time,
-    lrt_time_formatted,
-    run_id,
+    lrt_time AS ds_gold,
+    lrt_time_formatted AS ds_gold_formatted,
     run_started_at,
+    split_started_at,
     final_lrt_time,
-    pace,
-    pace2,
+    lrt_pace AS pace,
     best_pace,
-    best_pace2,
     best_pace_delta
 FROM
 (
     SELECT
-        a.*,
-        pace,
-        best_pace,
-        pace - best_pace AS best_pace_delta,
-        pace2,
-        best_pace2,
-        ROW_NUMBER () OVER (PARTITION BY a.split_number ORDER BY pace - best_pace) AS rang
-    FROM doorsplit_golds1_runner a
+        dg.run_id,
+        dg.split_number,
+        dg.split_name,
+        dg.lrt_time,
+        dg.lrt_time_formatted,
+        dg.run_started_at,
+        dg.split_started_at,
+        dg.final_lrt_time,
+        ph.lrt_pace,
+        bp.lrt_pace AS best_pace,
+        ph.lrt_pace - bp.lrt_pace AS best_pace_delta,
+        ROW_NUMBER () OVER (PARTITION BY dg.split_number ORDER BY ph.lrt_pace - bp.lrt_pace) AS ds_gold_instance
+    FROM doorsplit_golds2_runner dg
 
-    LEFT JOIN best_paces_history2_runner b
-    ON a.run_id = b.run_id AND a.split_number = b.split_number
-) a
-WHERE rang = 1
+    LEFT JOIN pace_history2_runner ph
+    ON dg.run_id = ph.run_id AND dg.split_number = ph.split_number
+
+    LEFT JOIN best_paces_runner bp
+    ON dg.split_number = bp.split_number
+)
+WHERE ds_gold_instance = 1
 ORDER BY split_number;
 
-/* All chapter golds with doorsplits golds combined per chapter */
+/* Chapter golds but calculated in a different way: summing up all the doorsplit golds that belong to each chapter. */
 
-DROP TABLE IF EXISTS chapter_golds_sheet_runner;
-CREATE TABLE chapter_golds_sheet_runner AS
+/* TODO: Add cumulative and well formatted versions. */
+DROP TABLE IF EXISTS chapter_golds_by_doors_runner;
+CREATE TABLE chapter_golds_by_doors_runner AS
 SELECT
-    a.chapter,
-    a.run_id,
-    a.run_started_at,
-    a.final_lrt_time,
-    a.pb,
-    cumulative_chapter_gold2 AS doorsplit_combined_gold,
-    a.cumulative_chapter_gold,
-    cumulative_door_gold,
-    chapter_gold_at_that_time AS previous_chapter_gold
-FROM chapter_golds2_runner a
+    chapter,
+    SUM(lrt_time) AS chapter_gold_by_doors
+FROM doorsplit_golds2_runner
+WHERE lrt_time_occurrence = 1
+GROUP BY chapter
+ORDER BY chapter;
 
-LEFT JOIN
-(
-    SELECT
-        chapter,
-        SUM(lrt_time) AS cumulative_chapter_gold2
-    FROM
-    (
-        SELECT
-            a.chapter,
-            a.lrt_time,
-            a.lrt_time_formatted,
-            a.split_number,
-            MIN(sum_of_best) AS cumulative_door_gold
-        FROM doorsplit_golds2_runner a
-        LEFT JOIN
-        (
-            SELECT DISTINCT
-                split_number,
-                chapter
-            FROM splits_overview_runner
-        ) b ON a.split_number = b.split_number
-        GROUP BY
-            a.chapter,
-            a.lrt_time,
-            a.lrt_time_formatted,
-            a.split_number
-        ORDER BY a.split_number
-    ) b
-    GROUP BY chapter
-) bb
-ON a.chapter = bb.chapter
+/* Section golds but calculated in a different way: summing up all the doorsplit golds that belong to each section. */
 
-LEFT JOIN
-(
-    SELECT
-        *
-    FROM
-    (
-        SELECT
-            split_number,
-            chapter,
-            cumulative_door_gold,
-            ROW_NUMBER() OVER(PARTITION BY chapter ORDER BY split_number DESC) AS rang
-        FROM splits_overview_runner
-    ) a
-    WHERE rang = 1
-) c
-ON a.chapter = c.chapter
-
-LEFT JOIN
-(
-    SELECT DISTINCT
-        run_id,
-        chapter,
-        chapter_gold_at_that_time
-    FROM splits_overview_runner
-    WHERE chapter_time = chapter_gold
-) d
-ON a.chapter = d.chapter AND a.run_id = d.run_id;
-
-/* All _section golds with doorsplits golds combined per _section + chapter golds combined per _section */
-
-DROP TABLE IF EXISTS section_golds_sheet_runner;
-CREATE TABLE section_golds_sheet_runner AS
+/* TODO: Add cumulative and well formatted versions. */
+DROP TABLE IF EXISTS section_golds_by_doors_runner;
+CREATE TABLE section_golds_by_doors_runner AS
 SELECT
-    a.run_id,
-    a._section,
-    a.run_started_at,
-    a.final_lrt_time,
-    a.pb,
-    cumulative_chapter_gold3 AS chapter_combined_gold,
-    cumulative_chapter_gold2 AS doorsplit_combined_gold,
-    a.cumulative_section_gold,
-    cumulative_chapter_gold,
-    cumulative_door_gold,
-    section_gold_at_that_time AS previous_section_gold
-FROM section_golds2_runner a
+    dg._section,
+    SUM(dg.lrt_time) AS section_gold_by_doors
+FROM doorsplit_golds2_runner dg
 
-LEFT JOIN
-(
-    SELECT
-        _section,
-        SUM(lrt_time) AS cumulative_chapter_gold2
-    FROM
-    (
-        SELECT DISTINCT
-            a._section,
-            a.lrt_time,
-            a.lrt_time_formatted,
-            a.split_number
-        FROM doorsplit_golds2_runner a
+LEFT JOIN splits_per_section sps
+ON dg._section = sps._section
 
-        LEFT JOIN
-        (
-            SELECT DISTINCT
-                split_number,
-                _section
-            FROM splits_overview_runner
-        ) b
-        ON a.split_number = b.split_number
-    ) b
-    GROUP BY _section
-) bb
-ON a._section = bb._section
+WHERE dg.lrt_time_occurrence = 1
+GROUP BY dg._section, sps.sort
+ORDER BY sps.sort;
 
-LEFT JOIN
-(
-    SELECT *
-    FROM
-    (
-        SELECT
-            split_number,
-            _section,
-            cumulative_door_gold,
-            ROW_NUMBER() OVER(PARTITION BY _section ORDER BY split_number DESC) AS rang
-        FROM splits_overview_runner
-    ) a
-    WHERE rang = 1
-) c
-ON a._section = c._section
+/* Section golds but calculated in a different way: summing up all the chapter golds that belong to each section. */
 
-LEFT JOIN
-(
-    SELECT
-        _section,
-        SUM(chapter_gold) AS cumulative_chapter_gold3
-    FROM
-    (
-        SELECT
-            _section,
-            a.chapter_gold,
-            a.chapter,
-            MIN(cumulative_chapter_gold) AS cumulative_chapter_gold
-        FROM chapter_golds2_runner a
+/* TODO: Add cumulative and well formatted versions. */
+DROP TABLE IF EXISTS section_golds_by_chapters_runner;
+CREATE TABLE section_golds_by_chapters_runner AS
+SELECT
+    ch._section,
+    SUM(ch.chapter_time) AS section_gold_by_doors
+FROM chapter_golds2_runner ch
 
-        LEFT JOIN
-        (
-            SELECT DISTINCT
-                chapter,
-                _section
-            FROM splits_overview_runner
-        ) b
-        ON a.chapter = b.chapter
-        GROUP BY
-            _section,
-            a.chapter_gold,
-            a.chapter
-        ORDER BY a.chapter
-    ) b
-    GROUP BY _section
-) d
-ON a._section = d._section
+LEFT JOIN splits_per_section sps
+ON ch._section = sps._section
 
-LEFT JOIN
-(
-    SELECT
-        *
-    FROM
-    (
-        SELECT
-            chapter,
-            _section,
-            cumulative_chapter_gold,
-            ROW_NUMBER() OVER(PARTITION BY _section ORDER BY chapter DESC) AS rang
-        FROM splits_overview_runner
-    ) a
-    WHERE rang = 1
-) e ON a._section = e._section
-
-LEFT JOIN
-(
-    SELECT DISTINCT
-        run_id,
-        _section,
-        section_gold_at_that_time
-    FROM splits_overview_runner
-    WHERE section_time = section_gold
-) f
-ON a._section = f._section AND a.run_id = f.run_id
-ORDER BY
-    CASE
-        WHEN a._section = 'Village' THEN
-            1
-        WHEN a._section = 'Castle' THEN
-            2
-        ELSE
-            3
-    END;
+GROUP BY ch._section, sps.sort
+ORDER BY sps.sort;
 
 /* TODO: Put this back after doorsplit_golds_history2_runner gets fixed Getting the history of PBs by the day of the week */
-
 
 DROP TABLE IF EXISTS weekday_data_runner;
 CREATE TABLE weekday_data_runner AS
