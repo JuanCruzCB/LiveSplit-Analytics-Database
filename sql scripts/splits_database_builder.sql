@@ -2422,7 +2422,7 @@ ORDER BY sort;
 DROP TABLE IF EXISTS weekday_data_runner;
 CREATE TABLE weekday_data_runner AS
 SELECT
-    pbs.day_of_the_week,
+    pbs.iso_weekday,
     pbs.playtime,
     pbs.attempts,
     pbs.number_of_pbs,
@@ -2439,14 +2439,14 @@ SELECT
             ELSE
                 number_of_pbs
         END AS attempts_to_get_a_pb,
-    ROUND((ROUND(golds.ds_golds, 4) / ROUND(attempts, 4)) * 100, 2) || '%' AS golds_ratio,
-    ROUND((ROUND(golds.chapter_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS chapter_golds_ratio,
-    ROUND((ROUND(golds.section_golds, 4) / ROUND(attempts, 4))*100, 2) || '%' AS section_golds_ratio,
-    ROUND((ROUND(golds.best_paces, 4) / ROUND(attempts, 4))*100, 2) || '%' AS best_paces_ratio,
-    ROUND(ROUND(attempts, 2) / CASE WHEN golds.ds_golds = 0 THEN NULL ELSE golds.ds_golds END, 2) AS attempts_to_get_a_gold,
-    ROUND(ROUND(attempts, 2) / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds END, 2) AS attempts_to_get_a_chapter_gold,
-    ROUND(ROUND(attempts, 2) / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END, 2) AS attempts_to_get_a_section_gold,
-    ROUND(ROUND(attempts, 2) / CASE WHEN golds.best_paces = 0 THEN NULL ELSE golds.best_paces END, 2) AS attempts_to_get_a_best_pace,
+    ROUND((ROUND(golds.ds_golds, 4) / ROUND(attempts, 4)) * 100, 4) AS golds_ratio,
+    ROUND((ROUND(golds.chapter_golds, 4) / ROUND(attempts, 4)) * 100, 4) AS chapter_golds_ratio,
+    ROUND((ROUND(golds.section_golds, 4) / ROUND(attempts, 4)) * 100, 4) AS section_golds_ratio,
+    ROUND((ROUND(golds.best_paces, 4) / ROUND(attempts, 4)) * 100, 4) AS best_paces_ratio,
+    ROUND(ROUND(attempts, 4) / CASE WHEN golds.ds_golds = 0 THEN NULL ELSE golds.ds_golds END, 4) AS attempts_to_get_a_gold,
+    ROUND(ROUND(attempts, 4) / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds END, 4) AS attempts_to_get_a_chapter_gold,
+    ROUND(ROUND(attempts, 4) / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END, 4) AS attempts_to_get_a_section_gold,
+    ROUND(ROUND(attempts, 4) / CASE WHEN golds.best_paces = 0 THEN NULL ELSE golds.best_paces END, 4) AS attempts_to_get_a_best_pace,
     playtime / CASE WHEN golds.ds_golds = 0 THEN NULL ELSE golds.ds_golds END AS playtime_to_get_a_gold,
     playtime / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds END AS playtime_to_get_a_chapter_gold,
     playtime / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END AS playtime_to_get_a_section_gold,
@@ -2454,12 +2454,12 @@ SELECT
 FROM
 (
     SELECT
-        EXTRACT(ISODOW FROM run_started_at) AS day_of_the_week,
+        EXTRACT(ISODOW FROM run_started_at) AS iso_weekday,
         SUM(run_duration) AS playtime,
         COUNT(DISTINCT run_id) AS attempts,
         COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END) AS number_of_pbs,
         ROUND(ROUND(ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END), 4) /
-            ROUND(COUNT(DISTINCT run_id), 4), 4) * 100, 3) || '%' AS pb_ratio,
+            ROUND(COUNT(DISTINCT run_id), 4), 4) * 100, 4) AS pb_ratio,
         SUM(run_duration) /
             CASE
                 WHEN ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END)) = 0 THEN
@@ -2468,7 +2468,7 @@ FROM
                     ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END))
             END playtime_to_get_a_pb
     FROM attempts_data5_runner
-    GROUP BY day_of_the_week
+    GROUP BY iso_weekday
 ) pbs
 
 LEFT JOIN
@@ -2482,7 +2482,7 @@ LEFT JOIN
     FROM splits_overview_runner
     GROUP BY run_started_on_weekday
 ) golds
-ON pbs.day_of_the_week = golds.run_started_on_weekday
-ORDER BY pbs.day_of_the_week;
+ON pbs.iso_weekday = golds.run_started_on_weekday
+ORDER BY pbs.iso_weekday;
 
 --#endregion
