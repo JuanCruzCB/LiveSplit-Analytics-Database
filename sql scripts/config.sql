@@ -1,9 +1,9 @@
 /* Default split names for the game. TODO: This needs to be customizable. */
 
 DROP TABLE IF EXISTS cfg_default_split_names;
-CREATE TABLE cfg_default_split_names(split_number INTEGER, split_name TEXT);
+CREATE TABLE cfg_default_split_names(split_index INTEGER, split_name TEXT);
 
-INSERT INTO cfg_default_split_names(split_number, split_name)
+INSERT INTO cfg_default_split_names(split_index, split_name)
 VALUES
 	(1, '-Start'),
 	(2, '-Village'),
@@ -130,10 +130,10 @@ VALUES
 	(123, '{End} Jetski');
 
 
-DROP TABLE IF EXISTS cfg_chapter_section_splits_from_to;
-CREATE TABLE cfg_chapter_section_splits_from_to(from_split_number INTEGER, to_split_number INTEGER, chapter TEXT, _section TEXT);
+DROP TABLE IF EXISTS cfg_chapter_area_splits_from_to;
+CREATE TABLE cfg_chapter_area_splits_from_to(from_split_index INTEGER, to_split_index INTEGER, chapter TEXT, area TEXT);
 
-INSERT INTO cfg_chapter_section_splits_from_to(from_split_number, to_split_number, chapter, _section)
+INSERT INTO cfg_chapter_area_splits_from_to(from_split_index, to_split_index, chapter, area)
 VALUES
     (1, 4, '1-1', 'Village'),
     (5, 7, '1-2', 'Village'),
@@ -156,10 +156,10 @@ VALUES
     (120, 123, '6-1', 'Island');
 
 
-DROP TABLE IF EXISTS cfg_splits_per_section;
-CREATE TABLE cfg_splits_per_section(sort INTEGER, number_of_splits INTEGER, _section TEXT);
+DROP TABLE IF EXISTS cfg_splits_per_area;
+CREATE TABLE cfg_splits_per_area(sort INTEGER, number_of_splits INTEGER, area TEXT);
 
-INSERT INTO cfg_splits_per_section(sort, number_of_splits, _section)
+INSERT INTO cfg_splits_per_area(sort, number_of_splits, area)
 VALUES
 	(1, 32, 'Village'),
 	(2, 50, 'Castle'),
