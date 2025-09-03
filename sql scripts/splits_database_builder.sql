@@ -169,6 +169,7 @@ SELECT
     starts_at_row,
     ends_at_row
 FROM split_names_data2_runner sn
+
 LEFT JOIN cfg_chapter_area_splits_from_to ft
 ON sn.split_index BETWEEN ft.from_split_index AND ft.to_split_index;
 
@@ -793,6 +794,7 @@ FROM
         *
     FROM doorsplit_history5_runner
 ) ds
+
 INNER JOIN cfg_chapter_area_splits_from_to per
 ON per.chapter = ds.chapter AND (per.to_split_index - per.from_split_index) + 1 = ds.num_splits
 ORDER BY
@@ -1009,6 +1011,7 @@ FROM
         *
     FROM doorsplit_history5_runner
 ) ds
+
 INNER JOIN cfg_splits_per_area per
 ON per.area = ds.area AND per.number_of_splits = ds.num_splits
 ORDER BY
@@ -1337,6 +1340,7 @@ SELECT
     COALESCE(LAG(times_finished) OVER () - times_finished, total_attempts - times_finished) AS times_reset,
     attempts.total_attempts
 FROM doorsplits_finished_runner
+
 CROSS JOIN
 (
     SELECT
@@ -1369,201 +1373,42 @@ DROP TABLE IF EXISTS rng_patterns_categories_runner;
 CREATE TABLE rng_patterns_categories_runner AS
 SELECT
     run_id,
-    MAX(lago_pattern) FILTER (WHERE lago_pattern <> '') AS lago_pattern,
-    MAX(cabin_pattern) FILTER (WHERE cabin_pattern <> '') AS cabin_pattern,
-    MAX(mendez_pattern) FILTER (WHERE mendez_pattern <> '') AS mendez_pattern,
-    MAX(water_hall_pattern) FILTER (WHERE water_hall_pattern <> '') AS water_hall_pattern,
-    MAX(novis1_pattern) FILTER (WHERE novis1_pattern <> '') AS novis1_pattern,
-    MAX(gallery_pattern) FILTER (WHERE gallery_pattern <> '') AS gallery_pattern,
-    MAX(novis2_pattern) FILTER (WHERE novis2_pattern <> '') AS novis2_pattern,
-    MAX(catapult_pattern) FILTER (WHERE catapult_pattern <> '') AS catapult_pattern,
-    MAX(novis3_pattern) FILTER (WHERE novis3_pattern <> '') AS novis3_pattern,
-    MAX(u3_pattern) FILTER (WHERE u3_pattern <> '') AS u3_pattern,
-    MAX(krauser_pattern) FILTER (WHERE krauser_pattern <> '') AS krauser_pattern,
-    MAX(war_room_pattern) FILTER (WHERE war_room_pattern <> '') AS war_room_pattern,
-    MAX(key_card_pattern) FILTER (WHERE key_card_pattern <> '') AS key_card_pattern
+    MAX(CASE WHEN pattern_type = 'Del Lago' THEN pattern_name END) AS lago_pattern,
+    MAX(CASE WHEN pattern_type = 'Cabin' THEN pattern_name END) AS cabin_pattern,
+    MAX(CASE WHEN pattern_type = 'Mendez' THEN pattern_name END) AS mendez_pattern,
+    MAX(CASE WHEN pattern_type = 'Water Hall' THEN pattern_name END) AS water_hall_pattern,
+    MAX(CASE WHEN pattern_type = 'Novis 1' THEN pattern_name END) AS novis1_pattern,
+    MAX(CASE WHEN pattern_type = 'Gallery' THEN pattern_name END) AS gallery_pattern,
+    MAX(CASE WHEN pattern_type = 'Novis 2' THEN pattern_name END) AS novis2_pattern,
+    MAX(CASE WHEN pattern_type = 'Catapult' THEN pattern_name END) AS catapult_pattern,
+    MAX(CASE WHEN pattern_type = 'Novis 3' THEN pattern_name END) AS novis3_pattern,
+    MAX(CASE WHEN pattern_type = 'U3' THEN pattern_name END) AS u3_pattern,
+    MAX(CASE WHEN pattern_type = 'Krauser' THEN pattern_name END) AS krauser_pattern,
+    MAX(CASE WHEN pattern_type = 'War Room' THEN pattern_name END) AS war_room_pattern,
+    MAX(CASE WHEN pattern_type = 'Key Card' THEN pattern_name END) AS key_card_pattern
 FROM
 (
     SELECT
-        run_id,
-        split_index,
-        split_name,
-        lrt_time_fmt,
-        split_index_reset,
-        split_reset_duration,
-        CASE
-            WHEN split_index = 14 AND lrt_time <= '1:36.0'::INTERVAL THEN
-                '014-a No dive'
-            WHEN split_index = 14 AND lrt_time <= '1:42.0'::INTERVAL THEN
-                '014-b Late dive'
-            WHEN split_index = 14 OR (split_index = 13 AND split_index_reset = 14 AND split_reset_duration >= '59'::INTERVAL) THEN
-                '014-c Early dive' -- Needs to be >= '56'::INTERVAL normally
-            ELSE
-                ''
-        END AS lago_pattern,
-        CASE
-            WHEN split_index = 26 AND lrt_time <= '1:53.0'::INTERVAL THEN
-                '026-a Great cabin'
-            WHEN split_index = 26 AND lrt_time <= '1:58.0'::INTERVAL THEN
-                '026-b Good cabin'
-            WHEN split_index = 26 AND lrt_time <= '2:03.0'::INTERVAL THEN
-                '026-c Average cabin'
-            WHEN split_index = 26 AND lrt_time <= '2:10.0'::INTERVAL THEN
-                '026-d Bad cabin'
-            WHEN split_index = 26 THEN
-                '026-e Terrible cabin'
-            ELSE
-                ''
-        END AS cabin_pattern,
-        CASE
-            WHEN split_index = 30 AND lrt_time <= '54.5'::INTERVAL THEN
-                '030-a Fast Mendez'
-            WHEN split_index = 30 AND lrt_time <= '57'::INTERVAL THEN
-                '030-b Medium Mendez'
-            WHEN split_index = 30 THEN
-                '030-c Slow Mendez'
-            ELSE
-                ''
-        END AS mendez_pattern,
-        CASE
-            WHEN split_index = 38 AND lrt_time <= '3:16.0'::INTERVAL THEN
-                '038-a Great water hall'
-            WHEN split_index = 38 AND lrt_time <= '3:19.0'::INTERVAL THEN
-                '038-b Good water hall'
-            WHEN split_index = 38 AND lrt_time <= '3:22.0'::INTERVAL THEN
-                '038-c Average water hall'
-            WHEN split_index = 38 AND lrt_time <= '3:25.0'::INTERVAL THEN
-                '038-d Bad water hall'
-            WHEN split_index = 38 THEN
-                '038-e Terrible water hall'
-            ELSE
-                ''
-        END AS water_hall_pattern,
-        CASE
-            WHEN split_index = 41 AND lrt_time <= '1:22.0'::INTERVAL THEN
-                '041-a Great novis 1'
-            WHEN split_index = 41 AND lrt_time <= '1:24.0'::INTERVAL THEN
-                '041-b Good novis 1'
-            WHEN split_index = 41 AND lrt_time <= '1:26.0'::INTERVAL THEN
-                '041-c Average novis 1'
-            WHEN split_index = 41 AND lrt_time <= '1:28.0'::INTERVAL THEN
-                '041-d Bad novis 1'
-            WHEN split_index = 41 THEN
-                '041-e Terrible novis 1'
-            ELSE
-                ''
-        END AS novis1_pattern,
-        CASE
-            WHEN split_index = 43 AND lrt_time <= '1:42.0'::INTERVAL THEN
-                '043-a Great gallery'
-            WHEN split_index = 43 AND lrt_time <= '1:45.0'::INTERVAL THEN
-                '043-b Good gallery'
-            WHEN split_index = 43 AND lrt_time <= '1:48.0'::INTERVAL THEN
-                '043-c Average gallery'
-            WHEN split_index = 43 AND lrt_time <= '1:50.0'::INTERVAL THEN
-                '043-d Bad gallery'
-            WHEN split_index = 43 THEN
-                '043-e Terrible gallery'
-            ELSE
-                ''
-        END AS gallery_pattern,
-        CASE
-            WHEN split_index = 64 AND lrt_time <= '33.5'::INTERVAL THEN
-                '064-a Great novis 2'
-            WHEN split_index = 64 AND lrt_time <= '35'::INTERVAL THEN
-                '064-b Good novis 2'
-            WHEN split_index = 64 AND lrt_time <= '38'::INTERVAL THEN
-                '064-c Average novis 2'
-            WHEN split_index = 64 AND lrt_time <= '40'::INTERVAL THEN
-                '064-d Bad novis 2'
-            WHEN split_index = 64 THEN
-                '064-e Terrible novis 2'
-            ELSE
-                ''
-        END AS novis2_pattern,
-        CASE
-            WHEN split_index = 65 AND lrt_time <= '31'::INTERVAL THEN
-                '065-a Perfect catapult'
-            WHEN split_index = 65 AND lrt_time <= '33'::INTERVAL THEN
-                '065-b Stagger catapult'
-            WHEN split_index = 65 THEN
-                '065-c Boulder catapult'
-            ELSE
-                ''
-        END AS catapult_pattern,
-        CASE
-            WHEN split_index = 74 AND lrt_time <= '1:17.0'::INTERVAL THEN
-                '074-a Great novis 3'
-            WHEN split_index = 74 AND lrt_time <= '1:19.0'::INTERVAL THEN
-                '074-b Good novis 3'
-            WHEN split_index = 74 AND lrt_time <= '1:22.0'::INTERVAL THEN
-                '074-c Average novis 3'
-            WHEN split_index = 74 AND lrt_time <= '1:25.0'::INTERVAL THEN
-                '074-d Bad novis 3'
-            WHEN split_index = 74 THEN
-                '074-e Terrible novis 3'
-            ELSE
-                ''
-        END AS novis3_pattern,
-        CASE
-            WHEN split_index = 110 AND lrt_time <= '1:35.5'::INTERVAL THEN
-                '110-a Great u3'
-            WHEN split_index = 110 AND lrt_time <= '1:39.0'::INTERVAL THEN
-                '110-b Good u3'
-            WHEN split_index = 110 AND lrt_time <= '1:41.0'::INTERVAL THEN
-                '110-c Average u3'
-            WHEN split_index = 110 AND lrt_time <= '1:43.0'::INTERVAL THEN
-                '110-d Bad u3'
-            WHEN split_index = 110 THEN
-                '110-e Terrible u3'
-            ELSE
-                ''
-        END AS u3_pattern,
-        CASE
-            WHEN split_index = 112 AND lrt_time <= '2:19.0'::INTERVAL THEN
-                '112-a Great Krauser'
-            WHEN split_index = 112 AND lrt_time <= '2:22.0'::INTERVAL THEN
-                '112-b Good Krauser'
-            WHEN split_index = 112 AND lrt_time <= '2:25.0'::INTERVAL THEN
-                '112-c Average Krauser'
-            WHEN split_index = 112 AND lrt_time <= '2:28.0'::INTERVAL THEN
-                '112-d Bad Krauser'
-            WHEN split_index = 112 THEN
-                '112-e Terrible Krauser'
-            ELSE
-                ''
-        END AS krauser_pattern,
-        CASE
-            WHEN split_index = 113 AND lrt_time <= '1:51.0'::INTERVAL THEN
-                '113-a Great war room'
-            WHEN split_index = 113 AND lrt_time <= '1:54.0'::INTERVAL THEN
-                '113-b Good war room'
-            WHEN split_index = 113 AND lrt_time <= '1:57.0'::INTERVAL THEN
-                '113-c Average war room'
-            WHEN split_index = 113 AND lrt_time <= '2:00.0'::INTERVAL THEN
-                '113-d Bad war room'
-            WHEN split_index = 113 THEN
-                '113-e Terrible war room'
-            ELSE
-                ''
-        END AS war_room_pattern,
-        CASE
-            WHEN split_index = 117 AND lrt_time <= '55'::INTERVAL THEN
-                '117-a Great key card'
-            WHEN split_index = 117 AND lrt_time <= '57'::INTERVAL THEN
-                '117-b Good key card'
-            WHEN split_index = 117 AND lrt_time <= '59'::INTERVAL THEN
-                '117-c Average key card'
-            WHEN split_index = 117 AND lrt_time <= '1:01.0'::INTERVAL THEN
-                '117-d Bad key card'
-            WHEN split_index = 117 THEN
-                '117-e Terrible key card'
-            ELSE
-                ''
-        END AS key_card_pattern
-    FROM doorsplit_history5_runner
-    WHERE split_index IN(13, 14, 26, 30, 38, 41, 43, 64, 65, 74, 110, 112, 113, 117)
-)
+        dh.run_id,
+        rules.pattern_type,
+        rules.pattern_name
+    FROM doorsplit_history5_runner dh
+
+    INNER JOIN cfg_rng_pattern_rules rules
+    ON dh.split_index = rules.split_index
+    AND dh.lrt_time BETWEEN rules.min_time AND rules.max_time
+    WHERE dh.split_index IN(SELECT DISTINCT split_index FROM cfg_rng_pattern_rules) OR dh.split_index_reset = 13
+
+    UNION ALL
+
+    -- Special case for lago pattern with early dive (split 13 reset)
+    SELECT
+        dh.run_id,
+        'Del Lago' AS pattern_type,
+        '3. Early Dive' AS pattern_name
+    FROM doorsplit_history5_runner dh
+    WHERE dh.split_index = 13 AND dh.split_index_reset = 14 AND dh.split_reset_duration >= '59'::INTERVAL
+) patterns
 GROUP BY run_id
 ORDER BY run_id;
 
@@ -1572,8 +1417,8 @@ ORDER BY run_id;
 DROP TABLE IF EXISTS rng_patterns_stats_runner;
 CREATE TABLE rng_patterns_stats_runner AS
 SELECT
-    pattern,
-    REGEXP_REPLACE(pattern, '^[^ ]* ', '') AS pattern_fmt,
+    cfg.pattern_type,
+    REPLACE(SUBSTRING(pattern, 3), cfg.pattern_type, '') AS pattern_name,
     pattern_instances,
     pattern_total,
     pattern_percentage,
@@ -2151,7 +1996,12 @@ FROM
         pattern_total,
         pattern_percentage
 )
-ORDER BY pattern;
+
+LEFT JOIN cfg_rng_pattern_rules cfg
+ON cfg.pattern_name = pattern
+ORDER BY
+    cfg.split_index,
+    pattern;
 
 --#endregion
 
