@@ -420,20 +420,9 @@ FROM segments_data7_runner segments
 LEFT JOIN attempts_data5_runner attempts
 ON segments.run_id = attempts.run_id;
 
-/* Getting the cumulative RTA for each run, split by split, for as long as that run went on (obviously some runs last until split 1, others until split 2, others until split 8, others until the end, etc). */
+/* Add cumulative RTA data to each run, this will be useful to calculate the start and end timestamp of each segment.
 
-DROP TABLE IF EXISTS cumulative_rta_runner;
-CREATE TABLE cumulative_rta_runner AS
-SELECT
-    run_id,
-    split_number,
-    SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_number) AS run_cumulative_rta
-FROM doorsplit_history1_runner
-ORDER BY
-    run_id,
-    split_number;
-
-/* Add cumulative RTA data to each run, this will be useful to calculate the start and end timestamp of each segment. */
+The cumulative RTA for each run is calculated split by split, for as long as that run went on (obviously some runs last until split 1, others until split 2, others until split 8, others until the end, etc). */
 
 DROP TABLE IF EXISTS doorsplit_history2_runner;
 CREATE TABLE doorsplit_history2_runner AS
@@ -454,12 +443,19 @@ SELECT
     ds.run_started_at,
     ds.run_ended_at,
     ds.run_duration,
-    crta.run_cumulative_rta,
-    LAG(crta.run_cumulative_rta) OVER(PARTITION BY ds.run_id ORDER BY ds.split_number) AS run_cumulative_rta_lag
+    cumulative_rta.run_cumulative_rta,
+    LAG(cumulative_rta.run_cumulative_rta) OVER(PARTITION BY ds.run_id ORDER BY ds.split_number) AS run_cumulative_rta_lag
 FROM doorsplit_history1_runner ds
 
-LEFT JOIN cumulative_rta_runner crta
-ON ds.run_id = crta.run_id AND ds.split_number = crta.split_number;
+LEFT JOIN
+(
+    SELECT
+        run_id,
+        split_number,
+        SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_number) AS run_cumulative_rta
+    FROM doorsplit_history1_runner
+) cumulative_rta
+ON ds.run_id = cumulative_rta.run_id AND ds.split_number = cumulative_rta.split_number;
 
 /* Adds the date and time at which each individual segment in the history began and ended. Also swaps all split names (which may be customized) by default split names for readability. */
 
@@ -590,8 +586,8 @@ ORDER BY
 
 /* Total number of times each doorsplit has been finished and has been golded in the history. */
 
-DROP TABLE IF EXISTS finished_doorsplits_runner;
-CREATE TABLE finished_doorsplits_runner AS
+DROP TABLE IF EXISTS doorsplits_finished_runner;
+CREATE TABLE doorsplits_finished_runner AS
 SELECT DISTINCT
     split_number,
     split_name,
@@ -604,8 +600,8 @@ ORDER BY split_number;
 
 /* The average and median times for each doorsplit, along with well formatted versions. Also cumulative average and median times. */
 
-DROP TABLE IF EXISTS avg_med_doorsplits_runner;
-CREATE TABLE avg_med_doorsplits_runner AS
+DROP TABLE IF EXISTS doorsplits_avg_med_runner;
+CREATE TABLE doorsplits_avg_med_runner AS
 WITH avg_med AS
 (
     SELECT
@@ -831,8 +827,8 @@ FROM chapter_history1_runner ch1;
 
 /* Total number of times each chapter has been finished and has been golded in the history. */
 
-DROP TABLE IF EXISTS finished_chapters_runner;
-CREATE TABLE finished_chapters_runner AS
+DROP TABLE IF EXISTS chapters_finished_runner;
+CREATE TABLE chapters_finished_runner AS
 SELECT DISTINCT
     chapter,
     COUNT(*) OVER(PARTITION BY chapter) AS times_finished,
@@ -842,8 +838,8 @@ ORDER BY chapter;
 
 /* The average and median times for each chapter, along with well formatted versions. Also cumulative average and median times. */
 
-DROP TABLE IF EXISTS avg_med_chapters_runner;
-CREATE TABLE avg_med_chapters_runner AS
+DROP TABLE IF EXISTS chapters_avg_med_runner;
+CREATE TABLE chapters_avg_med_runner AS
 WITH avg_med AS
 (
     SELECT
@@ -951,6 +947,28 @@ LEFT JOIN
 ) cumulative
 ON golds.chapter = cumulative.chapter;
 
+/* Chapter golds but calculated in a different way: summing up all the doorsplit golds that belong to each chapter. */
+
+DROP TABLE IF EXISTS chapter_golds_by_doors_runner;
+CREATE TABLE chapter_golds_by_doors_runner AS
+SELECT
+    chapter,
+    chapter_gold_by_doors,
+    LTRIM(TO_CHAR(chapter_gold_by_doors, 'HH24:MI:SS.FF3'), '0:') AS chapter_gold_by_doors_formatted,
+    SUM(chapter_gold_by_doors) OVER(ORDER BY chapter) AS sum_of_best,
+    LTRIM(TO_CHAR(SUM(chapter_gold_by_doors) OVER(ORDER BY chapter), 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted
+FROM
+(
+    SELECT
+        chapter,
+        SUM(lrt_time) AS chapter_gold_by_doors
+    FROM doorsplit_golds2_runner
+    WHERE lrt_time_occurrence = 1
+    GROUP BY chapter
+    ORDER BY chapter
+)
+ORDER BY chapter;
+
 --#endregion
 
 --#region SECTIONS
@@ -1023,8 +1041,8 @@ FROM section_history1_runner sec1;
 
 /* Total number of times each section has been finished and has been golded in the history. */
 
-DROP TABLE IF EXISTS finished_sections_runner;
-CREATE TABLE finished_sections_runner AS
+DROP TABLE IF EXISTS sections_finished_runner;
+CREATE TABLE sections_finished_runner AS
 SELECT DISTINCT
     _section,
     COUNT(*) OVER(PARTITION BY _section) AS times_finished,
@@ -1035,8 +1053,8 @@ ORDER BY sort;
 
 /* The average and median times for each chapter, along with well formatted versions. Also cumulative average and median times. */
 
-DROP TABLE IF EXISTS avg_med_sections_runner;
-CREATE TABLE avg_med_sections_runner AS
+DROP TABLE IF EXISTS sections_avg_med_runner;
+CREATE TABLE sections_avg_med_runner AS
 WITH avg_med AS
 (
     SELECT
@@ -1141,6 +1159,61 @@ LEFT JOIN
 ) cumulative
 ON golds._section = cumulative._section;
 
+/* Section golds but calculated in a different way: summing up all the doorsplit golds that belong to each section. */
+
+DROP TABLE IF EXISTS section_golds_by_doors_runner;
+CREATE TABLE section_golds_by_doors_runner AS
+SELECT
+    _section,
+    section_gold_by_doors,
+    LTRIM(TO_CHAR(section_gold_by_doors, 'HH24:MI:SS.FF3'), '0:') AS section_gold_by_doors_formatted,
+    SUM(section_gold_by_doors) OVER(ORDER BY sort) AS sum_of_best,
+    LTRIM(TO_CHAR(SUM(section_gold_by_doors) OVER(ORDER BY sort), 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted
+FROM
+(
+    SELECT
+        dg._section,
+        SUM(dg.lrt_time) AS section_gold_by_doors,
+        sps.sort
+    FROM doorsplit_golds2_runner dg
+
+    LEFT JOIN splits_per_section sps
+    ON dg._section = sps._section
+
+    WHERE dg.lrt_time_occurrence = 1
+    GROUP BY
+        dg._section,
+        sps.sort
+)
+ORDER BY sort;
+
+/* Section golds but calculated in a different way: summing up all the chapter golds that belong to each section. */
+
+DROP TABLE IF EXISTS section_golds_by_chapters_runner;
+CREATE TABLE section_golds_by_chapters_runner AS
+SELECT
+    _section,
+    section_gold_by_chapters,
+    LTRIM(TO_CHAR(section_gold_by_chapters, 'HH24:MI:SS.FF3'), '0:') AS section_gold_by_chapters_formatted,
+    SUM(section_gold_by_chapters) OVER(ORDER BY sort) AS sum_of_best,
+    LTRIM(TO_CHAR(SUM(section_gold_by_chapters) OVER(ORDER BY sort), 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted
+FROM
+(
+    SELECT
+        ch._section,
+        SUM(ch.chapter_time) AS section_gold_by_chapters,
+        sps.sort
+    FROM chapter_golds2_runner ch
+
+    LEFT JOIN splits_per_section sps
+    ON ch._section = sps._section
+
+    GROUP BY
+        ch._section,
+        sps.sort
+)
+ORDER BY sort;
+
 --#endregion
 
 --#region PACES
@@ -1210,8 +1283,8 @@ ORDER BY split_number;
 
 /* The average and median paces for each doorsplit, along with well formatted versions. */
 
-DROP TABLE IF EXISTS avg_med_paces_runner;
-CREATE TABLE avg_med_paces_runner AS
+DROP TABLE IF EXISTS paces_avg_med_runner;
+CREATE TABLE paces_avg_med_runner AS
 SELECT
     split_number,
     split_name,
@@ -1255,7 +1328,7 @@ SELECT
     LAG(times_finished) OVER () AS times_finished_prev,
     COALESCE(LAG(times_finished) OVER () - times_finished, total_attempts - times_finished) AS times_reset,
     attempts.total_attempts
-FROM finished_doorsplits_runner
+FROM doorsplits_finished_runner
 CROSS JOIN
 (
     SELECT
@@ -2247,25 +2320,25 @@ ON dsh.run_id = fr.run_id
 LEFT JOIN pb_history_runner pbh
 ON dsh.run_id = pbh.run_id
 
-LEFT JOIN avg_med_doorsplits_runner dsam
+LEFT JOIN doorsplits_avg_med_runner dsam
 ON dsh.split_number = dsam.split_number
 
-LEFT JOIN avg_med_paces_runner pam
+LEFT JOIN paces_avg_med_runner pam
 ON dsh.split_number = pam.split_number
 
-LEFT JOIN avg_med_chapters_runner cam
+LEFT JOIN chapters_avg_med_runner cam
 ON dsh.chapter = cam.chapter
 
-LEFT JOIN avg_med_sections_runner sam
+LEFT JOIN sections_avg_med_runner sam
 ON dsh._section = sam._section
 
-LEFT JOIN finished_doorsplits_runner fds
+LEFT JOIN doorsplits_finished_runner fds
 ON dsh.split_number = fds.split_number
 
-LEFT JOIN finished_chapters_runner fc
+LEFT JOIN chapters_finished_runner fc
 ON dsh.chapter = fc.chapter
 
-LEFT JOIN finished_sections_runner fs
+LEFT JOIN sections_finished_runner fs
 ON dsh._section = fs._section
 
 ORDER BY
@@ -2317,83 +2390,6 @@ FROM
 )
 WHERE ds_gold_instance = 1
 ORDER BY split_number;
-
-/* Chapter golds but calculated in a different way: summing up all the doorsplit golds that belong to each chapter. */
-
-DROP TABLE IF EXISTS chapter_golds_by_doors_runner;
-CREATE TABLE chapter_golds_by_doors_runner AS
-SELECT
-    chapter,
-    chapter_gold_by_doors,
-    LTRIM(TO_CHAR(chapter_gold_by_doors, 'HH24:MI:SS.FF3'), '0:') AS chapter_gold_by_doors_formatted,
-    SUM(chapter_gold_by_doors) OVER(ORDER BY chapter) AS sum_of_best,
-    LTRIM(TO_CHAR(SUM(chapter_gold_by_doors) OVER(ORDER BY chapter), 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted
-FROM
-(
-    SELECT
-        chapter,
-        SUM(lrt_time) AS chapter_gold_by_doors
-    FROM doorsplit_golds2_runner
-    WHERE lrt_time_occurrence = 1
-    GROUP BY chapter
-    ORDER BY chapter
-)
-ORDER BY chapter;
-
-/* Section golds but calculated in a different way: summing up all the doorsplit golds that belong to each section. */
-
-DROP TABLE IF EXISTS section_golds_by_doors_runner;
-CREATE TABLE section_golds_by_doors_runner AS
-SELECT
-    _section,
-    section_gold_by_doors,
-    LTRIM(TO_CHAR(section_gold_by_doors, 'HH24:MI:SS.FF3'), '0:') AS section_gold_by_doors_formatted,
-    SUM(section_gold_by_doors) OVER(ORDER BY sort) AS sum_of_best,
-    LTRIM(TO_CHAR(SUM(section_gold_by_doors) OVER(ORDER BY sort), 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted
-FROM
-(
-    SELECT
-        dg._section,
-        SUM(dg.lrt_time) AS section_gold_by_doors,
-        sps.sort
-    FROM doorsplit_golds2_runner dg
-
-    LEFT JOIN splits_per_section sps
-    ON dg._section = sps._section
-
-    WHERE dg.lrt_time_occurrence = 1
-    GROUP BY
-        dg._section,
-        sps.sort
-)
-ORDER BY sort;
-
-/* Section golds but calculated in a different way: summing up all the chapter golds that belong to each section. */
-
-DROP TABLE IF EXISTS section_golds_by_chapters_runner;
-CREATE TABLE section_golds_by_chapters_runner AS
-SELECT
-    _section,
-    section_gold_by_chapters,
-    LTRIM(TO_CHAR(section_gold_by_chapters, 'HH24:MI:SS.FF3'), '0:') AS section_gold_by_chapters_formatted,
-    SUM(section_gold_by_chapters) OVER(ORDER BY sort) AS sum_of_best,
-    LTRIM(TO_CHAR(SUM(section_gold_by_chapters) OVER(ORDER BY sort), 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_formatted
-FROM
-(
-    SELECT
-        ch._section,
-        SUM(ch.chapter_time) AS section_gold_by_chapters,
-        sps.sort
-    FROM chapter_golds2_runner ch
-
-    LEFT JOIN splits_per_section sps
-    ON ch._section = sps._section
-
-    GROUP BY
-        ch._section,
-        sps.sort
-)
-ORDER BY sort;
 
 /* Getting the history of achievements by the day of the week. */
 
