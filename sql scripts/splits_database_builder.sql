@@ -164,35 +164,13 @@ CREATE TABLE split_names_data3_runner AS
 SELECT
     split_number,
     split_name,
-    CASE
-        WHEN split_number <= 4 THEN '1-1'
-        WHEN split_number <= 7 THEN '1-2'
-        WHEN split_number <= 14 THEN '1-3'
-        WHEN split_number <= 20 THEN '2-1'
-        WHEN split_number <= 26 THEN '2-2'
-        WHEN split_number <= 32 THEN '2-3'
-        WHEN split_number <= 39 THEN '3-1'
-        WHEN split_number <= 45 THEN '3-2'
-        WHEN split_number <= 48 THEN '3-3'
-        WHEN split_number <= 52 THEN '3-4'
-        WHEN split_number <= 70 THEN '4-1'
-        WHEN split_number <= 74 THEN '4-2'
-        WHEN split_number <= 78 THEN '4-3'
-        WHEN split_number <= 82 THEN '4-4'
-        WHEN split_number <= 98 THEN '5-1'
-        WHEN split_number <= 105 THEN '5-2'
-        WHEN split_number <= 112 THEN '5-3'
-        WHEN split_number <= 119 THEN '5-4'
-        ELSE '6-1'
-    END AS chapter,
-    CASE
-        WHEN split_number <= 32 THEN 'Village'
-        WHEN split_number <= 82 THEN 'Castle'
-        ELSE 'Island'
-    END AS _section,
+    ft.chapter,
+    ft._section,
     starts_at_row,
     ends_at_row
-FROM split_names_data2_runner;
+FROM split_names_data2_runner sn
+LEFT JOIN chapter_section_splits_from_to ft
+ON sn.split_number BETWEEN ft.from_split_number AND ft.to_split_number;
 
 /* We join the split names table with the segments data table that has run ids and LRT times on the same row, so now it will have the split, chapter, section names on that same row too, because as explained before, the split name on the original file only shows once at the top and then just lists the entire history of that split name without displaying the split name again, so we need that for each row.
 
@@ -815,8 +793,8 @@ FROM
         *
     FROM doorsplit_history5_runner
 ) ds
-INNER JOIN splits_per_chapter per
-ON per.chapter = ds.chapter AND per.number_of_splits = ds.num_splits
+INNER JOIN chapter_section_splits_from_to per
+ON per.chapter = ds.chapter AND (per.to_split_number - per.from_split_number) + 1 = ds.num_splits
 ORDER BY
     chapter,
     run_id;
