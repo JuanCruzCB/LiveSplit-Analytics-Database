@@ -476,6 +476,7 @@ SELECT
             AND ds2.lrt_time < ds1.lrt_time
     ) + 1 AS lrt_time_rank_at_that_time,
     RANK() OVER (PARTITION BY ds1.split_number ORDER BY lrt_time) AS lrt_time_rank,
+    MIN(lrt_time) OVER(PARTITION BY ds1.split_number ORDER BY run_id) AS gold_at_that_time,
     lrt_time,
     lrt_time_formatted,
     rta_time,
@@ -516,6 +517,7 @@ SELECT
     _section,
     lrt_time_rank_at_that_time,
     lrt_time_rank,
+    gold_at_that_time,
     lrt_time,
     lrt_time_formatted,
     rta_time,
@@ -559,6 +561,7 @@ SELECT
     _section,
     lrt_time_rank_at_that_time,
     lrt_time_rank,
+    gold_at_that_time,
     lrt_time,
     lrt_time_formatted,
     rta_time,
@@ -768,6 +771,7 @@ SELECT DISTINCT
     ds.chapter,
     ds._section,
     RANK() OVER (PARTITION BY ds.chapter ORDER BY ds.chapter_time) AS chapter_time_rank,
+    MIN(ds.chapter_time) OVER(PARTITION BY ds.chapter ORDER BY run_id) AS chapter_gold_at_that_time,
     ds.chapter_time,
     LTRIM(TO_CHAR(ds.chapter_time, 'HH24:MI:SS.FF3'), '0:') AS chapter_time_formatted,
     ds.finished_run,
@@ -812,6 +816,7 @@ SELECT
             AND ch2.chapter_time < ch1.chapter_time
     ) + 1 AS chapter_time_rank_at_that_time,
     chapter_time_rank,
+    chapter_gold_at_that_time,
     chapter_time,
     chapter_time_formatted,
     finished_run,
@@ -981,6 +986,7 @@ SELECT DISTINCT
     ds.run_id,
     ds._section,
     RANK() OVER (PARTITION BY ds._section ORDER BY ds.section_time) AS section_time_rank,
+    MIN(ds.section_time) OVER(PARTITION BY ds._section ORDER BY run_id) AS section_gold_at_that_time,
     ds.section_time,
     LTRIM(TO_CHAR(ds.section_time, 'HH24:MI:SS.FF3'), '0:') AS section_time_formatted,
     ds.finished_run,
@@ -1025,6 +1031,7 @@ SELECT
             AND sec2.section_time < sec1.section_time
     ) + 1 AS section_time_rank_at_that_time,
     section_time_rank,
+    section_gold_at_that_time,
     section_time,
     section_time_formatted,
     finished_run,
@@ -1254,6 +1261,7 @@ SELECT
             AND p2.lrt_pace < p1.lrt_pace
     ) + 1 AS pace_rank_at_that_time,
     RANK() OVER(PARTITION BY split_number ORDER BY lrt_pace) AS lrt_pace_rank,
+    MIN(lrt_pace) OVER(PARTITION BY split_number ORDER BY run_id) AS best_pace_at_that_time,
     lrt_pace,
     LTRIM(TO_CHAR(lrt_pace, 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_formatted,
     rta_pace,
@@ -2160,7 +2168,9 @@ SELECT
     dsh.chapter,
     dsh._section,
     dsh.lrt_time_rank_at_that_time,
+    dsh.lrt_time_rank_at_that_time = 1 AS golded_doorsplit,
     dsh.lrt_time_rank,
+    dsh.gold_at_that_time,
     dsh.lrt_time,
     dsh.lrt_time_formatted,
     dsh.rta_time,
@@ -2179,12 +2189,14 @@ SELECT
     dsh.split_name_reset,
     dsh.split_reset_duration,
 
+    ph.pace_rank_at_that_time,
+    ph.pace_rank_at_that_time = 1 AS was_best_pace,
     ph.lrt_pace_rank,
+    ph.best_pace_at_that_time,
     ph.lrt_pace,
     ph.lrt_pace_formatted,
     ph.rta_pace,
     ph.rta_pace_formatted,
-    ph.pace_rank_at_that_time,
 
     bp.lrt_pace AS best_pace,
     bp.lrt_pace_formatted AS best_pace_formatted,
@@ -2193,28 +2205,23 @@ SELECT
     dsg.lrt_time_formatted AS ds_gold_formatted,
     dsg.cumulative_door_gold AS ds_sum_of_best,
 
-    dsgh.lrt_time AS ds_gold_at_that_time,
-    dsgh.lrt_time_formatted as ds_gold_at_that_time_formatted,
-
     ch.chapter_time_rank_at_that_time,
+    ch.chapter_time_rank_at_that_time = 1 AS golded_chapter,
     ch.chapter_time_rank,
+    ch.chapter_gold_at_that_time,
     ch.chapter_time,
     ch.chapter_time_formatted,
     ch.chapter_started_at,
     ch.chapter_ended_at,
 
-    --TODO: Add chapter_gold_at_that_time on new table chapter_gold_history_runner
-    --cgh ...
-
     sh.section_time_rank_at_that_time,
+    sh.section_time_rank_at_that_time = 1 AS golded_section,
     sh.section_time_rank,
+    sh.section_gold_at_that_time,
     sh.section_time,
     sh.section_time_formatted,
     sh.section_started_at,
     sh.section_ended_at,
-
-    -- TODO: Add section_gold_at_that_time on new table section_gold_history_runner
-    -- sgh ...
 
     cg.chapter_time AS chapter_gold,
     cg.chapter_time_formatted AS chapter_gold_formatted,
@@ -2298,9 +2305,6 @@ LEFT JOIN
         lrt_time
 ) dsg
 ON dsh.split_number = dsg.split_number
-
-LEFT JOIN doorsplit_golds_history_runner dsgh
-ON dsh.split_number = dsgh.split_number AND dsh.run_id = dsgh.run_id
 
 LEFT JOIN chapter_history2_runner ch
 ON dsh.run_id = ch.run_id AND dsh.chapter = ch.chapter
@@ -2453,10 +2457,10 @@ LEFT JOIN
 (
     SELECT
         run_started_on_weekday,
-        SUM(CASE WHEN lrt_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS doorsplit_golds,
-        SUM(CASE WHEN chapter_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS chapter_golds,
-        SUM(CASE WHEN section_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS section_golds,
-        SUM(CASE WHEN pace_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS best_paces
+        SUM(golded_doorsplit::INT) AS doorsplit_golds,
+        SUM(golded_chapter::INT) AS chapter_golds,
+        SUM(golded_section::INT) AS section_golds,
+        SUM(was_best_pace::INT) AS best_paces
     FROM splits_overview_runner
     GROUP BY run_started_on_weekday
 ) golds
@@ -2467,7 +2471,7 @@ ORDER BY pbs.iso_weekday;
 
 /* Delete intermediate tables (comment this out when debugging). */
 
-DROP TABLE splits_file_runner;
+/*DROP TABLE splits_file_runner;
 DROP TABLE splits_file_runner_indexed;
 DROP TABLE splits_file_runner_indexed_offset;
 
@@ -2502,4 +2506,4 @@ DROP TABLE pace_history1_runner;
 
 DROP TABLE resets1_runner;
 
-DROP TABLE cfg_splits_per_section;
+DROP TABLE cfg_splits_per_section;*/
