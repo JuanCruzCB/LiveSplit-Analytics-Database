@@ -2280,6 +2280,20 @@ SELECT
     fs.times_finished AS area_times_finished,
     fs.times_golded AS area_times_golded,
 
+    rpc.lago_pattern,
+    rpc.cabin_pattern,
+    rpc.mendez_pattern,
+    rpc.water_hall_pattern,
+    rpc.novis1_pattern,
+    rpc.gallery_pattern,
+    rpc.novis2_pattern,
+    rpc.catapult_pattern,
+    rpc.novis3_pattern,
+    rpc.u3_pattern,
+    rpc.krauser_pattern,
+    rpc.war_room_pattern,
+    rpc.key_card_pattern,
+
     'runner' AS runner_name
     -- Not sure if this is necessary: ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_index ORDER BY id2 DESC) AS rang
 
@@ -2344,6 +2358,9 @@ ON dsh.chapter = fc.chapter
 
 LEFT JOIN areas_finished_runner fs
 ON dsh.area = fs.area
+
+LEFT JOIN rng_patterns_categories_runner rpc
+ON dsh.run_id = rpc.run_id
 
 ORDER BY
     run_id,
