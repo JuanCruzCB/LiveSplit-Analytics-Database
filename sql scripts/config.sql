@@ -1,9 +1,9 @@
 /* Default split names for the game. TODO: This needs to be customizable. */
 
-DROP TABLE IF EXISTS default_split_names;
-CREATE TABLE default_split_names(split_number INTEGER, split_name TEXT);
+DROP TABLE IF EXISTS cfg_default_split_names;
+CREATE TABLE cfg_default_split_names(split_number INTEGER, split_name TEXT);
 
-INSERT INTO default_split_names(split_number, split_name)
+INSERT INTO cfg_default_split_names(split_number, split_name)
 VALUES
 	(1, '-Start'),
 	(2, '-Village'),
@@ -130,10 +130,10 @@ VALUES
 	(123, '{End} Jetski');
 
 
-DROP TABLE IF EXISTS chapter_section_splits_from_to;
-CREATE TABLE chapter_section_splits_from_to(from_split_number INTEGER, to_split_number INTEGER, chapter TEXT, _section TEXT);
+DROP TABLE IF EXISTS cfg_chapter_section_splits_from_to;
+CREATE TABLE cfg_chapter_section_splits_from_to(from_split_number INTEGER, to_split_number INTEGER, chapter TEXT, _section TEXT);
 
-INSERT INTO chapter_section_splits_from_to(from_split_number, to_split_number, chapter, _section)
+INSERT INTO cfg_chapter_section_splits_from_to(from_split_number, to_split_number, chapter, _section)
 VALUES
     (1, 4, '1-1', 'Village'),
     (5, 7, '1-2', 'Village'),
@@ -156,10 +156,10 @@ VALUES
     (120, 123, '6-1', 'Island');
 
 
-DROP TABLE IF EXISTS splits_per_section;
-CREATE TABLE splits_per_section(sort INTEGER, number_of_splits INTEGER, _section TEXT);
+DROP TABLE IF EXISTS cfg_splits_per_section;
+CREATE TABLE cfg_splits_per_section(sort INTEGER, number_of_splits INTEGER, _section TEXT);
 
-INSERT INTO splits_per_section(sort, number_of_splits, _section)
+INSERT INTO cfg_splits_per_section(sort, number_of_splits, _section)
 VALUES
 	(1, 32, 'Village'),
 	(2, 50, 'Castle'),
@@ -168,10 +168,10 @@ VALUES
 
 /* RNG names for each pattern. TODO: This needs to be customizable. */
 
-DROP TABLE IF EXISTS rng;
-CREATE TABLE rng(pattern TEXT);
+DROP TABLE IF EXISTS cfg_rng;
+CREATE TABLE cfg_rng(pattern TEXT);
 
-INSERT INTO rng(pattern)
+INSERT INTO cfg_rng(pattern)
 VALUES
 	('1-a No dive'),
 	('1-b Late dive'),
@@ -236,6 +236,6 @@ VALUES
 
 /* All the dates between 2020 and 2030. */
 
-DROP TABLE IF EXISTS dates;
-CREATE TABLE dates AS
+DROP TABLE IF EXISTS cfg_dates;
+CREATE TABLE cfg_dates AS
 SELECT(generate_series(DATE '2020-01-01', DATE '2030-12-31', INTERVAL '1 day'))::date AS date;

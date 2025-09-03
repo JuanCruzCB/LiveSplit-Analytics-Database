@@ -169,7 +169,7 @@ SELECT
     starts_at_row,
     ends_at_row
 FROM split_names_data2_runner sn
-LEFT JOIN chapter_section_splits_from_to ft
+LEFT JOIN cfg_chapter_section_splits_from_to ft
 ON sn.split_number BETWEEN ft.from_split_number AND ft.to_split_number;
 
 /* We join the split names table with the segments data table that has run ids and LRT times on the same row, so now it will have the split, chapter, section names on that same row too, because as explained before, the split name on the original file only shows once at the top and then just lists the entire history of that split name without displaying the split name again, so we need that for each row.
@@ -501,7 +501,7 @@ SELECT
     END AS split_ended_at
 FROM doorsplit_history2_runner ds1
 
-LEFT JOIN default_split_names defs
+LEFT JOIN cfg_default_split_names defs
 ON ds1.split_number = defs.split_number;
 
 /* Add the number of the split where the run reset, which is NULL if the run was finished. Add the duration of the split where the run reset. Add the day of the week it was when the run was started. */
@@ -578,7 +578,7 @@ SELECT
     split_reset_duration
 FROM doorsplit_history4_runner ds
 
-LEFT JOIN default_split_names dsn
+LEFT JOIN cfg_default_split_names dsn
 ON ds.split_number_reset = dsn.split_number
 ORDER BY
     run_id,
@@ -789,7 +789,7 @@ FROM
         *
     FROM doorsplit_history5_runner
 ) ds
-INNER JOIN chapter_section_splits_from_to per
+INNER JOIN cfg_chapter_section_splits_from_to per
 ON per.chapter = ds.chapter AND (per.to_split_number - per.from_split_number) + 1 = ds.num_splits
 ORDER BY
     chapter,
@@ -1003,7 +1003,7 @@ FROM
         *
     FROM doorsplit_history5_runner
 ) ds
-INNER JOIN splits_per_section per
+INNER JOIN cfg_splits_per_section per
 ON per._section = ds._section AND per.number_of_splits = ds.num_splits
 ORDER BY
     per.sort,
@@ -1177,7 +1177,7 @@ FROM
         sps.sort
     FROM doorsplit_golds2_runner dg
 
-    LEFT JOIN splits_per_section sps
+    LEFT JOIN cfg_splits_per_section sps
     ON dg._section = sps._section
 
     WHERE dg.lrt_time_occurrence = 1
@@ -1205,7 +1205,7 @@ FROM
         sps.sort
     FROM chapter_golds2_runner ch
 
-    LEFT JOIN splits_per_section sps
+    LEFT JOIN cfg_splits_per_section sps
     ON ch._section = sps._section
 
     GROUP BY
@@ -1265,8 +1265,8 @@ ORDER BY
 
 /* Best overall pace for each split. */
 
-DROP TABLE IF EXISTS best_paces_runner;
-CREATE TABLE best_paces_runner AS
+DROP TABLE IF EXISTS paces_best_runner;
+CREATE TABLE paces_best_runner AS
 SELECT
     run_id,
     split_number,
@@ -2281,7 +2281,7 @@ FROM doorsplit_history5_runner dsh
 LEFT JOIN pace_history2_runner ph
 ON dsh.run_id = ph.run_id AND dsh.split_number = ph.split_number
 
-LEFT JOIN best_paces_runner bp
+LEFT JOIN paces_best_runner bp
 ON dsh.split_number = bp.split_number
 
 LEFT JOIN
@@ -2385,7 +2385,7 @@ FROM
     LEFT JOIN pace_history2_runner ph
     ON dg.run_id = ph.run_id AND dg.split_number = ph.split_number
 
-    LEFT JOIN best_paces_runner bp
+    LEFT JOIN paces_best_runner bp
     ON dg.split_number = bp.split_number
 )
 WHERE ds_gold_instance = 1
@@ -2397,15 +2397,11 @@ DROP TABLE IF EXISTS weekday_data_runner;
 CREATE TABLE weekday_data_runner AS
 SELECT
     pbs.iso_weekday,
+    TO_CHAR(DATE '2000-01-03' + (pbs.iso_weekday - 1) * INTERVAL '1 day', 'Day') AS weekday_formatted,
     pbs.playtime,
     pbs.attempts,
     pbs.number_of_pbs,
     pbs.pb_ratio,
-    pbs.playtime_to_get_a_pb,
-    golds.ds_golds,
-    golds.chapter_golds,
-    golds.section_golds,
-    golds.best_paces,
     attempts /
         CASE
             WHEN number_of_pbs = 0 THEN
@@ -2413,15 +2409,24 @@ SELECT
             ELSE
                 number_of_pbs
         END AS attempts_to_get_a_pb,
-    ROUND((ROUND(golds.ds_golds, 4) / ROUND(attempts, 4)) * 100, 4) AS golds_ratio,
-    ROUND((ROUND(golds.chapter_golds, 4) / ROUND(attempts, 4)) * 100, 4) AS chapter_golds_ratio,
-    ROUND((ROUND(golds.section_golds, 4) / ROUND(attempts, 4)) * 100, 4) AS section_golds_ratio,
-    ROUND((ROUND(golds.best_paces, 4) / ROUND(attempts, 4)) * 100, 4) AS best_paces_ratio,
-    ROUND(ROUND(attempts, 4) / CASE WHEN golds.ds_golds = 0 THEN NULL ELSE golds.ds_golds END, 4) AS attempts_to_get_a_gold,
-    ROUND(ROUND(attempts, 4) / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds END, 4) AS attempts_to_get_a_chapter_gold,
-    ROUND(ROUND(attempts, 4) / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END, 4) AS attempts_to_get_a_section_gold,
-    ROUND(ROUND(attempts, 4) / CASE WHEN golds.best_paces = 0 THEN NULL ELSE golds.best_paces END, 4) AS attempts_to_get_a_best_pace,
-    playtime / CASE WHEN golds.ds_golds = 0 THEN NULL ELSE golds.ds_golds END AS playtime_to_get_a_gold,
+    pbs.playtime_to_get_a_pb,
+
+    golds.doorsplit_golds,
+    golds.chapter_golds,
+    golds.section_golds,
+    golds.best_paces,
+
+    ROUND(golds.doorsplit_golds * 100.0 / attempts, 4) AS doorsplit_golds_ratio,
+    ROUND(golds.chapter_golds * 100.0 / attempts, 4) AS chapter_golds_ratio,
+    ROUND(golds.section_golds * 100.0 / attempts, 4) AS section_golds_ratio,
+    ROUND(golds.best_paces * 100.0 / attempts, 4) AS best_paces_ratio,
+
+    ROUND(attempts / CASE WHEN golds.doorsplit_golds = 0 THEN NULL ELSE golds.doorsplit_golds::DECIMAL END, 4) AS attempts_to_get_a_doorsplit_gold,
+    ROUND(attempts / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds::DECIMAL END, 4) AS attempts_to_get_a_chapter_gold,
+    ROUND(attempts / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds::DECIMAL END, 4) AS attempts_to_get_a_section_gold,
+    ROUND(attempts / CASE WHEN golds.best_paces = 0 THEN NULL ELSE golds.best_paces::DECIMAL END, 4) AS attempts_to_get_a_best_pace,
+
+    playtime / CASE WHEN golds.doorsplit_golds = 0 THEN NULL ELSE golds.doorsplit_golds END AS playtime_to_get_a_doorsplit_gold,
     playtime / CASE WHEN golds.chapter_golds = 0 THEN NULL ELSE golds.chapter_golds END AS playtime_to_get_a_chapter_gold,
     playtime / CASE WHEN golds.section_golds = 0 THEN NULL ELSE golds.section_golds END AS playtime_to_get_a_section_gold,
     playtime / CASE WHEN golds.best_paces = 0 THEN NULL ELSE golds.best_paces END AS playtime_to_get_a_best_pace
@@ -2432,8 +2437,7 @@ FROM
         SUM(run_duration) AS playtime,
         COUNT(DISTINCT run_id) AS attempts,
         COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END) AS number_of_pbs,
-        ROUND(ROUND(ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END), 4) /
-            ROUND(COUNT(DISTINCT run_id), 4), 4) * 100, 4) AS pb_ratio,
+        ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END) * 100.0 / COUNT(DISTINCT run_id), 4) AS pb_ratio,
         SUM(run_duration) /
             CASE
                 WHEN ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END)) = 0 THEN
@@ -2449,7 +2453,7 @@ LEFT JOIN
 (
     SELECT
         run_started_on_weekday,
-        SUM(CASE WHEN lrt_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS ds_golds,
+        SUM(CASE WHEN lrt_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS doorsplit_golds,
         SUM(CASE WHEN chapter_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS chapter_golds,
         SUM(CASE WHEN section_time_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS section_golds,
         SUM(CASE WHEN pace_rank_at_that_time = 1 THEN 1 ELSE 0 END) AS best_paces
@@ -2460,3 +2464,42 @@ ON pbs.iso_weekday = golds.run_started_on_weekday
 ORDER BY pbs.iso_weekday;
 
 --#endregion
+
+/* Delete intermediate tables (comment this out when debugging). */
+
+DROP TABLE splits_file_runner;
+DROP TABLE splits_file_runner_indexed;
+DROP TABLE splits_file_runner_indexed_offset;
+
+DROP TABLE attempts_data1_runner;
+DROP TABLE attempts_data2_runner;
+DROP TABLE attempts_data3_runner;
+DROP TABLE attempts_data4_runner;
+
+DROP TABLE segments_data1_runner;
+DROP TABLE segments_data2_runner;
+DROP TABLE segments_data3_runner;
+DROP TABLE segments_data4_runner;
+DROP TABLE segments_data5_runner;
+DROP TABLE segments_data6_runner;
+
+DROP TABLE split_names_data1_runner;
+DROP TABLE split_names_data2_runner;
+
+DROP TABLE doorsplit_history1_runner;
+DROP TABLE doorsplit_history2_runner;
+DROP TABLE doorsplit_history3_runner;
+DROP TABLE doorsplit_history4_runner;
+DROP TABLE doorsplit_golds1_runner;
+
+DROP TABLE chapter_history1_runner;
+DROP TABLE chapter_golds1_runner;
+
+DROP TABLE section_history1_runner;
+DROP TABLE section_golds1_runner;
+
+DROP TABLE pace_history1_runner;
+
+DROP TABLE resets1_runner;
+
+DROP TABLE cfg_splits_per_section;
