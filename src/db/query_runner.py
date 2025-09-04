@@ -46,7 +46,7 @@ class QueryRunner:
         self._db.close_connection()
 
     def create_utility_tables(self) -> None:
-        self._db.create_utility_tables()
+        self._db.create_config_tables()
 
     def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
         return self._db.update_runners_tables(splits=splits)
@@ -89,14 +89,14 @@ class QueryRunner:
         return self._get_golds(
             division_type_query="""
             SELECT split_name
-            FROM default_split_names;
+            FROM cfg_default_split_names;
             """,
             golds_query="""
-            SELECT gold2 AS {runner}
+            SELECT lrt_time_fmt AS {runner}
             FROM (
-                SELECT DISTINCT cle2, gold2
-                FROM doorsplits_golds_{runner}
-                ORDER BY cle2
+                SELECT DISTINCT split_index, lrt_time_fmt
+                FROM doorsplit_golds2_{runner}
+                ORDER BY split_index
             );
             """,
             add_best_and_cumulative=False,
@@ -112,15 +112,15 @@ class QueryRunner:
         chapter, and a column with the cumulative best chapters.
         """
         return self._get_golds(
-            division_type_query=f"""
-            SELECT DISTINCT chapter
-            FROM split_name_info3_{self._main_runner}
-            ORDER BY chapter
-            """,  # noqa: S608
+            division_type_query="""
+            SELECT chapter
+            FROM cfg_chapter_area_splits_from_to
+            ORDER BY chapter;
+            """,
             golds_query="""
-            SELECT chapter_gold2 AS {runner}
+            SELECT chapter_time_fmt AS {runner}
             FROM (
-                SELECT DISTINCT chapter, chapter_gold2
+                SELECT DISTINCT chapter, chapter_time_fmt
                 FROM chapter_golds2_{runner}
                 ORDER BY chapter
             );
@@ -138,16 +138,16 @@ class QueryRunner:
         chapter, and a column with the cumulative best chapters.
         """
         return self._get_golds(
-            division_type_query=f"""
-            SELECT DISTINCT chapter
-            FROM split_name_info3_{self._main_runner}
-            ORDER BY chapter
-            """,  # noqa: S608
+            division_type_query="""
+            SELECT chapter
+            FROM cfg_chapter_area_splits_from_to
+            ORDER BY chapter;
+            """,
             golds_query="""
-            SELECT doorsplit_combined_gold AS {runner}
+            SELECT chapter_gold_by_doors_fmt AS {runner}
             FROM (
-                SELECT DISTINCT chapter, doorsplit_combined_gold
-                FROM chapter_golds_sheet_{runner}
+                SELECT DISTINCT chapter, chapter_gold_by_doors_fmt
+                FROM chapter_golds_by_doors_{runner}
                 ORDER BY chapter
             );
             """,
@@ -164,22 +164,17 @@ class QueryRunner:
         """
         return self._get_golds(
             division_type_query="""
-            SELECT _section AS section
-            FROM splits_per_section;
+            SELECT area AS section
+            FROM cfg_splits_per_area;
             """,
             golds_query="""
-            SELECT section_gold2 AS {runner}
+            SELECT area_time_fmt AS {runner}
             FROM (
-                SELECT DISTINCT
-                    section,
-                    section_gold2,
-                    CASE
-                        WHEN section = 'Village' THEN 1
-                        WHEN section = 'Castle' THEN 2
-                        ELSE 3 END AS index
-                FROM section_golds3_{runner}
-            )
-            ORDER BY index;
+                SELECT
+                    area,
+                    area_time_fmt
+                FROM area_golds2_{runner}
+            );
             """,
         )
 
@@ -195,22 +190,17 @@ class QueryRunner:
         """
         return self._get_golds(
             division_type_query="""
-            SELECT _section AS section
-            FROM splits_per_section;
+            SELECT area AS section
+            FROM cfg_splits_per_area;
             """,
             golds_query="""
-            SELECT chapter_combined_gold AS {runner}
+            SELECT area_gold_by_chapters_fmt AS {runner}
             FROM (
-                SELECT DISTINCT
-                    section,
-                    chapter_combined_gold,
-                    CASE
-                        WHEN section = 'Village' THEN 1
-                        WHEN section = 'Castle' THEN 2
-                        ELSE 3 END AS index
-                FROM section_golds_sheet_{runner}
-            )
-            ORDER BY index;
+                SELECT
+                    area,
+                    area_gold_by_chapters_fmt
+                FROM area_golds_by_chapters_{runner}
+            );
             """,
         )
 
@@ -226,22 +216,17 @@ class QueryRunner:
         """
         return self._get_golds(
             division_type_query="""
-            SELECT _section AS section
-            FROM splits_per_section;
+            SELECT area AS section
+            FROM cfg_splits_per_area;
             """,
             golds_query="""
-            SELECT doorsplit_combined_gold AS {runner}
+            SELECT area_gold_by_doors_fmt AS {runner}
             FROM (
-                SELECT DISTINCT
-                    section,
-                    doorsplit_combined_gold,
-                    CASE
-                        WHEN section = 'Village' THEN 1
-                        WHEN section = 'Castle' THEN 2
-                        ELSE 3 END AS index
-                FROM section_golds_sheet_{runner}
-            )
-            ORDER BY index;
+                SELECT
+                    area,
+                    area_gold_by_doors_fmt
+                FROM area_golds_by_doors_{runner}
+            );
             """,
         )
 
@@ -254,11 +239,11 @@ class QueryRunner:
         chapter.
         """
         chapter_names = self._db.execute(
-            query=f"""
-            SELECT DISTINCT chapter
-            FROM split_name_info3_{self._main_runner}
-            ORDER BY chapter
-            """  # noqa: S608
+            query="""
+            SELECT chapter
+            FROM cfg_chapter_area_splits_from_to
+            ORDER BY chapter;
+            """
         )
 
         dfs = []
@@ -266,12 +251,12 @@ class QueryRunner:
         for runner in self._allowed_runners:
             runners_best_paces = self._db.execute(
                 query=f"""
-                SELECT best_pace2 AS {runner}
+                SELECT lrt_pace_fmt AS {runner}
                 FROM (
-                    SELECT DISTINCT cle2, split, best_pace2
-                    FROM best_paces_{runner}
-                    WHERE split LIKE '%{{%'
-                    ORDER BY cle2
+                    SELECT DISTINCT split_index, split_name, lrt_pace_fmt
+                    FROM paces_best_{runner}
+                    WHERE split_name LIKE '%{{%'
+                    ORDER BY split_index
                 );
                 """  # noqa: S608
             )
@@ -292,10 +277,10 @@ class QueryRunner:
         and also the maximum amount of times in a row they've gotten each pattern.
         """
         pattern_names = self._db.execute(
-            query=f"""
-            SELECT pattern2 as pattern
-            FROM rng_splits_{self._main_runner}
-            """  # noqa: S608
+            query="""
+            SELECT SUBSTRING(pattern_name, 3) AS pattern
+            FROM cfg_rng_pattern_rules;
+            """
         )
 
         dfs = []
@@ -303,16 +288,8 @@ class QueryRunner:
         for runner in self._allowed_runners:
             runners_percentages = self._db.execute(
                 query=f"""
-                SELECT percentage AS {runner}
-                FROM (
-                    SELECT
-                        t1.pattern,
-                        COALESCE(t2.percentage, 0) AS percentage
-                    FROM rng t1
-                    LEFT JOIN rng_splits_{runner} t2
-                        ON t1.pattern = t2.pattern
-                    ORDER BY pattern
-                );
+                SELECT pattern_percentage AS {runner}
+                FROM rng_patterns_stats_{runner};
                 """  # noqa: S608
             )
             dfs.append(runners_percentages)
@@ -320,16 +297,8 @@ class QueryRunner:
         for runner in self._allowed_runners:
             runners_max_in_a_row = self._db.execute(
                 query=f"""
-                SELECT max AS {runner}
-                FROM (
-                    SELECT
-                        t1.pattern,
-                        COALESCE(t2.maximum_consecutive_patterns, 0) AS max
-                    FROM rng t1
-                    LEFT JOIN consecutive_patterns_{runner} t2
-                        ON t1.pattern = t2.lago_pattern
-                    ORDER BY pattern
-                );
+                SELECT max_patterns_in_a_row AS {runner}
+                FROM rng_patterns_stats_{runner};
                 """  # noqa: S608
             )
             dfs.append(runners_max_in_a_row)
@@ -355,25 +324,29 @@ class QueryRunner:
                 query=f"""
                 SELECT stats AS {runner}
                 FROM (
-                    SELECT CAST(MAX(date_started) AS VARCHAR) AS stats, 1 AS sort_key
-                    FROM attempts_treatment3_{runner}
+                    SELECT DATE(MAX(run_ended_at))::TEXT AS stats, 1 AS sort_key
+                    FROM attempts_data5_{runner}
 
                     UNION
 
-                    (SELECT final_lrt, 2 AS sort_key
+                    (SELECT CASE
+                        WHEN STRPOS(final_lrt_time, '.') > 0
+                        THEN SUBSTRING(final_lrt_time, 1, STRPOS(final_lrt_time, '.') - 1)
+                        ELSE final_lrt_time
+                    END AS final_lrt_time, 2 AS sort_key
                     FROM pb_history_{runner}
-                    ORDER BY id DESC
+                    ORDER BY run_id DESC
                     LIMIT 1)
 
                     UNION
 
-                    SELECT CAST(COUNT(*) AS VARCHAR) AS {runner}, 3 AS sort_key
-                    FROM attempts_treatment3_{runner}
+                    SELECT COUNT(*)::TEXT AS {runner}, 3 AS sort_key
+                    FROM attempts_data5_{runner}
 
                     UNION
 
-                    SELECT CAST(SUM(playtime) AS VARCHAR) AS playtime, 4 AS sort_key
-                    FROM attempts_treatment3_{runner}
+                    SELECT SUM(run_duration)::TEXT AS playtime, 4 AS sort_key
+                    FROM attempts_data5_{runner}
 
                     ORDER BY sort_key
                 );
@@ -394,7 +367,7 @@ class QueryRunner:
         split_names = self._db.execute(
             query="""
             SELECT split_name
-            FROM default_split_names;
+            FROM cfg_default_split_names;
             """
         )
 
@@ -403,8 +376,8 @@ class QueryRunner:
         for runner in self._allowed_runners:
             runner_resets = self._db.execute(
                 query=f"""
-                SELECT percentage_resets AS {runner}
-                FROM resets_history2_{runner}
+                SELECT percentage_reset AS {runner}
+                FROM resets2_{runner}
                 """  # noqa: S608
             )
             runner_resets = runner_resets.map(lambda percent: max(percent, 0))
@@ -458,55 +431,55 @@ class QueryRunner:
                 query=f"""
                 SELECT attempts_to_get_a_pb AS {runner}
                 FROM (
-                    SELECT weekday, attempts_to_get_a_pb, 1 AS sort_key
+                    SELECT iso_weekday, attempts_to_get_a_pb::TEXT, 1 AS sort_key
                     FROM weekday_data_{runner}
 
                     UNION
 
-                    SELECT weekday, playtime_to_get_a_pb, 2 AS sort_key
+                    SELECT iso_weekday, playtime_to_get_a_pb::TEXT, 2 AS sort_key
                     FROM weekday_data_{runner}
 
                     UNION
 
-                    SELECT weekday, attempts_to_get_a_gold, 3 AS sort_key
+                    SELECT iso_weekday, attempts_to_get_a_doorsplit_gold::TEXT, 3 AS sort_key
                     FROM weekday_data_{runner}
 
                     UNION
 
-                    SELECT weekday, playtime_to_get_a_gold, 4 AS sort_key
+                    SELECT iso_weekday, playtime_to_get_a_doorsplit_gold::TEXT, 4 AS sort_key
                     FROM weekday_data_{runner}
 
                     UNION
 
-                    SELECT weekday, attempts_to_get_a_chapter_gold, 5 AS sort_key
+                    SELECT iso_weekday, attempts_to_get_a_chapter_gold::TEXT, 5 AS sort_key
                     FROM weekday_data_{runner}
 
                     UNION
 
-                    SELECT weekday, playtime_to_get_a_chapter_gold, 6 AS sort_key
+                    SELECT iso_weekday, playtime_to_get_a_chapter_gold::TEXT, 6 AS sort_key
                     FROM weekday_data_{runner}
 
                     UNION
 
-                    SELECT weekday, attempts_to_get_a_section_gold, 7 AS sort_key
+                    SELECT iso_weekday, attempts_to_get_a_area_gold::TEXT, 7 AS sort_key
                     FROM weekday_data_{runner}
 
                     UNION
 
-                    SELECT weekday, playtime_to_get_a_section_gold, 8 AS sort_key
+                    SELECT iso_weekday, playtime_to_get_a_area_gold::TEXT, 8 AS sort_key
                     FROM weekday_data_{runner}
 
                     UNION
 
-                    SELECT weekday, attempts_to_get_a_best_pace, 9 AS sort_key
+                    SELECT iso_weekday, attempts_to_get_a_best_pace::TEXT, 9 AS sort_key
                     FROM weekday_data_{runner}
 
                     UNION
 
-                    SELECT weekday, playtime_to_get_a_best_pace, 10 AS sort_key
+                    SELECT iso_weekday, playtime_to_get_a_best_pace::TEXT, 10 AS sort_key
                     FROM weekday_data_{runner}
 
-                    ORDER BY sort_key, weekday
+                    ORDER BY sort_key, iso_weekday
                 );
                 """  # noqa: S608
             )

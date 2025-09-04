@@ -80,7 +80,7 @@ def main() -> None:
     )
     db = DatabaseManager(
         sql_script=config.sql_script,
-        utility_sql_script=config.utility_sql_script,
+        config_sql_script=config.config_sql_script,
         db_config=config.db_config,
         main_runner_name=config.allowed_runners[0],
         last_updates_tracker=last_updates,
