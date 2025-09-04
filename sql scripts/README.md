@@ -1,5 +1,37 @@
-- We can use `XMLPARSE` and `pg_read_file` to read XML data like LiveSplit files (.lss), also `xmltable` and `xpath` to extract things out of XML data:
+- Use `XMLPARSE` and `pg_read_file` to read XML data like LiveSplit files (.lss), also `xmltable` and `xpath` to extract things out of XML data:
 
 ```sql
 SELECT XMLPARSE(DOCUMENT pg_read_file('splits.lss')) AS xml_data;
+```
+
+- Inspect the schema itself to see metadata about tables and columns:
+
+```sql
+SELECT COLUMN_NAME
+FROM information_schema.columns
+WHERE TABLE_NAME = 'my_table_name'
+ORDER BY ORDINAL_POSITION;
+```
+
+- Delete and recreate the public schema (useful for testing/debugging):
+
+```sql
+DROP SCHEMA IF EXISTS public CASCADE;
+CREATE SCHEMA public;
+```
+
+- Get the total size of the DB:
+
+```sql
+SELECT pg_size_pretty(pg_database_size(current_database())) AS db_size;
+```
+
+- Get the size of each table in the DB:
+
+```sql
+SELECT
+    relname AS table_name,
+    pg_size_pretty(pg_total_relation_size(relid)) AS total_size
+FROM pg_catalog.pg_statio_user_tables
+ORDER BY pg_total_relation_size(relid) DESC;
 ```
