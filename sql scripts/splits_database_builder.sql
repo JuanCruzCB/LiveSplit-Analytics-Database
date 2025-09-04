@@ -5,7 +5,7 @@
 DROP TABLE IF EXISTS splits_file_runner;
 CREATE TABLE splits_file_runner(line_number SERIAL, file_line TEXT);
 COPY splits_file_runner(file_line)
-FROM 'H:\Juan\4. Speedrunning\LiveSplit\Splits\RE4 Steam\Stats Sheet Google Drive\splits luis.lss'
+FROM 'path'
 WITH DELIMITER ','; /* NOTE: The path to the splits file needs to be public, so that Postgres can access it. */
 
 /* Adding the line number to each line of the file. */

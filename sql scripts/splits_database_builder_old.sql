@@ -1066,7 +1066,7 @@ GROUP BY 1, 2) e ON a.cle2=e.cle2 AND a.id=e.id;
 
 DROP TABLE IF EXISTS best_paces_runner;
 CREATE TABLE best_paces_runner AS
-SELECT pace.*, best_pace, /*avg_pace, median_pace,*/
+SELECT pace.*, best_pace, avg_pace, median_pace,
 CASE WHEN TRUNC(pace-TRUNC(pace), 3)=0 THEN (CASE WHEN pace<3600 THEN FLOOR(pace / 60) || ':' ||
 TO_CHAR(TRUNC(pace, 3) % 60, 'FM00.999')||'000'
 ELSE FLOOR(pace / 3600) || ':' || CASE WHEN FLOOR(pace / 60)-(FLOOR(pace/3600)*60)<10 THEN '0' ELSE '' END ||
@@ -1114,7 +1114,7 @@ FLOOR(best_pace / 3600) || ':' || CASE WHEN FLOOR(best_pace / 60)-(FLOOR(best_pa
 	  FLOOR(best_pace / 60)-(FLOOR(best_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999')
 ELSE FLOOR(best_pace / 60) || ':' ||
-TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999') END) END AS best_pace2/*,
+TO_CHAR(TRUNC(best_pace, 3) % 60, 'FM00.999') END) END AS best_pace2,
 CASE WHEN TRUNC(avg_pace-TRUNC(avg_pace), 3)=0 THEN (CASE WHEN avg_pace>=3600 THEN
 FLOOR(avg_pace / 3600) || ':' || CASE WHEN FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60)<10 THEN '0' ELSE '' END ||
 	  FLOOR(avg_pace / 60)-(FLOOR(avg_pace/3600)*60) || ':' ||
@@ -1166,7 +1166,7 @@ FLOOR(median_pace / 3600) || ':' || CASE WHEN FLOOR(median_pace / 60)-(FLOOR(med
 	  FLOOR(median_pace / 60)-(FLOOR(median_pace/3600)*60) || ':' ||
 TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999')
 ELSE FLOOR(median_pace / 60) || ':' ||
-TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999') END) END AS median_pace2*/
+TO_CHAR(TRUNC(median_pace, 3) % 60, 'FM00.999') END) END AS median_pace2
 FROM (SELECT aa.cle2, aa.id, aa.split, COUNT(*) AS number_of_splits, SUM(bb.lrt_number) AS pace
 FROM
 (SELECT *
@@ -1178,8 +1178,8 @@ GROUP BY aa.id, aa.split, aa.cle2
 having COUNT(*)=aa.cle2
 ORDER BY aa.id, aa.cle2) pace
 LEFT JOIN (
-SELECT split, cle2, MIN(pace) AS best_pace/*, CAST(AVG(pace) AS NUMERIC) AS avg_pace,
-CAST(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY pace) AS NUMERIC) AS median_pace*/
+SELECT split, cle2, MIN(pace) AS best_pace, CAST(AVG(pace) AS NUMERIC) AS avg_pace,
+CAST(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY pace) AS NUMERIC) AS median_pace
 FROM(
 SELECT aa.cle2, aa.id, aa.split, COUNT(*) AS number_of_splits, SUM(bb.lrt_number) AS pace
 FROM
@@ -1220,15 +1220,15 @@ ELSE (CASE WHEN min<3600 THEN FLOOR(min / 60) || ':' ||
 TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999')
 ELSE FLOOR(min / 3600) || ':' || CASE WHEN FLOOR(min / 60)-(FLOOR(min/3600)*60)<10 THEN '0' ELSE '' END ||
 	  FLOOR(min / 60)-(FLOOR(min/3600)*60)|| ':' ||
-TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999') END) END AS best_pace_at_that_time, min AS best_pace_at_that_time2/*,
-avg_pace, median_pace, avg_pace2, median_pace2*/, RANK() OVER (PARTITION BY cle2 ORDER BY pace) AS rank_pace
-FROM (SELECT a.cle2, a.id, a.split, a.number_of_splits, a.pace, a.best_pace, a.pace2, a.best_pace2, /*a.avg_pace, a.median_pace,
-a.avg_pace2, a.median_pace2,*/ MIN(b.pace) AS min,
+TO_CHAR(TRUNC(min, 3) % 60, 'FM00.999') END) END AS best_pace_at_that_time, min AS best_pace_at_that_time2,
+avg_pace, median_pace, avg_pace2, median_pace2, RANK() OVER (PARTITION BY cle2 ORDER BY pace) AS rank_pace
+FROM (SELECT a.cle2, a.id, a.split, a.number_of_splits, a.pace, a.best_pace, a.pace2, a.best_pace2, a.avg_pace, a.median_pace,
+a.avg_pace2, a.median_pace2, MIN(b.pace) AS min,
 MIN(b.pace2) AS min2
 FROM best_paces_runner a
 LEFT JOIN best_paces_runner b ON a.cle2=b.cle2 AND a.id>b.id
-GROUP BY a.cle2, a.id, a.split, a.number_of_splits, a.pace, a.best_pace, a.pace2, a.best_pace2/*, a.avg_pace, a.median_pace,
-a.avg_pace2, a.median_pace2*/) a
+GROUP BY a.cle2, a.id, a.split, a.number_of_splits, a.pace, a.best_pace, a.pace2, a.best_pace2, a.avg_pace, a.median_pace,
+a.avg_pace2, a.median_pace2) a
 ORDER BY cle2 DESC, id;
 
 DROP TABLE IF EXISTS best_paces_history_runner2;
@@ -1377,7 +1377,7 @@ best_pace_at_that_time2, CASE WHEN CAST(SUBSTR(a.time_start, 1, 2) AS NUMERIC)>C
 THEN a.date_started+1 ELSE a.date_started END AS date_started2,
 CASE WHEN CAST(SUBSTR(a.time_end, 1, 2) AS NUMERIC)<CAST(SUBSTR(a.time_end_numeric3, 1, 2) AS NUMERIC)
 THEN a.date_end-1 ELSE a.date_end END AS date_end2, door_avg, door_median, door_avg2, door_median2, median_chapter_time, median_chapter_time2,
-/*avg_pace, median_pace, avg_pace2, median_pace2,*/ section_median, section_median2, section_avg2, avg_chapter_time2, 'runner' AS runner_name, rank_chapter, chapter_rank_at_that_time, finished_chapters,
+avg_pace, median_pace, avg_pace2, median_pace2, section_median, section_median2, section_avg2, avg_chapter_time2, 'runner' AS runner_name, rank_chapter, chapter_rank_at_that_time, finished_chapters,
 finished_chapters_at_that_time, rank_section, section_rank_at_that_time, finished_sections, finished_sections_at_that_time, rank_split, split_rank_at_that_time, finished_splits, finished_splits_at_that_time,
 rank_pace, pace_rank_at_that_time, finished_paces, finished_paces_at_that_time,
 ROW_NUMBER() OVER (PARTITION BY a.id, a.cle2 ORDER BY id2 DESC) AS rang
