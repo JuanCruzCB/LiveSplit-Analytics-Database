@@ -286,7 +286,6 @@ SELECT
     COALESCE(SUBSTRING(file_line_stripped FROM 'id="(.*?)" started'), '') AS run_id,
     COALESCE(SUBSTRING(file_line_stripped FROM '<GameTime>(.*?)</GameTime>'), '') AS final_lrt_time,
     COALESCE(SUBSTRING(file_line_stripped FROM '<RealTime>(.*?)</RealTime>'), '') AS final_rta_time,
-    file_line_stripped LIKE '%">' AS finished_run,
     SUBSTRING(file_line_stripped FROM 'started="(.*?)"') AS run_started_at,
     SUBSTRING(file_line_stripped FROM 'ended="(.*?)"') AS run_ended_at
 FROM stg_attempts_data1_runner;
@@ -299,7 +298,6 @@ SELECT
     run_id,
     LEAD(final_lrt_time, 2) OVER () AS final_lrt_time,
     LEAD(final_rta_time, 1) OVER () AS final_rta_time,
-    finished_run,
     TO_TIMESTAMP(run_started_at, 'MM/DD/YYYY HH24:MI:SS') AS run_started_at,
     TO_TIMESTAMP(run_ended_at, 'MM/DD/YYYY HH24:MI:SS') AS run_ended_at
 FROM stg_attempts_data2_runner;
@@ -312,7 +310,7 @@ SELECT
     run_id::INT,
     final_lrt_time,
     final_rta_time,
-    finished_run,
+    COALESCE(final_lrt_time <> '' OR final_rta_time <> '', FALSE) AS finished_run,
     run_started_at,
     run_ended_at,
     run_ended_at - run_started_at AS run_duration
