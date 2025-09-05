@@ -22,6 +22,19 @@ class OrderColumns(StrEnum):
 
 class QueryRunner:
     GOOD_DATE_FORMAT = "%d/%m/%Y"
+    DOORSPLIT_NAMES_QUERY = """
+    SELECT split_name
+    FROM cfg_default_split_names;
+    """
+    CHAPTER_NAMES_QUERY = """
+    SELECT chapter
+    FROM cfg_chapter_area_splits_from_to
+    ORDER BY chapter;
+    """
+    AREA_NAMES_QUERY = """
+    SELECT area AS section
+    FROM cfg_splits_per_area;
+    """
 
     def __init__(
         self,
@@ -45,7 +58,7 @@ class QueryRunner:
     def close_db_connection(self) -> None:
         self._db.close_connection()
 
-    def create_utility_tables(self) -> None:
+    def create_config_tables(self) -> None:
         self._db.create_config_tables()
 
     def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
@@ -87,10 +100,7 @@ class QueryRunner:
         The last row contains the doorsplits sum of best of that runner.
         """
         return self._get_golds(
-            division_type_query="""
-            SELECT split_name
-            FROM cfg_default_split_names;
-            """,
+            division_type_query=self.DOORSPLIT_NAMES_QUERY,
             golds_query="""
             SELECT lrt_time_fmt AS {runner}
             FROM (
@@ -112,11 +122,7 @@ class QueryRunner:
         chapter, and a column with the cumulative best chapters.
         """
         return self._get_golds(
-            division_type_query="""
-            SELECT chapter
-            FROM cfg_chapter_area_splits_from_to
-            ORDER BY chapter;
-            """,
+            division_type_query=self.CHAPTER_NAMES_QUERY,
             golds_query="""
             SELECT chapter_time_fmt AS {runner}
             FROM (
@@ -138,11 +144,7 @@ class QueryRunner:
         chapter, and a column with the cumulative best chapters.
         """
         return self._get_golds(
-            division_type_query="""
-            SELECT chapter
-            FROM cfg_chapter_area_splits_from_to
-            ORDER BY chapter;
-            """,
+            division_type_query=self.CHAPTER_NAMES_QUERY,
             golds_query="""
             SELECT chapter_gold_by_doors_fmt AS {runner}
             FROM (
@@ -163,10 +165,7 @@ class QueryRunner:
         section, and a column with the cumulative best sections.
         """
         return self._get_golds(
-            division_type_query="""
-            SELECT area AS section
-            FROM cfg_splits_per_area;
-            """,
+            division_type_query=self.AREA_NAMES_QUERY,
             golds_query="""
             SELECT area_time_fmt AS {runner}
             FROM (
@@ -189,10 +188,7 @@ class QueryRunner:
         section, and a column with the cumulative best sections.
         """
         return self._get_golds(
-            division_type_query="""
-            SELECT area AS section
-            FROM cfg_splits_per_area;
-            """,
+            division_type_query=self.AREA_NAMES_QUERY,
             golds_query="""
             SELECT area_gold_by_chapters_fmt AS {runner}
             FROM (
@@ -215,10 +211,7 @@ class QueryRunner:
         section, and a column with the cumulative best sections.
         """
         return self._get_golds(
-            division_type_query="""
-            SELECT area AS section
-            FROM cfg_splits_per_area;
-            """,
+            division_type_query=self.AREA_NAMES_QUERY,
             golds_query="""
             SELECT area_gold_by_doors_fmt AS {runner}
             FROM (
@@ -238,13 +231,7 @@ class QueryRunner:
         In addition, there's a column with the overall best pace for each
         chapter.
         """
-        chapter_names = self._db.execute(
-            query="""
-            SELECT chapter
-            FROM cfg_chapter_area_splits_from_to
-            ORDER BY chapter;
-            """
-        )
+        chapter_names = self._db.execute(query=self.CHAPTER_NAMES_QUERY)
 
         dfs = []
         dfs.append(chapter_names)
@@ -317,41 +304,14 @@ class QueryRunner:
         """
         dfs = []
         dfs.append(
-            DataFrame({"Stat": ["Last update", "PB", "Attempts", "Total playtime"]})
+            pd.DataFrame({"Stat": ["Last update", "PB", "Attempts", "Total playtime"]})
         )
         for runner in self._allowed_runners:
-            runner_stats = self._db.execute(
-                query=f"""
-                SELECT stats AS {runner}
-                FROM (
-                    SELECT DATE(MAX(run_ended_at))::TEXT AS stats, 1 AS sort_key
-                    FROM attempts_data5_{runner}
-
-                    UNION
-
-                    (SELECT CASE
-                        WHEN STRPOS(final_lrt_time, '.') > 0
-                        THEN SUBSTRING(final_lrt_time, 1, STRPOS(final_lrt_time, '.') - 1)
-                        ELSE final_lrt_time
-                    END AS final_lrt_time, 2 AS sort_key
-                    FROM pb_history_{runner}
-                    ORDER BY run_id DESC
-                    LIMIT 1)
-
-                    UNION
-
-                    SELECT COUNT(*)::TEXT AS {runner}, 3 AS sort_key
-                    FROM attempts_data5_{runner}
-
-                    UNION
-
-                    SELECT SUM(run_duration)::TEXT AS playtime, 4 AS sort_key
-                    FROM attempts_data5_{runner}
-
-                    ORDER BY sort_key
-                );
-                """  # noqa: S608
+            runner_stats = self.execute(
+                query=f"SELECT * FROM general_stats_{runner};"  # noqa: S608
             )
+            runner_stats_transposed = runner_stats.transpose()
+            runner_stats = pd.DataFrame({runner: runner_stats_transposed[0].to_list()})
             dfs.append(runner_stats)
 
         overall_df = pd.concat(dfs, axis=1)
@@ -364,12 +324,7 @@ class QueryRunner:
         all doorsplits. As in, what percentage of the runs that get to that split
         end up with the runner resetting on that split.
         """
-        split_names = self._db.execute(
-            query="""
-            SELECT split_name
-            FROM cfg_default_split_names;
-            """
-        )
+        split_names = self._db.execute(query=self.DOORSPLIT_NAMES_QUERY)
 
         dfs = []
         dfs.append(split_names)
@@ -432,52 +387,52 @@ class QueryRunner:
                 SELECT attempts_to_get_a_pb AS {runner}
                 FROM (
                     SELECT iso_weekday, attempts_to_get_a_pb::TEXT, 1 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     UNION
 
                     SELECT iso_weekday, playtime_to_get_a_pb::TEXT, 2 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     UNION
 
                     SELECT iso_weekday, attempts_to_get_a_doorsplit_gold::TEXT, 3 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     UNION
 
                     SELECT iso_weekday, playtime_to_get_a_doorsplit_gold::TEXT, 4 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     UNION
 
                     SELECT iso_weekday, attempts_to_get_a_chapter_gold::TEXT, 5 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     UNION
 
                     SELECT iso_weekday, playtime_to_get_a_chapter_gold::TEXT, 6 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     UNION
 
                     SELECT iso_weekday, attempts_to_get_a_area_gold::TEXT, 7 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     UNION
 
                     SELECT iso_weekday, playtime_to_get_a_area_gold::TEXT, 8 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     UNION
 
                     SELECT iso_weekday, attempts_to_get_a_best_pace::TEXT, 9 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     UNION
 
                     SELECT iso_weekday, playtime_to_get_a_best_pace::TEXT, 10 AS sort_key
-                    FROM weekday_data_{runner}
+                    FROM weekday_stats_{runner}
 
                     ORDER BY sort_key, iso_weekday
                 );
@@ -515,23 +470,24 @@ class QueryRunner:
             data.to_excel(self._output_dir / f"{excel_name}.xlsx", index=False)
         return data
 
-    def export_table_names(self, *, only_relevant_tables: bool = False) -> None:
-        if only_relevant_tables:
-            extra_conditions = """
-            AND table_name NOT LIKE '%treatment%'
-            AND table_name NOT LIKE '%cleaned%'
-            AND table_name NOT LIKE '%info%'
-            AND table_name NOT LIKE '%notepad%'
-            """
-        else:
-            extra_conditions = ""
+    def drop_staging_tables(self) -> None:
+        self.export_table_names()
+        with Path(self._output_dir / "tables.txt").open("r") as f:
+            table_names = f.readlines()
 
-        tables = self._db.execute(f"""
+        for table in table_names:
+            if "stg" in table:
+                self._db.execute(query=f"DROP TABLE {table};")
+
+    def export_table_names(self) -> None:
+        tables = self._db.execute(
+            query="""
             SELECT table_name
             FROM information_schema.tables
-            WHERE table_schema = 'public' {extra_conditions}
+            WHERE table_schema = 'public'
             ORDER BY table_name;
-            """)  # noqa: S608
+            """
+        )
 
         with Path(self._output_dir / "tables.txt").open("w") as f:
             f.write("\n".join(tables["table_name"].to_list()))

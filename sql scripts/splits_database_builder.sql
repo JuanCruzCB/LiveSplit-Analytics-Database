@@ -358,12 +358,11 @@ CREATE TABLE pb_history_runner AS
 SELECT
     finished.run_id,
     finished.run_started_at,
-    final_lrt_time,
+    lrt_pb,
     run_started_at - COALESCE(LAG(run_started_at) OVER(ORDER BY finished.run_id), run_started_at) AS days_it_took,
     finished.run_id - COALESCE(LAG(finished.run_id) OVER(ORDER BY finished.run_id), 0) attempts_it_took,
     total_playtime - COALESCE(LAG(total_playtime) OVER(ORDER BY finished.run_id), '0'::INTERVAL) total_playtime_it_took,
-    days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY finished.run_id), 0) AS days_of_attempts_it_took,
-    lrt_pb
+    days_attempts - COALESCE(LAG(days_attempts) OVER(ORDER BY finished.run_id), 0) AS days_of_attempts_it_took
 FROM finished_runs_runner finished
 
 LEFT JOIN
@@ -2225,28 +2224,28 @@ ORDER BY
 DROP TABLE IF EXISTS general_stats_runner;
 CREATE TABLE general_stats_runner AS
 SELECT
-    att.latest_update,
-    pbs.final_lrt_time AS pb,
-    att.total_attempts,
+    att.last_update,
+    LTRIM(pbs.lrt_pb, '0:') AS pb,
+    att.attempts,
     JUSTIFY_DAYS(JUSTIFY_HOURS(att.total_playtime))::TEXT AS total_playtime
 FROM
 (
     SELECT
-        DATE(MAX(run_ended_at)) AS latest_update,
-        COUNT(*) AS total_attempts,
+        DATE(MAX(run_ended_at)) AS last_update,
+        COUNT(*) AS attempts,
         SUM(run_duration) AS total_playtime
-    FROM attempts_data5_sawken
+    FROM attempts_data5_runner
 ) att
 
 CROSS JOIN
 (
     SELECT
         CASE
-            WHEN STRPOS(final_lrt_time, '.') > 0 THEN
-                SUBSTRING(final_lrt_time, 1, STRPOS(final_lrt_time, '.') - 1)
-            ELSE final_lrt_time
-        END AS final_lrt_time
-    FROM pb_history_sawken
+            WHEN STRPOS(lrt_pb, '.') > 0 THEN
+                SUBSTRING(lrt_pb, 1, STRPOS(lrt_pb, '.') - 1)
+            ELSE lrt_pb
+        END AS lrt_pb
+    FROM pb_history_runner
     ORDER BY run_id DESC
     LIMIT 1
 ) pbs;
@@ -2366,42 +2365,3 @@ ON pbs.iso_weekday = golds.run_started_on_weekday
 ORDER BY pbs.iso_weekday;
 
 --#endregion
-
-/* Delete intermediate tables (comment this out when debugging). */
-
-/*DROP TABLE stg_splits_file_runner;
-DROP TABLE stg_splits_file_indexed_runner;
-DROP TABLE stg_splits_file_indexed_offset_runner;
-
-DROP TABLE stg_attempts_data1_runner;
-DROP TABLE stg_attempts_data2_runner;
-DROP TABLE stg_attempts_data3_runner;
-DROP TABLE stg_attempts_data4_runner;
-
-DROP TABLE stg_segments_data1_runner;
-DROP TABLE stg_segments_data2_runner;
-DROP TABLE stg_segments_data3_runner;
-DROP TABLE stg_segments_data4_runner;
-DROP TABLE stg_segments_data5_runner;
-DROP TABLE stg_segments_data6_runner;
-
-DROP TABLE stg_split_names_data1_runner;
-DROP TABLE stg_split_names_data2_runner;
-
-DROP TABLE stg_doorsplit_history1_runner;
-DROP TABLE stg_doorsplit_history2_runner;
-DROP TABLE stg_doorsplit_history3_runner;
-DROP TABLE stg_doorsplit_history4_runner;
-DROP TABLE stg_doorsplit_golds1_runner;
-
-DROP TABLE stg_chapter_history1_runner;
-DROP TABLE stg_chapter_golds1_runner;
-
-DROP TABLE stg_area_history1_runner;
-DROP TABLE stg_area_golds1_runner;
-
-DROP TABLE stg_pace_history1_runner;
-
-DROP TABLE stg_resets1_runner;
-
-DROP TABLE cfg_splits_per_area;*/

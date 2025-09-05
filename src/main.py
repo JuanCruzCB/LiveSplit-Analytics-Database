@@ -93,11 +93,12 @@ def main() -> None:
 
     try:
         qr.open_db_connection()
-        qr.create_utility_tables()
+        qr.create_config_tables()
         if qr.update_runners_tables(splits=splits.get_splits_last_modtime()):
             all_data = get_all_database_data(qr)
             update_google_sheet(sheet, all_data)
     finally:
+        qr.drop_staging_tables()
         qr.close_db_connection()
 
 
