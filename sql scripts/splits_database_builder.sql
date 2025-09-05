@@ -10,8 +10,8 @@ WITH DELIMITER ','; /* NOTE: The path to the splits file needs to be public, so 
 
 /* Adding the line number to each line of the file. */
 
-DROP TABLE IF EXISTS splits_file_runner_indexed;
-CREATE TABLE splits_file_runner_indexed AS
+DROP TABLE IF EXISTS splits_file_indexed_runner;
+CREATE TABLE splits_file_indexed_runner AS
 SELECT
     file_line,
     line_number
@@ -20,12 +20,12 @@ ORDER BY line_number;
 
 /* Adding the line number + 1 to each line of the file. */
 
-DROP TABLE IF EXISTS splits_file_runner_indexed_offset;
-CREATE TABLE splits_file_runner_indexed_offset AS
+DROP TABLE IF EXISTS splits_file_indexed_offset_runner;
+CREATE TABLE splits_file_indexed_offset_runner AS
 SELECT
     file_line,
     line_number + 1 AS line_number_offset
-FROM splits_file_runner_indexed
+FROM splits_file_indexed_runner
 ORDER BY line_number;
 
 --#endregion
@@ -38,19 +38,19 @@ DROP TABLE IF EXISTS segments_data1_runner;
 CREATE TABLE segments_data1_runner AS
 SELECT
     LTRIM(file_line, ' ') AS file_line_stripped
-FROM splits_file_runner_indexed
+FROM splits_file_indexed_runner
 WHERE line_number >
 (
     SELECT
         line_number_offset
-    FROM splits_file_runner_indexed_offset
+    FROM splits_file_indexed_offset_runner
     WHERE file_line LIKE '%</AttemptHistory>%'
 )
 AND line_number <
 (
     SELECT
         line_number
-    FROM splits_file_runner_indexed
+    FROM splits_file_indexed_runner
     WHERE file_line LIKE '%<AutoSplitterSettings%'
 );
 
@@ -256,19 +256,19 @@ DROP TABLE IF EXISTS attempts_data1_runner;
 CREATE TABLE attempts_data1_runner AS
 SELECT
     LTRIM(file_line, ' ') AS file_line_stripped
-FROM splits_file_runner_indexed
+FROM splits_file_indexed_runner
 WHERE line_number >
 (
     SELECT
         line_number
-    FROM splits_file_runner_indexed
+    FROM splits_file_indexed_runner
     WHERE file_line LIKE '%<AttemptHistory>%'
 )
 AND line_number <
 (
     SELECT
         line_number
-    FROM splits_file_runner_indexed
+    FROM splits_file_indexed_runner
     WHERE file_line LIKE '%</AttemptHistory>%'
 );
 
@@ -2220,6 +2220,37 @@ ORDER BY
 
 --#region USEFUL QUERIES
 
+/* Basic stats: latest date in which the splits were updated, the PB, the total number of attempts, and the total playtime in 'X days HH:MM:SS' format. */
+
+DROP TABLE IF EXISTS general_stats_runner;
+CREATE TABLE general_stats_runner AS
+SELECT
+    att.latest_update,
+    pbs.final_lrt_time AS pb,
+    att.total_attempts,
+    JUSTIFY_DAYS(JUSTIFY_HOURS(att.total_playtime))::TEXT AS total_playtime
+FROM
+(
+    SELECT
+        DATE(MAX(run_ended_at)) AS latest_update,
+        COUNT(*) AS total_attempts,
+        SUM(run_duration) AS total_playtime
+    FROM attempts_data5_sawken
+) att
+
+CROSS JOIN
+(
+    SELECT
+        CASE
+            WHEN STRPOS(final_lrt_time, '.') > 0 THEN
+                SUBSTRING(final_lrt_time, 1, STRPOS(final_lrt_time, '.') - 1)
+            ELSE final_lrt_time
+        END AS final_lrt_time
+    FROM pb_history_sawken
+    ORDER BY run_id DESC
+    LIMIT 1
+) pbs;
+
 /* Checking if a doorsplit gold was done on a bad run (gold hunt) by checking the delta between the pace of that run and the best pace for each split. */
 
 DROP TABLE IF EXISTS gold_hunt_detector_runner;
@@ -2339,8 +2370,8 @@ ORDER BY pbs.iso_weekday;
 /* Delete intermediate tables (comment this out when debugging). */
 
 /*DROP TABLE splits_file_runner;
-DROP TABLE splits_file_runner_indexed;
-DROP TABLE splits_file_runner_indexed_offset;
+DROP TABLE splits_file_indexed_runner;
+DROP TABLE splits_file_indexed_offset_runner;
 
 DROP TABLE attempts_data1_runner;
 DROP TABLE attempts_data2_runner;
