@@ -71,3 +71,15 @@ def add_best_and_cumulative_best_columns(golds: DataFrame) -> DataFrame:
     golds.iloc[golds.index[-1], cumulative_best_idx] = ""  # type: ignore  # noqa: PGH003
 
     return golds
+
+
+def transform_days_hours_mins_secs(total_playtime: str) -> str:
+    """
+    Transform a total playtime string in 'X days HH:MM:SS' format into
+    'X days and Y hours' format.
+    """
+    # TODO: Calculate total seconds from HH:MM:SS then convert to rounded hours, for more accuracy.
+    days = total_playtime.split(" ")[0]
+    hours = int(total_playtime.split(" ")[2].split(":")[0])
+
+    return f"{days} days and {int(hours)} hours"

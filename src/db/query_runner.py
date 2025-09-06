@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from db.utils import (
     calculate_best_time,
     format_time,
     parse_time,
+    transform_days_hours_mins_secs,
 )
 
 
@@ -72,11 +74,13 @@ class QueryRunner:
         *,
         add_best_and_cumulative: bool = True,
     ) -> DataFrame:
-        division_names = self._db.execute(division_type_query)
-        division_names.loc[len(division_names)] = "Total"
-
         dfs = []
-        dfs.append(division_names)
+
+        if division_type_query:
+            division_names = self._db.execute(division_type_query)
+            division_names.loc[len(division_names)] = "Total"
+            dfs.append(division_names)
+
         for runner in self._allowed_runners:
             runner_golds = self._db.execute(golds_query.format(runner=runner))
 
@@ -94,14 +98,14 @@ class QueryRunner:
 
         return overall_df
 
-    def get_runners_doorsplit_golds(self) -> DataFrame:
+    def get_runners_doorsplit_golds(self, *, add_first_col: bool) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
         and each column contains all the doorsplit golds of that runner.
         The last row contains the doorsplits sum of best of that runner.
         """
         return self._get_golds(
-            division_type_query=self.DOORSPLIT_NAMES_QUERY,
+            division_type_query=self.DOORSPLIT_NAMES_QUERY if add_first_col else "",
             golds_query="""
             SELECT lrt_time_fmt AS {runner}
             FROM (
@@ -113,7 +117,7 @@ class QueryRunner:
             add_best_and_cumulative=False,
         )
 
-    def get_runners_chapter_golds(self) -> DataFrame:
+    def get_runners_chapter_golds(self, *, add_first_col: bool) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
         and each column contains all the chapter golds of that runner.
@@ -123,7 +127,7 @@ class QueryRunner:
         chapter, and a column with the cumulative best chapters.
         """
         return self._get_golds(
-            division_type_query=self.CHAPTER_NAMES_QUERY,
+            division_type_query=self.CHAPTER_NAMES_QUERY if add_first_col else "",
             golds_query="""
             SELECT chapter_time_fmt AS {runner}
             FROM (
@@ -134,7 +138,7 @@ class QueryRunner:
             """,
         )
 
-    def get_runners_chapter_golds_by_doors(self) -> DataFrame:
+    def get_runners_chapter_golds_by_doors(self, *, add_first_col: bool) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
         and each column contains all the chapter golds by adding up all
@@ -145,7 +149,7 @@ class QueryRunner:
         chapter, and a column with the cumulative best chapters.
         """
         return self._get_golds(
-            division_type_query=self.CHAPTER_NAMES_QUERY,
+            division_type_query=self.CHAPTER_NAMES_QUERY if add_first_col else "",
             golds_query="""
             SELECT chapter_gold_by_doors_fmt AS {runner}
             FROM (
@@ -156,7 +160,7 @@ class QueryRunner:
             """,
         )
 
-    def get_runners_section_golds(self) -> DataFrame:
+    def get_runners_section_golds(self, *, add_first_col: bool) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
         and each column contains all the section golds of that runner.
@@ -166,7 +170,7 @@ class QueryRunner:
         section, and a column with the cumulative best sections.
         """
         return self._get_golds(
-            division_type_query=self.AREA_NAMES_QUERY,
+            division_type_query=self.AREA_NAMES_QUERY if add_first_col else "",
             golds_query="""
             SELECT area_time_fmt AS {runner}
             FROM (
@@ -178,7 +182,9 @@ class QueryRunner:
             """,
         )
 
-    def get_runners_section_golds_by_chapters(self) -> DataFrame:
+    def get_runners_section_golds_by_chapters(
+        self, *, add_first_col: bool
+    ) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
         and each column contains all the section golds by adding up all
@@ -189,7 +195,7 @@ class QueryRunner:
         section, and a column with the cumulative best sections.
         """
         return self._get_golds(
-            division_type_query=self.AREA_NAMES_QUERY,
+            division_type_query=self.AREA_NAMES_QUERY if add_first_col else "",
             golds_query="""
             SELECT area_gold_by_chapters_fmt AS {runner}
             FROM (
@@ -201,7 +207,7 @@ class QueryRunner:
             """,
         )
 
-    def get_runners_section_golds_by_doors(self) -> DataFrame:
+    def get_runners_section_golds_by_doors(self, *, add_first_col: bool) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
         and each column contains all the section golds by adding up all
@@ -212,7 +218,7 @@ class QueryRunner:
         section, and a column with the cumulative best sections.
         """
         return self._get_golds(
-            division_type_query=self.AREA_NAMES_QUERY,
+            division_type_query=self.AREA_NAMES_QUERY if add_first_col else "",
             golds_query="""
             SELECT area_gold_by_doors_fmt AS {runner}
             FROM (
@@ -224,7 +230,7 @@ class QueryRunner:
             """,
         )
 
-    def get_runners_best_paces(self) -> DataFrame:
+    def get_runners_best_paces(self, *, add_first_col: bool) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
         and each column contains all the best paces of that runner per chapter.
@@ -232,10 +238,12 @@ class QueryRunner:
         In addition, there's a column with the overall best pace for each
         chapter.
         """
-        chapter_names = self._db.execute(query=self.CHAPTER_NAMES_QUERY)
-
         dfs = []
-        dfs.append(chapter_names)
+
+        if add_first_col:
+            chapter_names = self._db.execute(query=self.CHAPTER_NAMES_QUERY)
+            dfs.append(chapter_names)
+
         for runner in self._allowed_runners:
             runners_best_paces = self._db.execute(
                 query=f"""
@@ -258,21 +266,23 @@ class QueryRunner:
         overall_df.columns = overall_df.columns.str.capitalize()
         return overall_df
 
-    def get_runners_rng_patterns(self) -> DataFrame:
+    def get_runners_rng_patterns(self, *, add_first_col: bool) -> DataFrame:
         """
         Returns a DataFrame where, for each runner, contains the
         percentage of different RNG patterns that runner has gotten overall
         and also the maximum amount of times in a row they've gotten each pattern.
         """
-        pattern_names = self._db.execute(
-            query="""
-            SELECT SUBSTRING(pattern_name, 3) AS pattern
-            FROM cfg_rng_pattern_rules;
-            """
-        )
-
         dfs = []
-        dfs.append(pattern_names)
+
+        if add_first_col:
+            pattern_names = self._db.execute(
+                query="""
+                SELECT SUBSTRING(pattern_name, 3) AS pattern
+                FROM cfg_rng_pattern_rules;
+                """
+            )
+            dfs.append(pattern_names)
+
         for runner in self._allowed_runners:
             runners_percentages = self._db.execute(
                 query=f"""
@@ -292,10 +302,11 @@ class QueryRunner:
             dfs.append(runners_max_in_a_row)
 
         overall_df = pd.concat(dfs, axis=1)
+        overall_df = overall_df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         overall_df.columns = overall_df.columns.str.capitalize()
         return overall_df
 
-    def get_runners_general_stats(self) -> DataFrame:
+    def get_runners_general_stats(self, *, add_first_col: bool) -> DataFrame:
         """
         Returns a DataFrame with simple stats for each runner:
         1) The last time they've updated their splits (as in, ran the game).
@@ -304,9 +315,14 @@ class QueryRunner:
         4) Their total playtime, in days and hours.
         """
         dfs = []
-        dfs.append(
-            pd.DataFrame({"Stat": ["Last update", "PB", "Attempts", "Total playtime"]})
-        )
+
+        if add_first_col:
+            dfs.append(
+                pd.DataFrame(
+                    {"Stat": ["Last update", "PB", "Attempts", "Total playtime"]}
+                )
+            )
+
         for runner in self._allowed_runners:
             runner_stats = self.execute(
                 query=f"SELECT * FROM general_stats_{runner};"  # noqa: S608
@@ -314,6 +330,10 @@ class QueryRunner:
             runner_stats["last_update"] = pd.to_datetime(
                 runner_stats["last_update"]
             ).dt.strftime(self.GOOD_DATE_FORMAT)
+            runner_stats["total_playtime"] = runner_stats["total_playtime"].apply(
+                lambda x: transform_days_hours_mins_secs(x)
+            )
+
             runner_stats_transposed = runner_stats.transpose()
             runner_stats = pd.DataFrame({runner: runner_stats_transposed[0].to_list()})
             dfs.append(runner_stats)
@@ -322,16 +342,18 @@ class QueryRunner:
         overall_df.columns = overall_df.columns.str.capitalize()
         return overall_df
 
-    def get_runners_resets(self) -> DataFrame:
+    def get_runners_resets(self, *, add_first_col: bool) -> DataFrame:
         """
         Returns a DataFrame with the percentage of resets for each runner, for
         all doorsplits. As in, what percentage of the runs that get to that split
         end up with the runner resetting on that split.
         """
-        split_names = self._db.execute(query=self.DOORSPLIT_NAMES_QUERY)
-
         dfs = []
-        dfs.append(split_names)
+
+        if add_first_col:
+            split_names = self._db.execute(query=self.DOORSPLIT_NAMES_QUERY)
+            dfs.append(split_names)
+
         for runner in self._allowed_runners:
             runner_resets = self._db.execute(
                 query=f"""
@@ -344,47 +366,51 @@ class QueryRunner:
 
         overall_df = pd.concat(dfs, axis=1)
         overall_df.columns = overall_df.columns.str.capitalize()
+        overall_df = overall_df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         return overall_df
 
-    def get_runners_weekday_data(self) -> DataFrame:
+    def get_runners_weekday_data(self, *, add_first_two_cols: bool) -> DataFrame:
         """
         Returns a DataFrame with many different stats related to how
         the runner performs on different days of the week.
         """
-        weekdays = [
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday",
-        ]
-        stat_types = [
-            "Attempts to get a PB",
-            "Playtime to get a PB",
-            "Attempts to get a gold",
-            "Playtime to get a gold",
-            "Attempts to get a chapter gold",
-            "Playtime to get a chapter gold",
-            "Attempts to get a section gold",
-            "Playtime to get a section gold",
-            "Attempts to get a best pace",
-            "Playtime to get a best pace",
-        ]
-        repeated_stats = []
-        for stat in stat_types:
-            repeated_stats.extend([stat] * 7)
-
         dfs = []
-        dfs.append(
-            DataFrame(
-                {
-                    "Day": weekdays * len(stat_types),
-                    "Stat type": repeated_stats,
-                }
+
+        if add_first_two_cols:
+            weekdays = [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+            ]
+            stat_types = [
+                "Attempts to get a PB",
+                "Playtime to get a PB",
+                "Attempts to get a gold",
+                "Playtime to get a gold",
+                "Attempts to get a chapter gold",
+                "Playtime to get a chapter gold",
+                "Attempts to get a section gold",
+                "Playtime to get a section gold",
+                "Attempts to get a best pace",
+                "Playtime to get a best pace",
+            ]
+            repeated_stats = []
+            for stat in stat_types:
+                repeated_stats.extend([stat] * 7)
+
+            dfs.append(
+                DataFrame(
+                    {
+                        "Day": weekdays * len(stat_types),
+                        "Stat type": repeated_stats,
+                    }
+                )
             )
-        )
+
         for runner in self._allowed_runners:
             runner_weekday = self._db.execute(
                 query=f"""
@@ -446,6 +472,13 @@ class QueryRunner:
 
         overall_df = pd.concat(dfs, axis=1)
         overall_df.columns = overall_df.columns.str.capitalize()
+
+        # indexes_with_playtime = overall_df.index[
+        #    overall_df["Stat type"].str.contains("Playtime", case=False, na=False)
+        # ].tolist()
+        # for i in indexes_with_playtime:
+        #    overall_df.iloc[i] = overall_df.iloc[i].apply(get_hours_minutes_str)
+
         return overall_df
 
     """

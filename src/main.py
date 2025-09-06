@@ -12,17 +12,25 @@ from splits.splits_manager import SplitsManager
 
 def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
     return {
-        "doorsplit_golds": query_runner.get_runners_doorsplit_golds(),
-        "chapter_golds": query_runner.get_runners_chapter_golds(),
-        "chapter_golds_by_doors": query_runner.get_runners_chapter_golds_by_doors(),
-        "section_golds": query_runner.get_runners_section_golds(),
-        "section_golds_by_chapters": query_runner.get_runners_section_golds_by_chapters(),
-        "section_golds_by_doors": query_runner.get_runners_section_golds_by_doors(),
-        "best_paces": query_runner.get_runners_best_paces(),
-        "rng_patterns": query_runner.get_runners_rng_patterns(),
-        "general_stats": query_runner.get_runners_general_stats(),
-        "resets": query_runner.get_runners_resets(),
-        "weekday_data": query_runner.get_runners_weekday_data(),
+        "doorsplit_golds": query_runner.get_runners_doorsplit_golds(
+            add_first_col=False
+        ),
+        "chapter_golds": query_runner.get_runners_chapter_golds(add_first_col=False),
+        "chapter_golds_by_doors": query_runner.get_runners_chapter_golds_by_doors(
+            add_first_col=False
+        ),
+        "section_golds": query_runner.get_runners_section_golds(add_first_col=False),
+        "section_golds_by_chapters": query_runner.get_runners_section_golds_by_chapters(
+            add_first_col=False
+        ),
+        "section_golds_by_doors": query_runner.get_runners_section_golds_by_doors(
+            add_first_col=False
+        ),
+        "best_paces": query_runner.get_runners_best_paces(add_first_col=False),
+        "rng_patterns": query_runner.get_runners_rng_patterns(add_first_col=False),
+        "general_stats": query_runner.get_runners_general_stats(add_first_col=False),
+        "resets": query_runner.get_runners_resets(add_first_col=False),
+        "weekday_data": query_runner.get_runners_weekday_data(add_first_two_cols=False),
     }
 
 
@@ -98,7 +106,7 @@ def main() -> None:
             all_data = get_all_database_data(qr)
             update_google_sheet(sheet, all_data)
     finally:
-        qr.drop_staging_tables()
+        # qr.drop_staging_tables()
         qr.close_db_connection()
 
 

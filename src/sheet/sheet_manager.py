@@ -1,13 +1,10 @@
 import logging
-from datetime import UTC, datetime, timedelta, timezone
-from decimal import Decimal
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 from gspread import Client
 from gspread.exceptions import APIError, SpreadsheetNotFound, WorksheetNotFound
 from pandas import DataFrame
-
-from sheet.utils import get_days_hours_str, get_hours_minutes_str
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +18,7 @@ class UnauthorizedError(Exception):
 
 
 class SheetManager:
-    DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
+    GOOD_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
     GOOD_DATE_FORMAT = "%d/%m/%Y"
     BAD_DATE_FORMAT = "%Y-%m-%d"
 
@@ -115,7 +112,7 @@ class SheetManager:
         self._update_sheet_with_copy(
             tab_name="Doors",
             starting_cell="B3",
-            data=doorsplit_golds.drop(doorsplit_golds.columns[0], axis=1),
+            data=doorsplit_golds,
         )
 
     def upload_runners_chapter_golds(
@@ -124,12 +121,12 @@ class SheetManager:
         self._update_sheet_with_copy(
             tab_name="Chapters",
             starting_cell="B3",
-            data=chapter_golds.drop(chapter_golds.columns[0], axis=1),
+            data=chapter_golds,
         )
         self._update_sheet_without_copy(
             tab_name="Chapters",
             starting_cell="B25",
-            data=chapter_golds_by_doors.drop(chapter_golds_by_doors.columns[0], axis=1),
+            data=chapter_golds_by_doors,
         )
 
     def upload_runners_section_golds(
@@ -141,19 +138,14 @@ class SheetManager:
         self._update_sheet_with_copy(
             tab_name="Sections",
             starting_cell="B3",
-            data=section_golds.drop(section_golds.columns[0], axis=1),
+            data=section_golds,
         )
         self._update_sheet_without_copy(
-            tab_name="Sections",
-            starting_cell="B9",
-            data=section_golds_by_chapters.drop(
-                section_golds_by_chapters.columns[0], axis=1
-            ),
+            tab_name="Sections", starting_cell="B9", data=section_golds_by_chapters
         )
+
         self._update_sheet_without_copy(
-            tab_name="Sections",
-            starting_cell="B15",
-            data=section_golds_by_doors.drop(section_golds_by_doors.columns[0], axis=1),
+            tab_name="Sections", starting_cell="B15", data=section_golds_by_doors
         )
 
     def upload_runners_best_paces(
@@ -163,17 +155,13 @@ class SheetManager:
         self._update_sheet_with_copy(
             tab_name="Paces",
             starting_cell="B3",
-            data=best_paces.drop(best_paces.columns[0], axis=1),
+            data=best_paces,
         )
 
     def upload_runners_rng_patterns(
         self,
         rng_patterns: DataFrame,
     ) -> None:
-        rng_patterns = rng_patterns.map(
-            lambda x: float(x) if isinstance(x, Decimal) else x
-        ).drop(rng_patterns.columns[0], axis=1)
-
         self._update_sheet_with_copy(
             tab_name="RNG Patterns",
             starting_cell="B4",
@@ -184,15 +172,6 @@ class SheetManager:
         self,
         general_stats: DataFrame,
     ) -> None:
-        general_stats = general_stats.drop(general_stats.columns[0], axis=1)
-        general_stats.iloc[0] = general_stats.iloc[0].apply(
-            lambda date_str: datetime.strptime(date_str, self.BAD_DATE_FORMAT)
-            .replace(tzinfo=UTC)
-            .strftime(self.GOOD_DATE_FORMAT),
-        )
-        general_stats.iloc[3] = general_stats.iloc[3].apply(
-            lambda playtime: get_days_hours_str(playtime)
-        )
         self._update_sheet_without_copy(
             tab_name="General",
             starting_cell="B3",
@@ -203,9 +182,6 @@ class SheetManager:
         self,
         resets: DataFrame,
     ) -> None:
-        resets = resets.map(lambda x: float(x) if isinstance(x, Decimal) else x).drop(
-            resets.columns[0], axis=1
-        )
         self._update_sheet_without_copy(
             tab_name="Resets",
             starting_cell="B3",
@@ -216,12 +192,6 @@ class SheetManager:
         self,
         weekday_data: DataFrame,
     ) -> None:
-        indexes_with_playtime = weekday_data.index[
-            weekday_data["Stat type"].str.contains("Playtime", case=False, na=False)
-        ].tolist()
-        for i in indexes_with_playtime:
-            weekday_data.iloc[i] = weekday_data.iloc[i].apply(get_hours_minutes_str)
-        weekday_data = weekday_data.iloc[:, 2:]  # Drop first two columns
         self._update_sheet_without_copy(
             tab_name="Weekday",
             starting_cell="C2",
@@ -233,7 +203,9 @@ class SheetManager:
             sheet = self._spreadsheet.worksheet(title="Title")
 
             utc_minus_3 = timezone(timedelta(hours=-3))
-            current_time = datetime.now(tz=utc_minus_3).strftime(self.DATE_TIME_FORMAT)
+            current_time = datetime.now(tz=utc_minus_3).strftime(
+                self.GOOD_DATETIME_FORMAT
+            )
             sheet.update_acell(
                 label="A2",
                 value=f"Last updated on: {current_time} (UTC-3)",
