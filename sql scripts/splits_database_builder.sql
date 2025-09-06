@@ -1404,7 +1404,7 @@ FROM
         'Del Lago' AS pattern_type,
         '3. Early Dive' AS pattern_name
     FROM doorsplit_history5_runner dh
-    WHERE dh.split_index = 13 AND dh.split_index_reset = 14 AND dh.split_reset_duration >= '59'::INTERVAL
+    WHERE dh.split_index = 13 AND dh.split_index_reset = 14 AND dh.split_reset_duration >= '56'::INTERVAL -- Could be 59 for some runners
 ) patterns
 GROUP BY run_id
 ORDER BY run_id;
@@ -1415,590 +1415,394 @@ DROP TABLE IF EXISTS rng_patterns_stats_runner;
 CREATE TABLE rng_patterns_stats_runner AS
 SELECT
     cfg.pattern_type,
-    REPLACE(SUBSTRING(pattern, 3), cfg.pattern_type, '') AS pattern_name,
-    pattern_instances,
-    pattern_total,
-    pattern_percentage,
-    max_patterns_in_a_row
-FROM
+    cfg.pattern_name,
+    COALESCE(rng_stats.pattern_instances, 0) AS pattern_instances,
+    SUM(rng_stats.pattern_instances) OVER(PARTITION BY cfg.pattern_type)::INT AS pattern_total,
+    COALESCE(ROUND(rng_stats.pattern_instances * 100.0 / SUM(rng_stats.pattern_instances) OVER(PARTITION BY cfg.pattern_type), 6), 0) AS pattern_percentage,
+    COALESCE(max_patterns_in_a_row, 0) AS max_patterns_in_a_row
+FROM cfg_rng_pattern_rules cfg
+
+LEFT JOIN
 (
     SELECT
-        pattern,
+        lago_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            lago_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                lago_pattern AS pattern,
+                lago_pattern,
                 COUNT(*) OVER(PARTITION BY lago_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY lago_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY lago_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE lago_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE lago_pattern IS NOT NULL
-        )
+        GROUP BY
+            lago_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY lago_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        cabin_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            cabin_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                cabin_pattern AS pattern,
+                cabin_pattern,
                 COUNT(*) OVER(PARTITION BY cabin_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY cabin_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY cabin_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE cabin_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE cabin_pattern IS NOT NULL
-        )
+        GROUP BY
+            cabin_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY cabin_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        mendez_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            mendez_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                mendez_pattern AS pattern,
+                mendez_pattern,
                 COUNT(*) OVER(PARTITION BY mendez_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY mendez_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY mendez_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE mendez_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE mendez_pattern IS NOT NULL
-        )
+        GROUP BY
+            mendez_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY mendez_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        water_hall_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            water_hall_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                water_hall_pattern AS pattern,
+                water_hall_pattern,
                 COUNT(*) OVER(PARTITION BY water_hall_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY water_hall_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY water_hall_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE water_hall_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE mendez_pattern IS NOT NULL
-        )
+        GROUP BY
+            water_hall_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
-
+    GROUP BY water_hall_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        novis1_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            novis1_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                novis1_pattern AS pattern,
+                novis1_pattern,
                 COUNT(*) OVER(PARTITION BY novis1_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY novis1_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY novis1_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE novis1_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE novis1_pattern IS NOT NULL
-        )
+        GROUP BY
+            novis1_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY novis1_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        gallery_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            gallery_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                gallery_pattern AS pattern,
+                gallery_pattern,
                 COUNT(*) OVER(PARTITION BY gallery_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY gallery_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY gallery_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE gallery_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE gallery_pattern IS NOT NULL
-        )
+        GROUP BY
+            gallery_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY gallery_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        novis2_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            novis2_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                novis2_pattern AS pattern,
+                novis2_pattern,
                 COUNT(*) OVER(PARTITION BY novis2_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY novis2_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY novis2_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE novis2_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE novis2_pattern IS NOT NULL
-        )
+        GROUP BY
+            novis2_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY novis2_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        catapult_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            catapult_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                catapult_pattern AS pattern,
+                catapult_pattern,
                 COUNT(*) OVER(PARTITION BY catapult_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY catapult_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY catapult_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE catapult_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE catapult_pattern IS NOT NULL
-        )
+        GROUP BY
+            catapult_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY catapult_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        novis3_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            novis3_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                novis3_pattern AS pattern,
+                novis3_pattern,
                 COUNT(*) OVER(PARTITION BY novis3_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY novis3_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY novis3_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE novis3_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE novis3_pattern IS NOT NULL
-        )
+        GROUP BY
+            novis3_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY novis3_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        u3_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            u3_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                u3_pattern AS pattern,
+                u3_pattern,
                 COUNT(*) OVER(PARTITION BY u3_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY u3_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY u3_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE u3_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE u3_pattern IS NOT NULL
-        )
+        GROUP BY
+            u3_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY u3_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        krauser_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            krauser_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                krauser_pattern AS pattern,
+                krauser_pattern,
                 COUNT(*) OVER(PARTITION BY krauser_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY krauser_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY krauser_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE krauser_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE krauser_pattern IS NOT NULL
-        )
+        GROUP BY
+            krauser_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY krauser_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        war_room_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            war_room_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                war_room_pattern AS pattern,
+                war_room_pattern,
                 COUNT(*) OVER(PARTITION BY war_room_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY war_room_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY war_room_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE war_room_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE war_room_pattern IS NOT NULL
-        )
+        GROUP BY
+            war_room_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
+    GROUP BY war_room_pattern, pattern_instances
 
     UNION
 
     SELECT
-        pattern,
+        key_card_pattern AS pattern,
         pattern_instances,
-        pattern_total,
-        pattern_percentage,
-        MAX(instances_in_a_row) AS max_patterns_in_a_row
+        MAX(current_consecutive_count) AS max_patterns_in_a_row
     FROM
     (
         SELECT
-            run_id,
-            pattern,
+            key_card_pattern,
             pattern_instances,
-            pattern_total,
-            ROUND((pattern_instances * 100.0) / pattern_total, 6) AS pattern_percentage,
-            ROW_NUMBER() OVER (PARTITION BY pattern, all_instances - pattern_instance ORDER BY run_id) AS instances_in_a_row
+            COUNT(*) AS current_consecutive_count
         FROM
         (
             SELECT
                 run_id,
-                key_card_pattern AS pattern,
+                key_card_pattern,
                 COUNT(*) OVER(PARTITION BY key_card_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS all_instances,
-                ROW_NUMBER() OVER (PARTITION BY key_card_pattern ORDER BY run_id) AS pattern_instance
+                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER (PARTITION BY key_card_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
-            WHERE key_card_pattern IS NOT NULL
-            GROUP BY pattern, run_id
         )
-
-        CROSS JOIN
-        (
-            SELECT
-                COUNT(*) AS pattern_total
-            FROM rng_patterns_categories_runner
-            WHERE key_card_pattern IS NOT NULL
-        )
+        GROUP BY
+            key_card_pattern,
+            (rn_overall - rn_by_pattern),
+            pattern_instances
     )
-    GROUP BY
-        pattern,
-        pattern_instances,
-        pattern_total,
-        pattern_percentage
-)
-
-LEFT JOIN cfg_rng_pattern_rules cfg
-ON cfg.pattern_name = pattern
+    GROUP BY key_card_pattern, pattern_instances
+) rng_stats
+ON cfg.pattern_name = rng_stats.pattern
 ORDER BY
     cfg.split_index,
-    pattern;
+    cfg.pattern_name;
 
 --#endregion
 

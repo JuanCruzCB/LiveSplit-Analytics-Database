@@ -35,3 +35,17 @@ SELECT
 FROM pg_catalog.pg_statio_user_tables
 ORDER BY pg_total_relation_size(relid) DESC;
 ```
+
+- Find all columns of one or more datatypes:
+
+```sql
+SELECT
+    table_name,
+    column_name,
+    data_type
+FROM information_schema.columns
+WHERE table_schema = 'public' AND data_type IN ('date', 'timestamp with time zone')
+ORDER BY
+    table_name,
+    ordinal_position;
+```
