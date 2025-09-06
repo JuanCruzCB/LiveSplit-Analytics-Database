@@ -20,11 +20,10 @@ for table in table_names:
         raise ValueError(msg)
 
     references = full_content.count(table) - 2
-    if references == 0:
-        print(f"⚠️ Table {table} has NO references.")
-
-    elif references == 1:
-        print(f"✅ Table {table} is referenced 1 time.")
-
-    else:
-        print(f"✅ Table {table} is referenced {references} times.")
+    match references:
+        case 0:
+            print(f"⚠️ Table {table} has NO references.")
+        case 1:
+            print(f"✅ Table {table} is referenced 1 time.")
+        case _:
+            print(f"✅ Table {table} is referenced {references} times.")

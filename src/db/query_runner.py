@@ -22,6 +22,7 @@ class OrderColumns(StrEnum):
 
 class QueryRunner:
     GOOD_DATE_FORMAT = "%d/%m/%Y"
+    GOOD_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S UTC"
     DOORSPLIT_NAMES_QUERY = """
     SELECT split_name
     FROM cfg_default_split_names;
@@ -310,6 +311,9 @@ class QueryRunner:
             runner_stats = self.execute(
                 query=f"SELECT * FROM general_stats_{runner};"  # noqa: S608
             )
+            runner_stats["last_update"] = pd.to_datetime(
+                runner_stats["last_update"]
+            ).dt.strftime(self.GOOD_DATE_FORMAT)
             runner_stats_transposed = runner_stats.transpose()
             runner_stats = pd.DataFrame({runner: runner_stats_transposed[0].to_list()})
             dfs.append(runner_stats)
@@ -458,14 +462,18 @@ class QueryRunner:
         Execute the query on the db and optionally save the data to an excel file.
         """
         data = self._db.execute(query=query, params=params)
-        if "date_started" in data.columns:
-            data["date_started"] = data["date_started"].apply(
+        datetime_cols = data.select_dtypes(
+            include=["datetime64", "datetimetz"]
+        ).columns.tolist()
+        for col in datetime_cols:
+            data[col] = data[col].apply(
                 lambda x: pd.to_datetime(x, errors="coerce").strftime(
-                    self.GOOD_DATE_FORMAT
+                    self.GOOD_DATETIME_FORMAT
                 )
                 if pd.notna(x)
                 else None
             )
+
         if excel_name:
             data.to_excel(self._output_dir / f"{excel_name}.xlsx", index=False)
         return data
