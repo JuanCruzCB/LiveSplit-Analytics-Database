@@ -2223,7 +2223,7 @@ DROP TABLE IF EXISTS general_stats_runner;
 CREATE TABLE general_stats_runner AS
 SELECT
     att.last_update,
-    LTRIM(pbs.lrt_pb, '0:') AS pb,
+    pbs.lrt_pb AS pb,
     att.attempts,
     JUSTIFY_DAYS(JUSTIFY_HOURS(att.total_playtime))::TEXT AS total_playtime
 FROM
@@ -2238,11 +2238,7 @@ FROM
 CROSS JOIN
 (
     SELECT
-        CASE
-            WHEN STRPOS(lrt_pb, '.') > 0 THEN
-                SUBSTRING(lrt_pb, 1, STRPOS(lrt_pb, '.') - 1)
-            ELSE lrt_pb
-        END AS lrt_pb
+        LTRIM(TO_CHAR(lrt_pb::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS lrt_pb
     FROM pb_history_runner
     ORDER BY run_id DESC
     LIMIT 1
