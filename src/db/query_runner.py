@@ -13,6 +13,7 @@ from db.utils import (
     format_time,
     parse_time,
     transform_days_hours_mins_secs,
+    transform_interval_to_hours_mins,
 )
 
 
@@ -77,12 +78,12 @@ class QueryRunner:
         dfs = []
 
         if division_type_query:
-            division_names = self._db.execute(division_type_query)
+            division_names = self.execute(division_type_query)
             division_names.loc[len(division_names)] = "Total"
             dfs.append(division_names)
 
         for runner in self._allowed_runners:
-            runner_golds = self._db.execute(golds_query.format(runner=runner))
+            runner_golds = self.execute(golds_query.format(runner=runner))
 
             runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
             sum_of_best = format_time(runner_golds["Times in seconds"].sum())
@@ -241,11 +242,11 @@ class QueryRunner:
         dfs = []
 
         if add_first_col:
-            chapter_names = self._db.execute(query=self.CHAPTER_NAMES_QUERY)
+            chapter_names = self.execute(query=self.CHAPTER_NAMES_QUERY)
             dfs.append(chapter_names)
 
         for runner in self._allowed_runners:
-            runners_best_paces = self._db.execute(
+            runners_best_paces = self.execute(
                 query=f"""
                 SELECT lrt_pace_fmt AS {runner}
                 FROM (
@@ -275,7 +276,7 @@ class QueryRunner:
         dfs = []
 
         if add_first_col:
-            pattern_names = self._db.execute(
+            pattern_names = self.execute(
                 query="""
                 SELECT SUBSTRING(pattern_name, 3) AS pattern
                 FROM cfg_rng_pattern_rules;
@@ -284,7 +285,7 @@ class QueryRunner:
             dfs.append(pattern_names)
 
         for runner in self._allowed_runners:
-            runners_percentages = self._db.execute(
+            runners_percentages = self.execute(
                 query=f"""
                 SELECT pattern_percentage AS {runner}
                 FROM rng_patterns_stats_{runner};
@@ -293,7 +294,7 @@ class QueryRunner:
             dfs.append(runners_percentages)
 
         for runner in self._allowed_runners:
-            runners_max_in_a_row = self._db.execute(
+            runners_max_in_a_row = self.execute(
                 query=f"""
                 SELECT max_patterns_in_a_row AS {runner}
                 FROM rng_patterns_stats_{runner};
@@ -351,11 +352,11 @@ class QueryRunner:
         dfs = []
 
         if add_first_col:
-            split_names = self._db.execute(query=self.DOORSPLIT_NAMES_QUERY)
+            split_names = self.execute(query=self.DOORSPLIT_NAMES_QUERY)
             dfs.append(split_names)
 
         for runner in self._allowed_runners:
-            runner_resets = self._db.execute(
+            runner_resets = self.execute(
                 query=f"""
                 SELECT percentage_reset AS {runner}
                 FROM resets2_{runner}
@@ -412,7 +413,7 @@ class QueryRunner:
             )
 
         for runner in self._allowed_runners:
-            runner_weekday = self._db.execute(
+            runner_weekday = self.execute(
                 query=f"""
                 SELECT attempts_to_get_a_pb AS {runner}
                 FROM (
@@ -468,17 +469,13 @@ class QueryRunner:
                 );
                 """  # noqa: S608
             )
+            runner_weekday[runner] = runner_weekday[runner].apply(
+                lambda x: transform_interval_to_hours_mins(x)
+            )
             dfs.append(runner_weekday)
 
         overall_df = pd.concat(dfs, axis=1)
         overall_df.columns = overall_df.columns.str.capitalize()
-
-        # indexes_with_playtime = overall_df.index[
-        #    overall_df["Stat type"].str.contains("Playtime", case=False, na=False)
-        # ].tolist()
-        # for i in indexes_with_playtime:
-        #    overall_df.iloc[i] = overall_df.iloc[i].apply(get_hours_minutes_str)
-
         return overall_df
 
     """
@@ -518,10 +515,10 @@ class QueryRunner:
 
         for table in table_names:
             if "stg" in table:
-                self._db.execute(query=f"DROP TABLE {table};")
+                self.execute(query=f"DROP TABLE {table};")
 
     def export_table_names(self) -> None:
-        tables = self._db.execute(
+        tables = self.execute(
             query="""
             SELECT table_name
             FROM information_schema.tables

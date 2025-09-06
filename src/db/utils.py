@@ -83,3 +83,32 @@ def transform_days_hours_mins_secs(total_playtime: str) -> str:
     hours = int(total_playtime.split(" ")[2].split(":")[0])
 
     return f"{days} days and {int(hours)} hours"
+
+
+def transform_interval_to_hours_mins(interval: str | None) -> str:
+    """
+    Transform a time interval string in 'HH:MM:SS' format into
+    'X hrs and Y mins' format.
+
+    The interval string can have an invalid format or be None.
+    """
+    if interval is None:
+        return ""
+
+    if ":" not in interval:
+        if "." in interval:
+            rounded = round(float(interval), 2)
+            return str(rounded)
+        return interval
+
+    try:
+        hours = int(interval.split(":")[0])
+        minutes = int(interval.split(":")[1])
+        seconds = float(interval.split(":")[2])
+    except ValueError:
+        return interval
+
+    if hours == 0:
+        return f"{minutes} mins"
+
+    return f"{hours} hrs and {minutes} mins"
