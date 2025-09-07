@@ -244,8 +244,8 @@ VALUES
     (117, 'Key Card', '5. Terrible Key Card', '1:01.001'::INTERVAL, '999:59:59'::INTERVAL);
 
 
-/* All the dates between 2020 and 2030. */
+/* All the dates between 2000 and 2030. */
 
 DROP TABLE IF EXISTS cfg_dates;
 CREATE TABLE cfg_dates AS
-SELECT(generate_series(DATE '2020-01-01', DATE '2030-12-31', INTERVAL '1 day'))::date AS date;
+SELECT(GENERATE_SERIES(DATE '2000-01-01', DATE '2030-12-31', INTERVAL '1 day'))::DATE AS dt;

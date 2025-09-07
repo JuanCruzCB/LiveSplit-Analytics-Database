@@ -768,7 +768,6 @@ SELECT DISTINCT
     ds.run_id,
     ds.chapter,
     ds.area,
-    RANK() OVER (PARTITION BY ds.chapter ORDER BY ds.chapter_time) AS chapter_rank,
     MIN(ds.chapter_time) OVER(PARTITION BY ds.chapter ORDER BY run_id) AS chapter_gold_at_that_time,
     ds.chapter_time,
     LTRIM(TO_CHAR(ds.chapter_time, 'HH24:MI:SS.FF3'), '0:') AS chapter_time_fmt,
@@ -814,7 +813,7 @@ SELECT
             AND ch2.run_id <= ch1.run_id
             AND ch2.chapter_time < ch1.chapter_time
     ) + 1 AS chapter_rank_at_that_time,
-    chapter_rank,
+    RANK() OVER (PARTITION BY chapter ORDER BY chapter_time) AS chapter_rank,
     chapter_gold_at_that_time,
     chapter_time,
     chapter_time_fmt,
@@ -984,7 +983,6 @@ CREATE TABLE stg_area_history1_runner AS
 SELECT DISTINCT
     ds.run_id,
     ds.area,
-    RANK() OVER (PARTITION BY ds.area ORDER BY ds.area_time) AS area_rank,
     MIN(ds.area_time) OVER(PARTITION BY ds.area ORDER BY run_id) AS area_gold_at_that_time,
     ds.area_time,
     LTRIM(TO_CHAR(ds.area_time, 'HH24:MI:SS.FF3'), '0:') AS area_time_fmt,
@@ -1030,7 +1028,7 @@ SELECT
             AND sec2.run_id <= sec1.run_id
             AND sec2.area_time < sec1.area_time
     ) + 1 AS area_rank_at_that_time,
-    area_rank,
+    RANK() OVER(PARTITION BY area ORDER BY area_time) AS area_rank,
     area_gold_at_that_time,
     area_time,
     area_time_fmt,
