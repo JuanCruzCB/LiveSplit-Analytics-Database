@@ -296,8 +296,8 @@ DROP TABLE IF EXISTS stg_attempts_data3_runner;
 CREATE TABLE stg_attempts_data3_runner AS
 SELECT
     run_id,
-    LEAD(final_lrt_time, 2) OVER () AS final_lrt_time,
-    LEAD(final_rta_time, 1) OVER () AS final_rta_time,
+    LEAD(final_lrt_time, 2) OVER() AS final_lrt_time,
+    LEAD(final_rta_time, 1) OVER() AS final_rta_time,
     TO_TIMESTAMP(run_started_at, 'MM/DD/YYYY HH24:MI:SS') AS run_started_at,
     TO_TIMESTAMP(run_ended_at, 'MM/DD/YYYY HH24:MI:SS') AS run_ended_at
 FROM stg_attempts_data2_runner;
@@ -473,7 +473,7 @@ SELECT
             AND ds2.run_id <= ds1.run_id
             AND ds2.lrt_time < ds1.lrt_time
     ) + 1 AS doorsplit_rank_at_that_time,
-    RANK() OVER (PARTITION BY ds1.split_index ORDER BY lrt_time) AS doorsplit_rank,
+    RANK() OVER(PARTITION BY ds1.split_index ORDER BY lrt_time) AS doorsplit_rank,
     MIN(lrt_time) OVER(PARTITION BY ds1.split_index ORDER BY run_id) AS doorsplit_gold_at_that_time,
     lrt_time,
     lrt_time_fmt,
@@ -630,10 +630,10 @@ avg_med_cumulative AS
         area,
         lrt_time_avg,
         lrt_time_avg_fmt,
-        SUM(lrt_time_avg) OVER (ORDER BY split_index) AS sum_of_avg,
+        SUM(lrt_time_avg) OVER(ORDER BY split_index) AS sum_of_avg,
         lrt_time_med,
         lrt_time_med_fmt,
-        SUM(lrt_time_med) OVER (ORDER BY split_index) AS sum_of_med
+        SUM(lrt_time_med) OVER(ORDER BY split_index) AS sum_of_med
     FROM avg_med
     ORDER BY split_index
 )
@@ -813,7 +813,7 @@ SELECT
             AND ch2.run_id <= ch1.run_id
             AND ch2.chapter_time < ch1.chapter_time
     ) + 1 AS chapter_rank_at_that_time,
-    RANK() OVER (PARTITION BY chapter ORDER BY chapter_time) AS chapter_rank,
+    RANK() OVER(PARTITION BY chapter ORDER BY chapter_time) AS chapter_rank,
     chapter_gold_at_that_time,
     chapter_time,
     chapter_time_fmt,
@@ -864,10 +864,10 @@ avg_med_cumulative AS
         area,
         chapter_time_avg,
         chapter_time_avg_fmt,
-        SUM(chapter_time_avg) OVER (ORDER BY chapter) AS sum_of_avg,
+        SUM(chapter_time_avg) OVER(ORDER BY chapter) AS sum_of_avg,
         chapter_time_med,
         chapter_time_med_fmt,
-        SUM(chapter_time_med) OVER (ORDER BY chapter) AS sum_of_med
+        SUM(chapter_time_med) OVER(ORDER BY chapter) AS sum_of_med
     FROM avg_med
     ORDER BY chapter
 )
@@ -1079,10 +1079,10 @@ avg_med_cumulative AS
         area,
         area_time_avg,
         area_time_avg_fmt,
-        SUM(area_time_avg) OVER (ORDER BY sort) AS sum_of_avg,
+        SUM(area_time_avg) OVER(ORDER BY sort) AS sum_of_avg,
         area_time_med,
         area_time_med_fmt,
-        SUM(area_time_med) OVER (ORDER BY sort) AS sum_of_med
+        SUM(area_time_med) OVER(ORDER BY sort) AS sum_of_med
     FROM avg_med
     ORDER BY sort
 )
@@ -1332,8 +1332,8 @@ SELECT
     chapter,
     area,
     times_finished,
-    LAG(times_finished) OVER () AS times_finished_prev,
-    COALESCE(LAG(times_finished) OVER () - times_finished, total_attempts - times_finished) AS times_reset,
+    LAG(times_finished) OVER() AS times_finished_prev,
+    COALESCE(LAG(times_finished) OVER() - times_finished, total_attempts - times_finished) AS times_reset,
     attempts.total_attempts
 FROM doorsplits_finished_runner
 
@@ -1439,8 +1439,8 @@ LEFT JOIN
                 run_id,
                 lago_pattern,
                 COUNT(*) OVER(PARTITION BY lago_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY lago_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY lago_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1468,8 +1468,8 @@ LEFT JOIN
                 run_id,
                 cabin_pattern,
                 COUNT(*) OVER(PARTITION BY cabin_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY cabin_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY cabin_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1497,8 +1497,8 @@ LEFT JOIN
                 run_id,
                 mendez_pattern,
                 COUNT(*) OVER(PARTITION BY mendez_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY mendez_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY mendez_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1526,8 +1526,8 @@ LEFT JOIN
                 run_id,
                 water_hall_pattern,
                 COUNT(*) OVER(PARTITION BY water_hall_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY water_hall_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY water_hall_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1555,8 +1555,8 @@ LEFT JOIN
                 run_id,
                 novis1_pattern,
                 COUNT(*) OVER(PARTITION BY novis1_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY novis1_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY novis1_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1584,8 +1584,8 @@ LEFT JOIN
                 run_id,
                 gallery_pattern,
                 COUNT(*) OVER(PARTITION BY gallery_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY gallery_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY gallery_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1613,8 +1613,8 @@ LEFT JOIN
                 run_id,
                 novis2_pattern,
                 COUNT(*) OVER(PARTITION BY novis2_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY novis2_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY novis2_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1642,8 +1642,8 @@ LEFT JOIN
                 run_id,
                 catapult_pattern,
                 COUNT(*) OVER(PARTITION BY catapult_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY catapult_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY catapult_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1671,8 +1671,8 @@ LEFT JOIN
                 run_id,
                 novis3_pattern,
                 COUNT(*) OVER(PARTITION BY novis3_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY novis3_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY novis3_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1700,8 +1700,8 @@ LEFT JOIN
                 run_id,
                 u3_pattern,
                 COUNT(*) OVER(PARTITION BY u3_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY u3_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY u3_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1729,8 +1729,8 @@ LEFT JOIN
                 run_id,
                 krauser_pattern,
                 COUNT(*) OVER(PARTITION BY krauser_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY krauser_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY krauser_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1758,8 +1758,8 @@ LEFT JOIN
                 run_id,
                 war_room_pattern,
                 COUNT(*) OVER(PARTITION BY war_room_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY war_room_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY war_room_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1787,8 +1787,8 @@ LEFT JOIN
                 run_id,
                 key_card_pattern,
                 COUNT(*) OVER(PARTITION BY key_card_pattern) AS pattern_instances,
-                ROW_NUMBER() OVER (ORDER BY run_id) AS rn_overall,
-                ROW_NUMBER() OVER (PARTITION BY key_card_pattern ORDER BY run_id) AS rn_by_pattern
+                ROW_NUMBER() OVER(ORDER BY run_id) AS rn_overall,
+                ROW_NUMBER() OVER(PARTITION BY key_card_pattern ORDER BY run_id) AS rn_by_pattern
             FROM rng_patterns_categories_runner
         )
         GROUP BY
@@ -1945,7 +1945,7 @@ SELECT
     rpc.key_card_pattern,
 
     'runner' AS runner_name
-    -- Not sure if this is necessary: ROW_NUMBER() OVER (PARTITION BY a.run_id, a.split_index ORDER BY id2 DESC) AS rang
+    -- Not sure if this is necessary: ROW_NUMBER() OVER(PARTITION BY a.run_id, a.split_index ORDER BY id2 DESC) AS rang
 
 FROM doorsplit_history5_runner dsh
 
@@ -2077,7 +2077,7 @@ FROM
         ph.lrt_pace,
         bp.lrt_pace AS best_pace,
         ph.lrt_pace - bp.lrt_pace AS best_pace_delta,
-        ROW_NUMBER () OVER (PARTITION BY dg.split_index ORDER BY ph.lrt_pace - bp.lrt_pace) AS ds_gold_instance
+        ROW_NUMBER() OVER(PARTITION BY dg.split_index ORDER BY ph.lrt_pace - bp.lrt_pace) AS ds_gold_instance
     FROM doorsplit_golds2_runner dg
 
     LEFT JOIN pace_history2_runner ph

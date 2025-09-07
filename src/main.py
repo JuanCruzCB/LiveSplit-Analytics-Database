@@ -19,11 +19,11 @@ def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
         "chapter_golds_by_doors": query_runner.get_runners_chapter_golds_by_doors(
             add_first_col=False
         ),
-        "section_golds": query_runner.get_runners_section_golds(add_first_col=False),
-        "section_golds_by_chapters": query_runner.get_runners_section_golds_by_chapters(
+        "area_golds": query_runner.get_runners_area_golds(add_first_col=False),
+        "area_golds_by_chapters": query_runner.get_runners_area_golds_by_chapters(
             add_first_col=False
         ),
-        "section_golds_by_doors": query_runner.get_runners_section_golds_by_doors(
+        "area_golds_by_doors": query_runner.get_runners_area_golds_by_doors(
             add_first_col=False
         ),
         "best_paces": query_runner.get_runners_best_paces(add_first_col=False),
@@ -43,10 +43,10 @@ def update_google_sheet(
         data["chapter_golds"],
         data["chapter_golds_by_doors"],
     )
-    sheet_manager.upload_runners_section_golds(
-        data["section_golds"],
-        data["section_golds_by_chapters"],
-        data["section_golds_by_doors"],
+    sheet_manager.upload_runners_area_golds(
+        data["area_golds"],
+        data["area_golds_by_chapters"],
+        data["area_golds_by_doors"],
     )
     sheet_manager.upload_runners_best_paces(data["best_paces"])
     sheet_manager.upload_runners_resets(data["resets"])

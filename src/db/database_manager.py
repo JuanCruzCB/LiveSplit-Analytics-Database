@@ -11,6 +11,8 @@ from db.last_updates_tracker import LastUpdatesTracker
 
 logger = logging.getLogger(__name__)
 
+type OptionalParams = dict[str, str | int] | None
+
 
 class DatabaseManager:
     def __init__(
@@ -55,7 +57,7 @@ class DatabaseManager:
         self,
         query: str,
         message: str = "Unspecified query ran",
-        params: dict[str, str | int] | None = None,
+        params: OptionalParams = None,
     ) -> DataFrame:
         """
         Return a DataFrame with the results of running the specified query

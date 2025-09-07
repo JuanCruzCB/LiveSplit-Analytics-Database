@@ -129,23 +129,23 @@ class SheetManager:
             data=chapter_golds_by_doors,
         )
 
-    def upload_runners_section_golds(
+    def upload_runners_area_golds(
         self,
-        section_golds: DataFrame,
-        section_golds_by_chapters: DataFrame,
-        section_golds_by_doors: DataFrame,
+        area_golds: DataFrame,
+        area_golds_by_chapters: DataFrame,
+        area_golds_by_doors: DataFrame,
     ) -> None:
         self._update_sheet_with_copy(
             tab_name="Sections",
             starting_cell="B3",
-            data=section_golds,
+            data=area_golds,
         )
         self._update_sheet_without_copy(
-            tab_name="Sections", starting_cell="B9", data=section_golds_by_chapters
+            tab_name="Sections", starting_cell="B9", data=area_golds_by_chapters
         )
 
         self._update_sheet_without_copy(
-            tab_name="Sections", starting_cell="B15", data=section_golds_by_doors
+            tab_name="Sections", starting_cell="B15", data=area_golds_by_doors
         )
 
     def upload_runners_best_paces(
