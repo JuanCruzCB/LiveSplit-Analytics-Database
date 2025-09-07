@@ -1215,6 +1215,7 @@ FROM
     LEFT JOIN cfg_splits_per_area sps
     ON ch.area = sps.area
 
+    WHERE ch.chapter_time_instance = 1
     GROUP BY
         ch.area,
         sps.sort
