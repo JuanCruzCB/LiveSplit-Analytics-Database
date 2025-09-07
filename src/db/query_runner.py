@@ -10,8 +10,6 @@ from db.database_manager import DatabaseManager
 from db.utils import (
     add_best_and_cumulative_best_columns,
     calculate_best_time,
-    format_time,
-    parse_time,
     transform_days_hours_mins_secs,
     transform_interval_to_hours_mins,
 )
@@ -84,18 +82,14 @@ class QueryRunner:
 
         for runner in self._allowed_runners:
             runner_golds = self.execute(golds_query.format(runner=runner))
-
-            runner_golds["Times in seconds"] = runner_golds[runner].map(parse_time)
-            sum_of_best = format_time(runner_golds["Times in seconds"].sum())
-            runner_golds.loc[len(runner_golds)] = sum_of_best
-            runner_golds = runner_golds.drop(columns=["Times in seconds"])
-
             dfs.append(runner_golds)
 
         overall_df = pd.concat(dfs, axis=1)
         overall_df.columns = overall_df.columns.str.capitalize()
         if add_best_and_cumulative:
-            overall_df = add_best_and_cumulative_best_columns(overall_df)
+            overall_df = add_best_and_cumulative_best_columns(
+                overall_df, skip_first_col=bool(division_type_query)
+            )
 
         return overall_df
 
@@ -108,9 +102,20 @@ class QueryRunner:
         return self._get_golds(
             division_type_query=self.DOORSPLIT_NAMES_QUERY if add_first_col else "",
             golds_query="""
-            SELECT lrt_time_fmt AS {runner}
-            FROM (
-                SELECT DISTINCT split_index, lrt_time_fmt
+            SELECT
+                lrt_time_fmt AS {runner}
+            FROM
+            (
+                SELECT DISTINCT
+                    split_index,
+                    lrt_time_fmt
+                FROM doorsplit_golds2_{runner}
+
+                UNION
+
+                SELECT
+                    NULL,
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_fmt
                 FROM doorsplit_golds2_{runner}
                 ORDER BY split_index
             );
@@ -124,16 +129,30 @@ class QueryRunner:
         and each column contains all the chapter golds of that runner.
         The last row contains the chapter sum of best of that runner.
 
+        The very first column that shows the chapter names, is optional.
+
         In addition, there's a column with the best chapter gold for each
         chapter, and a column with the cumulative best chapters.
         """
         return self._get_golds(
             division_type_query=self.CHAPTER_NAMES_QUERY if add_first_col else "",
             golds_query="""
-            SELECT chapter_time_fmt AS {runner}
-            FROM (
-                SELECT DISTINCT chapter, chapter_time_fmt
+            SELECT
+                chapter_time_fmt AS {runner}
+            FROM
+            (
+                SELECT DISTINCT
+                    chapter,
+                    chapter_time_fmt
                 FROM chapter_golds2_{runner}
+
+                UNION
+
+                SELECT
+                    NULL,
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_fmt
+                FROM chapter_golds2_{runner}
+
                 ORDER BY chapter
             );
             """,
@@ -152,10 +171,22 @@ class QueryRunner:
         return self._get_golds(
             division_type_query=self.CHAPTER_NAMES_QUERY if add_first_col else "",
             golds_query="""
-            SELECT chapter_gold_by_doors_fmt AS {runner}
-            FROM (
-                SELECT DISTINCT chapter, chapter_gold_by_doors_fmt
+            SELECT
+                chapter_gold_by_doors_fmt AS {runner}
+            FROM
+            (
+                SELECT DISTINCT
+                    chapter,
+                    chapter_gold_by_doors_fmt
                 FROM chapter_golds_by_doors_{runner}
+
+                UNION
+
+                SELECT
+                    NULL,
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS chapter_gold_by_doors_fmt
+                FROM chapter_golds_by_doors_{runner}
+
                 ORDER BY chapter
             );
             """,
@@ -173,12 +204,35 @@ class QueryRunner:
         return self._get_golds(
             division_type_query=self.AREA_NAMES_QUERY if add_first_col else "",
             golds_query="""
-            SELECT area_time_fmt AS {runner}
-            FROM (
+            SELECT
+                area_time_fmt AS {runner}
+            FROM
+            (
                 SELECT
                     area,
-                    area_time_fmt
+                    area_time_fmt,
+                    sort
+                FROM
+                (
+                    SELECT DISTINCT
+                        ag.area,
+                        area_time_fmt,
+                        cfg.sort
+                    FROM area_golds2_{runner} ag
+
+                    LEFT JOIN cfg_splits_per_area cfg
+                    ON ag.area = cfg.area
+                ) a
+
+                UNION
+
+                SELECT
+                    NULL,
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS area_time_fmt,
+                    NULL
                 FROM area_golds2_{runner}
+
+                ORDER BY sort
             );
             """,
         )
@@ -198,12 +252,35 @@ class QueryRunner:
         return self._get_golds(
             division_type_query=self.AREA_NAMES_QUERY if add_first_col else "",
             golds_query="""
-            SELECT area_gold_by_chapters_fmt AS {runner}
-            FROM (
+            SELECT
+                area_gold_by_chapters_fmt AS {runner}
+            FROM
+            (
                 SELECT
                     area,
-                    area_gold_by_chapters_fmt
+                    area_gold_by_chapters_fmt,
+                    sort
+                FROM
+                (
+                    SELECT DISTINCT
+                        ag.area,
+                        area_gold_by_chapters_fmt,
+                        cfg.sort
+                    FROM area_golds_by_chapters_{runner} ag
+
+                    LEFT JOIN cfg_splits_per_area cfg
+                    ON ag.area = cfg.area
+                ) a
+
+                UNION
+
+                SELECT
+                    NULL,
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS area_gold_by_chapters_fmt,
+                    NULL
                 FROM area_golds_by_chapters_{runner}
+
+                ORDER BY sort
             );
             """,
         )
@@ -221,12 +298,35 @@ class QueryRunner:
         return self._get_golds(
             division_type_query=self.AREA_NAMES_QUERY if add_first_col else "",
             golds_query="""
-            SELECT area_gold_by_doors_fmt AS {runner}
-            FROM (
+            SELECT
+                area_gold_by_doors_fmt AS {runner}
+            FROM
+            (
                 SELECT
                     area,
-                    area_gold_by_doors_fmt
+                    area_gold_by_doors_fmt,
+                    sort
+                FROM
+                (
+                    SELECT DISTINCT
+                        ag.area,
+                        area_gold_by_doors_fmt,
+                        cfg.sort
+                    FROM area_golds_by_doors_{runner} ag
+
+                    LEFT JOIN cfg_splits_per_area cfg
+                    ON ag.area = cfg.area
+                ) a
+
+                UNION
+
+                SELECT
+                    NULL,
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS area_gold_by_doors_fmt,
+                    NULL
                 FROM area_golds_by_doors_{runner}
+
+                ORDER BY sort
             );
             """,
         )

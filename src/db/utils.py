@@ -47,16 +47,25 @@ def calculate_best_time(times: list[str]) -> str:
     return format_time(min(times_decimal))
 
 
-def add_best_and_cumulative_best_columns(golds: DataFrame) -> DataFrame:
+def add_best_and_cumulative_best_columns(
+    golds: DataFrame, *, skip_first_col: bool
+) -> DataFrame:
     """
     Receives a DataFrame with the runners golds and calculates the best gold
     and cumulative best gold of all the data, then adds these as new columns
     and returns the modified DataFrame.
     """
-    golds["Best gold"] = golds.apply(
-        lambda row: calculate_best_time(row[1:]),
-        axis=1,
-    )
+    if skip_first_col:
+        golds["Best gold"] = golds.apply(
+            lambda row: calculate_best_time(row[1:]),
+            axis=1,
+        )
+    else:
+        golds["Best gold"] = golds.apply(
+            lambda row: calculate_best_time(row),
+            axis=1,
+        )
+
     golds["Best gold seconds"] = golds["Best gold"].map(parse_time)
     golds["Cumulative best seconds"] = golds["Best gold seconds"].cumsum()
     golds["Cumulative best"] = golds["Cumulative best seconds"].apply(format_time)
@@ -104,7 +113,6 @@ def transform_interval_to_hours_mins(interval: str | None) -> str:
     try:
         hours = int(interval.split(":")[0])
         minutes = int(interval.split(":")[1])
-        seconds = float(interval.split(":")[2])
     except ValueError:
         return interval
 
