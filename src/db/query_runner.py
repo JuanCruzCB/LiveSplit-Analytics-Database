@@ -37,6 +37,16 @@ class QueryRunner:
     SELECT area AS section
     FROM cfg_splits_per_area;
     """
+    TABLE_NAMES_QUERY = """
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+    ORDER BY table_name;
+    """
+    PATTERN_NAMES_QUERY = """
+    SELECT SUBSTRING(pattern_name, 3) AS pattern
+    FROM cfg_rng_pattern_rules;
+    """
 
     def __init__(
         self,
@@ -348,9 +358,13 @@ class QueryRunner:
         for runner in self._allowed_runners:
             runners_best_paces = self.execute(
                 query=f"""
-                SELECT lrt_pace_fmt AS {runner}
+                SELECT
+                    lrt_pace_fmt AS {runner}
                 FROM (
-                    SELECT DISTINCT split_index, split_name, lrt_pace_fmt
+                    SELECT DISTINCT
+                        split_index,
+                        split_name,
+                        lrt_pace_fmt
                     FROM paces_best_{runner}
                     WHERE split_name LIKE '%{{%'
                     ORDER BY split_index
@@ -360,10 +374,16 @@ class QueryRunner:
             dfs.append(runners_best_paces)
 
         overall_df = pd.concat(dfs, axis=1)
-        overall_df["Best"] = overall_df.apply(
-            lambda row: calculate_best_time(row[1:]),
-            axis=1,
-        )
+        if add_first_col:
+            overall_df["Best"] = overall_df.apply(
+                lambda row: calculate_best_time(row[1:]),
+                axis=1,
+            )
+        else:
+            overall_df["Best"] = overall_df.apply(
+                lambda row: calculate_best_time(row),
+                axis=1,
+            )
         overall_df.columns = overall_df.columns.str.capitalize()
         return overall_df
 
@@ -376,12 +396,7 @@ class QueryRunner:
         dfs = []
 
         if add_first_col:
-            pattern_names = self.execute(
-                query="""
-                SELECT SUBSTRING(pattern_name, 3) AS pattern
-                FROM cfg_rng_pattern_rules;
-                """
-            )
+            pattern_names = self.execute(query=self.PATTERN_NAMES_QUERY)
             dfs.append(pattern_names)
 
         for runner in self._allowed_runners:
@@ -609,135 +624,89 @@ class QueryRunner:
         return data
 
     def drop_staging_tables(self) -> None:
-        self.export_table_names()
-        with Path(self._output_dir / "tables.txt").open("r") as f:
-            table_names = f.readlines()
-
-        for table in table_names:
+        for table in self.export_table_names():
             if "stg" in table:
                 self.execute(query=f"DROP TABLE {table};")
 
-    def export_table_names(self) -> None:
-        tables = self.execute(
-            query="""
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema = 'public'
-            ORDER BY table_name;
-            """
-        )
+    def export_table_names(self) -> list[str]:
+        tables_df = self.execute(query=self.TABLE_NAMES_QUERY)
+        tables = tables_df["table_name"].to_list()
 
         with Path(self._output_dir / "tables.txt").open("w") as f:
-            f.write("\n".join(tables["table_name"].to_list()))
+            f.write("\n".join(tables))
+
+        return tables
 
     def doorsplit_golds(self, *, ties: bool = False) -> DataFrame:
-        return self.execute(
-            query=f"""
-            WITH tied_golds2 (tied) AS (values (%(ties)s))
-            SELECT *
-            FROM (
-                SELECT
-                    id,
-                    cle2,
-                    split,
-                    lrt_split,
-                    date_started,
-                    time_start,
-                    CASE
-                        WHEN row_number() OVER (partition by cle2 order by id) = 1 THEN 0
-                        ELSE 1
-                    END AS tied_gold
-                FROM (
-                    SELECT
-                        id,
-                        cle2,
-                        split,
-                        lrt_split,
-                        date_started,
-                        time_start,
-                        rank() over (partition by cle2 order by lrt_number) AS rang
-                    FROM (
-                        SELECT *
-                        FROM splits_overview_{self._main_runner}) aa) a
-                        WHERE rang = 1
-                    )
-                    WHERE tied_gold <= (SELECT tied FROM tied_golds2)
-            ORDER BY cle2, id;
-            """,  # noqa: S608
-            params={"ties": int(ties)},
-            excel_name=f"{self._main_runner}_doorsplits_golds_v2_with_ties"
-            if ties
-            else f"{self._main_runner}_doorsplits_golds_v2_without_ties",
-        )
-
-    def chapter_golds(self) -> DataFrame:
+        if ties:
+            extra_condition = ""
+            excel_name = f"{self._main_runner}_doorsplit_golds_with_ties"
+        else:
+            extra_condition = "WHERE lrt_time_instance = 1"
+            excel_name = f"{self._main_runner}_doorsplit_golds_without_ties"
         return self.execute(
             query=f"""
             SELECT
-                id,
+                run_id,
+                split_index,
+                split_name,
+                lrt_time_fmt AS gold,
+                split_started_at,
+                split_ended_at,
+                run_started_at,
+                run_ended_at
+            FROM doorsplit_golds2_{self._main_runner}
+            {extra_condition};
+            """,  # noqa: S608
+            excel_name=excel_name,
+        )
+
+    def chapter_golds(self, *, ties: bool = False) -> DataFrame:
+        if ties:
+            extra_condition = ""
+            excel_name = f"{self._main_runner}_chapter_golds_with_ties"
+        else:
+            extra_condition = "WHERE chapter_time_instance = 1"
+            excel_name = f"{self._main_runner}_chapter_golds_without_ties"
+
+        return self.execute(
+            query=f"""
+            SELECT
+                run_id,
                 chapter,
-                chapter_time2,
-                date_started,
-                time_start
-            FROM (
-                SELECT
-                    id,
-                    chapter,
-                    chapter_time,
-                    chapter_time2,
-                    chapter_gold,
-                    chapter_gold2,
-                    chapter_gold_at_that_time,
-                    date_started,
-                    date_started2,
-                    time_start,
-                    row_number() over (partition by id, chapter order by cle2) AS rang
-                FROM splits_overview_{self._main_runner}
-                WHERE chapter_time2=chapter_gold2
-                ORDER BY chapter, id
-            ) a
-            WHERE rang = 1
-            ORDER BY chapter, id;
+                chapter_time_fmt AS gold,
+                chapter_started_at,
+                chapter_ended_at,
+                run_started_at,
+                run_ended_at
+            FROM chapter_golds2_{self._main_runner}
+            {extra_condition};
             """,  # noqa: S608
-            excel_name=f"{self._main_runner}_chapter_golds_v2",
+            excel_name=excel_name,
         )
 
-    def section_golds(self) -> DataFrame:
+    def section_golds(self, *, ties: bool = False) -> DataFrame:
+        if ties:
+            extra_condition = ""
+            excel_name = f"{self._main_runner}_area_golds_with_ties"
+        else:
+            extra_condition = "WHERE area_time_instance = 1"
+            excel_name = f"{self._main_runner}_area_golds_without_ties"
+
         return self.execute(
             query=f"""
             SELECT
-                id,
-                section,
-                section_time2,
-                date_started,
-                time_start
-            FROM (
-                SELECT
-                    id,
-                    section,
-                    section_time,
-                    section_time2,
-                    section_gold,
-                    section_gold2,
-                    section_gold_at_that_time,
-                    date_started,
-                    date_started2,
-                    time_start,
-                    row_number() over (partition by id, section order by cle2) AS rang
-                FROM splits_overview_{self._main_runner}
-                WHERE section_time2 = section_gold2
-                ORDER BY section, id
-            ) a
-            WHERE rang = 1
-            ORDER BY
-                CASE
-                    WHEN section='Village' THEN 1
-                    WHEN section='Castle' THEN 2
-                    ELSE 3
-                END,
-                id;
+                run_id,
+                area,
+                area_time_fmt AS gold,
+                area_started_at,
+                area_ended_at,
+                run_started_at,
+                run_ended_at
+            FROM area_golds2_{self._main_runner}
+            {extra_condition};
             """,  # noqa: S608
-            excel_name=f"{self._main_runner}_section_golds_v2",
+            excel_name=excel_name,
         )
 
     def doorsplits_pb_analysis(self) -> DataFrame:
