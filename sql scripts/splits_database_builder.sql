@@ -206,7 +206,7 @@ AND segs.line_number <= CASE
                         END
 ORDER BY line_number;
 
-/* Converting the LRT and RTA times from text to INTERVAL types. At this point we only keep the rows that have useful information and we already have everything on the same row (run id, lrt time and split name) so we can delete the rest. */
+/* Converting the LRT and RTA times from text to INTERVAL types. At this point we only keep the rows that have useful information and we already have everything on the same row (run id, lrt time and split name) so we can delete the rest. We also get rid of all zero (since they start from 1) and negative run_ids as they can cause problems in calculations later on. */
 
 DROP TABLE IF EXISTS stg_segments_data6_runner;
 CREATE TABLE stg_segments_data6_runner AS
@@ -226,7 +226,7 @@ SELECT
     file_line_stripped,
     line_number
 FROM stg_segments_data5_runner
-WHERE split_name <> '';
+WHERE split_name <> '' AND run_id > 0;
 
 /* Also adding the LRT and RTA time with the same format as in LiveSplit (Edit Splits window), not used for calculations but it's nicer to read. */
 
