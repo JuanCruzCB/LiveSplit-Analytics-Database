@@ -19,8 +19,6 @@ class UnauthorizedError(Exception):
 
 class SheetManager:
     GOOD_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
-    GOOD_DATE_FORMAT = "%d/%m/%Y"
-    BAD_DATE_FORMAT = "%Y-%m-%d"
 
     def __init__(self, gspread_client: Client, google_sheet_id: str):
         try:
@@ -34,17 +32,18 @@ class SheetManager:
             logger.exception(msg)
             raise UnauthorizedError from e
 
-    def _update_sheet_with_copy(
+    def upload_dataframe_with_copy(
         self,
         tab_name: str,
         starting_cell: str,
         data: DataFrame,
     ) -> None:
         """
-        Copies the current contents of the tab 'sheet_tab_name' and
-        pastes them onto 'sheet_tab_name old'.
-        Then updates the tab 'sheet_tab_name' starting from 'starting_cell'
-        inside the Google Sheet with the 'data' that was sent.
+        Copies the current contents of the tab 'tab_name' and
+        pastes them onto 'tab_name old'.
+
+        Then updates the tab of the Google Sheet named 'tab_name' starting from the
+        cell 'starting_cell', with the 'data' that was sent.
         """
         data_list = data.replace({np.nan: ""}).to_numpy().tolist()
         old_sheet_tab_name = f"{tab_name} old"
@@ -76,15 +75,15 @@ class SheetManager:
         else:
             logger.info("Sheet '%s' updated successfully!", tab_name)
 
-    def _update_sheet_without_copy(
+    def upload_dataframe_without_copy(
         self,
         tab_name: str,
         starting_cell: str,
         data: DataFrame,
     ) -> None:
         """
-        Updates the tab 'sheet_tab_name' starting from 'starting_cell'
-        inside the Google Sheet with the 'data' that was sent.
+        Updates the tab of the Google Sheet named 'tab_name' starting from the
+        cell 'starting_cell', with the 'data' that was sent.
         """
         data_list = data.replace({np.nan: ""}).to_numpy().tolist()
         original_sheet = self._spreadsheet.worksheet(title=tab_name)
@@ -108,118 +107,33 @@ class SheetManager:
         else:
             logger.info("Sheet '%s' updated successfully!", tab_name)
 
-    def upload_runners_doorsplit_golds(self, doorsplit_golds: DataFrame) -> None:
-        self._update_sheet_with_copy(
-            tab_name="Doors",
-            starting_cell="B3",
-            data=doorsplit_golds,
-        )
-
-    def upload_runners_chapter_golds(
-        self, chapter_golds: DataFrame, chapter_golds_by_doors: DataFrame
-    ) -> None:
-        self._update_sheet_with_copy(
-            tab_name="Chapters",
-            starting_cell="B3",
-            data=chapter_golds,
-        )
-        self._update_sheet_without_copy(
-            tab_name="Chapters",
-            starting_cell="B25",
-            data=chapter_golds_by_doors,
-        )
-
-    def upload_runners_area_golds(
-        self,
-        area_golds: DataFrame,
-        area_golds_by_chapters: DataFrame,
-        area_golds_by_doors: DataFrame,
-    ) -> None:
-        self._update_sheet_with_copy(
-            tab_name="Sections",
-            starting_cell="B3",
-            data=area_golds,
-        )
-        self._update_sheet_without_copy(
-            tab_name="Sections", starting_cell="B9", data=area_golds_by_chapters
-        )
-
-        self._update_sheet_without_copy(
-            tab_name="Sections", starting_cell="B15", data=area_golds_by_doors
-        )
-
-    def upload_runners_best_paces(
-        self,
-        best_paces: DataFrame,
-    ) -> None:
-        self._update_sheet_with_copy(
-            tab_name="Paces",
-            starting_cell="B3",
-            data=best_paces,
-        )
-
-    def upload_runners_rng_patterns(
-        self,
-        rng_patterns: DataFrame,
-    ) -> None:
-        self._update_sheet_with_copy(
-            tab_name="RNG Patterns",
-            starting_cell="C4",
-            data=rng_patterns,
-        )
-
-    def upload_runners_general_stats(
-        self,
-        general_stats: DataFrame,
-    ) -> None:
-        self._update_sheet_without_copy(
-            tab_name="General",
-            starting_cell="B3",
-            data=general_stats,
-        )
-
-    def upload_runners_resets(
-        self,
-        resets: DataFrame,
-    ) -> None:
-        self._update_sheet_without_copy(
-            tab_name="Resets",
-            starting_cell="B3",
-            data=resets,
-        )
-
-    def upload_runners_weekday_data(
-        self,
-        weekday_data: DataFrame,
-    ) -> None:
-        self._update_sheet_without_copy(
-            tab_name="Weekday",
-            starting_cell="C2",
-            data=weekday_data,
-        )
-
-    def upload_last_updated_on(self) -> None:
+    def upload_last_updated_on(self, tab_name: str, cell: str) -> None:
+        """
+        Posts, on the given 'tab_name' and 'cell' of the Google Sheet,
+        the current date and time (in UTC-3 timezone), to show when
+        the Google Sheet was last updated.
+        """
         try:
-            sheet = self._spreadsheet.worksheet(title="Title")
+            sheet = self._spreadsheet.worksheet(title=tab_name)
 
             utc_minus_3 = timezone(timedelta(hours=-3))
             current_time = datetime.now(tz=utc_minus_3).strftime(
                 self.GOOD_DATETIME_FORMAT
             )
             sheet.update_acell(
-                label="A2",
+                label=cell,
                 value=f"Last updated on: {current_time} (UTC-3)",
             )
         except WorksheetNotFound as e:
-            msg = "The tab 'Title' does not exist in the Google Sheet."
+            msg = f"The tab '{tab_name}' does not exist in the Google Sheet."
             logger.exception(msg)
             raise ValueError(msg) from e
         except APIError as e:
-            msg = "Google Sheets API error during post_last_update."
+            msg = "Google Sheets API error during 'upload_last_updated_on'."
             logger.exception(msg)
             raise RuntimeError(msg) from e
         except Exception as e:
-            msg = "Unexpected error during post_last_update."
+            msg = "Unexpected error during 'upload_last_updated_on'."
             logger.exception(msg)
             raise RuntimeError(msg) from e
         else:

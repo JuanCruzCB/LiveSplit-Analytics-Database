@@ -37,22 +37,40 @@ def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
 def update_google_sheet(
     sheet_manager: SheetManager, data: dict[str, DataFrame]
 ) -> None:
-    sheet_manager.upload_runners_general_stats(data["general_stats"])
-    sheet_manager.upload_runners_doorsplit_golds(data["doorsplit_golds"])
-    sheet_manager.upload_runners_chapter_golds(
-        data["chapter_golds"],
-        data["chapter_golds_by_doors"],
+    sheet_manager.upload_dataframe_without_copy(
+        tab_name="General", starting_cell="B3", data=data["general_stats"]
     )
-    sheet_manager.upload_runners_area_golds(
-        data["area_golds"],
-        data["area_golds_by_chapters"],
-        data["area_golds_by_doors"],
+    sheet_manager.upload_dataframe_with_copy(
+        tab_name="Doors", starting_cell="B3", data=data["doorsplit_golds"]
     )
-    sheet_manager.upload_runners_best_paces(data["best_paces"])
-    sheet_manager.upload_runners_resets(data["resets"])
-    sheet_manager.upload_runners_rng_patterns(data["rng_patterns"])
-    sheet_manager.upload_runners_weekday_data(data["weekday_data"])
-    sheet_manager.upload_last_updated_on()
+    sheet_manager.upload_dataframe_with_copy(
+        tab_name="Chapters", starting_cell="B3", data=data["chapter_golds"]
+    )
+    sheet_manager.upload_dataframe_without_copy(
+        tab_name="Chapters", starting_cell="B25", data=data["chapter_golds_by_doors"]
+    )
+    sheet_manager.upload_dataframe_with_copy(
+        tab_name="Sections", starting_cell="B3", data=data["area_golds"]
+    )
+    sheet_manager.upload_dataframe_without_copy(
+        tab_name="Sections", starting_cell="B9", data=data["area_golds_by_chapters"]
+    )
+    sheet_manager.upload_dataframe_without_copy(
+        tab_name="Sections", starting_cell="B15", data=data["area_golds_by_doors"]
+    )
+    sheet_manager.upload_dataframe_with_copy(
+        tab_name="Paces", starting_cell="B3", data=data["best_paces"]
+    )
+    sheet_manager.upload_dataframe_without_copy(
+        tab_name="Resets", starting_cell="B3", data=data["resets"]
+    )
+    sheet_manager.upload_dataframe_with_copy(
+        tab_name="RNG Patterns", starting_cell="C4", data=data["rng_patterns"]
+    )
+    sheet_manager.upload_dataframe_without_copy(
+        tab_name="Weekday", starting_cell="C2", data=data["weekday_data"]
+    )
+    sheet_manager.upload_last_updated_on(tab_name="Title", cell="A2")
 
 
 def main() -> None:
