@@ -1,7 +1,7 @@
 [project]
-name = "automated-livesplit-stats-sheet"
-version = "0.1.0"
-description = "Project that downloads LiveSplit files off Google Drive, updates a local database, and posts the resulting data on a Google Sheet."
+name = "livesplit-analytics-database"
+version = "0.2.0"
+description = "Ingests LiveSplit files (.lss) to create a local SQL database with all sorts of useful analytics about them. Can be integrated with the Google Drive and Google Sheets API to make it automated."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
