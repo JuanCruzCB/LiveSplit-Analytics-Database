@@ -1,4 +1,4 @@
-# Automated LiveSplit Stats Sheet project
+# LiveSplit Analytics Database
 
 ## Overview
 
