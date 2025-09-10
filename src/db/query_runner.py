@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 
@@ -366,7 +365,8 @@ class QueryRunner:
                 query=f"""
                 SELECT
                     lrt_pace_fmt AS {runner}
-                FROM (
+                FROM
+                (
                     SELECT DISTINCT
                         split_index,
                         split_name,
@@ -413,6 +413,9 @@ class QueryRunner:
                 FROM rng_patterns_stats_{runner};
                 """  # noqa: S608
             )
+            runners_percentages[runner] = (
+                runners_percentages[runner].astype("float64").round(2)
+            )
             dfs.append(runners_percentages)
 
         for runner in self._allowed_runners:
@@ -425,7 +428,6 @@ class QueryRunner:
             dfs.append(runners_max_in_a_row)
 
         overall_df = pd.concat(dfs, axis=1)
-        overall_df = overall_df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         overall_df.columns = overall_df.columns.str.capitalize()
         return overall_df
 
@@ -448,7 +450,14 @@ class QueryRunner:
 
         for runner in self._allowed_runners:
             runner_stats = self.execute(
-                query=f"SELECT * FROM general_stats_{runner};"  # noqa: S608
+                query=f"""
+                SELECT
+                    last_update,
+                    pb,
+                    attempts,
+                    total_playtime
+                FROM general_stats_{runner};
+                """  # noqa: S608
             )
             runner_stats["last_update"] = pd.to_datetime(
                 runner_stats["last_update"]
@@ -484,12 +493,16 @@ class QueryRunner:
                 FROM resets2_{runner}
                 """  # noqa: S608
             )
-            runner_resets = runner_resets.map(lambda percent: max(percent, 0))
+            runner_resets[runner] = (
+                runner_resets[runner]
+                .astype("float64")
+                .round(2)
+                .map(lambda percent: max(percent, 0))
+            )
             dfs.append(runner_resets)
 
         overall_df = pd.concat(dfs, axis=1)
         overall_df.columns = overall_df.columns.str.capitalize()
-        overall_df = overall_df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         return overall_df
 
     def get_runners_weekday_data(self, *, add_first_two_cols: bool) -> DataFrame:
@@ -538,7 +551,8 @@ class QueryRunner:
             runner_weekday = self.execute(
                 query=f"""
                 SELECT attempts_to_get_a_pb AS {runner}
-                FROM (
+                FROM
+                (
                     SELECT iso_weekday, attempts_to_get_a_pb::TEXT, 1 AS sort_key
                     FROM weekday_stats_{runner}
 
