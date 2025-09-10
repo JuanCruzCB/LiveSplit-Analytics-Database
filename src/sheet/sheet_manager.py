@@ -164,7 +164,7 @@ class SheetManager:
     ) -> None:
         self._update_sheet_with_copy(
             tab_name="RNG Patterns",
-            starting_cell="B4",
+            starting_cell="C4",
             data=rng_patterns,
         )
 
