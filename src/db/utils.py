@@ -43,39 +43,29 @@ def calculate_best_time(times: list[str]) -> str:
     Receives a list of times in [H]:MM:SS.mmm format and
     returns the minimum time among all of them.
     """
-    times_decimal = [parse_time(cg) for cg in times]
+    times_decimal = [parse_time(time) for time in times if ":" in time or "." in time]
     return format_time(min(times_decimal))
 
 
-def add_best_and_cumulative_best_columns(
-    golds: DataFrame, *, skip_first_col: bool
-) -> DataFrame:
+def add_best_and_cumulative_best_cols(golds: DataFrame) -> DataFrame:
     """
     Receives a DataFrame with the runners golds and calculates the best gold
     and cumulative best gold of all the data, then adds these as new columns
     and returns the modified DataFrame.
     """
-    if skip_first_col:
-        golds["Best gold"] = golds.apply(
-            lambda row: calculate_best_time(row[1:]),
-            axis=1,
-        )
-    else:
-        golds["Best gold"] = golds.apply(
-            lambda row: calculate_best_time(row),
-            axis=1,
-        )
+    golds["Best gold"] = golds.apply(
+        lambda row: calculate_best_time(row),
+        axis=1,
+    )
 
     golds["Best gold seconds"] = golds["Best gold"].map(parse_time)
     golds["Cumulative best seconds"] = golds["Best gold seconds"].cumsum()
     golds["Cumulative best"] = golds["Cumulative best seconds"].apply(format_time)
     golds = golds.drop(columns=["Best gold seconds", "Cumulative best seconds"])
 
+    # Remove last row of the Best gold and Cumulative best columns.
     best_gold_idx = golds.columns.get_loc("Best gold")
     cumulative_best_idx = golds.columns.get_loc("Cumulative best")
-
-    # The last row of the 'Best gold' and 'Cumulative best' columns
-    # doesn't need to hold any data.
     golds.iloc[golds.index[-1], best_gold_idx] = ""  # type: ignore  # noqa: PGH003
     golds.iloc[golds.index[-1], cumulative_best_idx] = ""  # type: ignore  # noqa: PGH003
 
