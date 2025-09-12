@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 
@@ -34,16 +33,42 @@ class QueryRunner:
     GOOD_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S UTC"
     DOORSPLIT_NAMES_QUERY = """
     SELECT split_name
-    FROM cfg_default_split_names;
+    FROM
+    (
+        SELECT
+            cfg.split_index,
+            cfg.split_name
+        FROM cfg_default_split_names cfg
+
+        UNION
+
+        SELECT 999, 'Total'
+    ) split_names
+    ORDER BY split_names.split_index;
     """
     CHAPTER_NAMES_QUERY = """
     SELECT chapter
     FROM cfg_chapter_area_splits_from_to
+
+    UNION
+
+    SELECT 'Total'
     ORDER BY chapter;
     """
     AREA_NAMES_QUERY = """
     SELECT area
-    FROM cfg_splits_per_area;
+    FROM
+    (
+        SELECT
+            cfg.sort,
+            cfg.area
+        FROM cfg_splits_per_area cfg
+
+        UNION
+
+        SELECT 999, 'Total'
+    ) area_names
+    ORDER BY area_names.sort;
     """
     TABLE_NAMES_QUERY = """
     SELECT table_name
@@ -110,6 +135,50 @@ class QueryRunner:
             )
 
         return overall_df
+
+    def test_get_doorsplit_golds(self, *, add_first_col: bool) -> DataFrame:
+        data = self.generic(
+            column_header_queries=[self.DOORSPLIT_NAMES_QUERY if add_first_col else ""],
+            data_queries=[
+                """
+            SELECT
+                lrt_time_fmt AS {runner}
+            FROM
+            (
+                SELECT DISTINCT
+                    split_index,
+                    lrt_time_fmt
+                FROM doorsplit_golds2_{runner}
+
+                UNION
+
+                SELECT
+                    NULL,
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_fmt
+                FROM doorsplit_golds2_{runner}
+                ORDER BY split_index
+            );
+            """,
+            ],
+        )
+        return data
+
+    def generic(
+        self, column_header_queries: list[str], data_queries: list[str]
+    ) -> DataFrame:
+        dfs = []
+        for header_query in column_header_queries:
+            header_column = self.execute(query=header_query)
+            dfs.append(header_column)
+
+        for data_query in data_queries:
+            for runner in self._allowed_runners:
+                runner_data = self.execute(query=data_query.format(runner=runner))
+                dfs.append(runner_data)
+
+        combined_df = pd.concat(dfs, axis=1)
+        combined_df.columns = combined_df.columns.str.capitalize()
+        return combined_df
 
     def get_runners_doorsplit_golds(self, *, add_first_col: bool) -> DataFrame:
         """
@@ -366,7 +435,8 @@ class QueryRunner:
                 query=f"""
                 SELECT
                     lrt_pace_fmt AS {runner}
-                FROM (
+                FROM
+                (
                     SELECT DISTINCT
                         split_index,
                         split_name,
@@ -413,6 +483,9 @@ class QueryRunner:
                 FROM rng_patterns_stats_{runner};
                 """  # noqa: S608
             )
+            runners_percentages[runner] = (
+                runners_percentages[runner].astype("float64").round(2)
+            )
             dfs.append(runners_percentages)
 
         for runner in self._allowed_runners:
@@ -425,7 +498,6 @@ class QueryRunner:
             dfs.append(runners_max_in_a_row)
 
         overall_df = pd.concat(dfs, axis=1)
-        overall_df = overall_df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         overall_df.columns = overall_df.columns.str.capitalize()
         return overall_df
 
@@ -448,7 +520,14 @@ class QueryRunner:
 
         for runner in self._allowed_runners:
             runner_stats = self.execute(
-                query=f"SELECT * FROM general_stats_{runner};"  # noqa: S608
+                query=f"""
+                SELECT
+                    last_update,
+                    pb,
+                    attempts,
+                    total_playtime
+                FROM general_stats_{runner};
+                """  # noqa: S608
             )
             runner_stats["last_update"] = pd.to_datetime(
                 runner_stats["last_update"]
@@ -484,12 +563,16 @@ class QueryRunner:
                 FROM resets2_{runner}
                 """  # noqa: S608
             )
-            runner_resets = runner_resets.map(lambda percent: max(percent, 0))
+            runner_resets[runner] = (
+                runner_resets[runner]
+                .astype("float64")
+                .round(2)
+                .map(lambda percent: max(percent, 0))
+            )
             dfs.append(runner_resets)
 
         overall_df = pd.concat(dfs, axis=1)
         overall_df.columns = overall_df.columns.str.capitalize()
-        overall_df = overall_df.map(lambda x: float(x) if isinstance(x, Decimal) else x)
         return overall_df
 
     def get_runners_weekday_data(self, *, add_first_two_cols: bool) -> DataFrame:
@@ -538,7 +621,8 @@ class QueryRunner:
             runner_weekday = self.execute(
                 query=f"""
                 SELECT attempts_to_get_a_pb AS {runner}
-                FROM (
+                FROM
+                (
                     SELECT iso_weekday, attempts_to_get_a_pb::TEXT, 1 AS sort_key
                     FROM weekday_stats_{runner}
 
