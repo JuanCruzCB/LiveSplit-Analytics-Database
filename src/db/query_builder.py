@@ -1,4 +1,7 @@
-from db.query_runner import OrderColumns, OrderType
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from db.query_runner import OrderColumns, OrderType
 
 
 class QueryBuilder:
@@ -394,7 +397,7 @@ class QueryBuilder:
             """  # noqa: S608
 
     def doorsplit_history(
-        self, runner: str, order_by: OrderColumns, order_type: OrderType
+        self, runner: str, order_by: "OrderColumns", order_type: "OrderType"
     ) -> str:
         return f"""
             SELECT
@@ -460,17 +463,18 @@ class QueryBuilder:
             ORDER BY split_index;
             """  # noqa: S608
 
-    def area_golds(self, runner: str, extra_condition: str) -> str:
+    def doorsplit_golds(self, runner: str, extra_condition: str) -> str:
         return f"""
             SELECT
                 run_id,
-                area,
-                area_time_fmt AS gold,
-                area_started_at,
-                area_ended_at,
+                split_index,
+                split_name,
+                lrt_time_fmt AS gold,
+                split_started_at,
+                split_ended_at,
                 run_started_at,
                 run_ended_at
-            FROM area_golds2_{runner}
+            FROM doorsplit_golds2_{runner}
             {extra_condition};
             """  # noqa: S608
 
@@ -488,18 +492,17 @@ class QueryBuilder:
             {extra_condition};
             """  # noqa: S608
 
-    def doorsplit_golds(self, runner: str, extra_condition: str) -> str:
+    def area_golds(self, runner: str, extra_condition: str) -> str:
         return f"""
             SELECT
                 run_id,
-                split_index,
-                split_name,
-                lrt_time_fmt AS gold,
-                split_started_at,
-                split_ended_at,
+                area,
+                area_time_fmt AS gold,
+                area_started_at,
+                area_ended_at,
                 run_started_at,
                 run_ended_at
-            FROM doorsplit_golds2_{runner}
+            FROM area_golds2_{runner}
             {extra_condition};
             """  # noqa: S608
 

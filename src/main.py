@@ -4,6 +4,7 @@ from auth.google_drive_auth import GoogleDriveAuth
 from auth.google_sheets_auth import GoogleSheetsAuth
 from config import load_config, setup_logging
 from db.database_manager import DatabaseManager, LastUpdatesTracker
+from db.query_builder import QueryBuilder
 from db.query_runner import QueryRunner
 from sheet.sheet_manager import SheetManager
 from splits.drive_manager import DriveManager
@@ -13,24 +14,30 @@ from splits.splits_manager import SplitsManager
 def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
     return {
         "doorsplit_golds": query_runner.get_runners_doorsplit_golds(
-            add_first_col=False
+            split_names_col=False, best_col=False, sum_of_best_col=False
         ),
-        "chapter_golds": query_runner.get_runners_chapter_golds(add_first_col=False),
+        "chapter_golds": query_runner.get_runners_chapter_golds(
+            chapter_names_col=False, best_col=True, sum_of_best_col=True
+        ),
         "chapter_golds_by_doors": query_runner.get_runners_chapter_golds_by_doors(
-            add_first_col=False
+            chapter_names_col=False, best_col=True, sum_of_best_col=True
         ),
-        "area_golds": query_runner.get_runners_area_golds(add_first_col=False),
+        "area_golds": query_runner.get_runners_area_golds(
+            area_names_col=False, best_col=True, sum_of_best_col=True
+        ),
         "area_golds_by_chapters": query_runner.get_runners_area_golds_by_chapters(
-            add_first_col=False
+            area_names_col=False, best_col=True, sum_of_best_col=True
         ),
         "area_golds_by_doors": query_runner.get_runners_area_golds_by_doors(
-            add_first_col=False
+            area_names_col=False, best_col=True, sum_of_best_col=True
         ),
-        "best_paces": query_runner.get_runners_best_paces(add_first_col=False),
-        "rng_patterns": query_runner.get_runners_rng_patterns(add_first_col=False),
-        "general_stats": query_runner.get_runners_general_stats(add_first_col=False),
-        "resets": query_runner.get_runners_resets(add_first_col=False),
-        "weekday_data": query_runner.get_runners_weekday_data(add_first_two_cols=False),
+        "best_paces": query_runner.get_runners_best_paces(
+            chapter_names_col=False, best_col=True
+        ),
+        "rng_patterns": query_runner.get_runners_rng_patterns(pattern_names_col=False),
+        "general_stats": query_runner.get_runners_general_stats(stat_names_col=False),
+        "resets": query_runner.get_runners_resets(split_names_col=False),
+        "weekday_data": query_runner.get_runners_weekday_data(weekday_stat_cols=False),
     }
 
 
@@ -113,6 +120,7 @@ def main() -> None:
     )
     qr = QueryRunner(
         db_manager=db,
+        query_builder=QueryBuilder(),
         allowed_runners=config.allowed_runners,
         main_runner_name=config.allowed_runners[0],
     )

@@ -39,7 +39,7 @@ class QueryRunner:
         query_builder: QueryBuilder,
         allowed_runners: list[str],
         main_runner_name: str,
-    ):
+    ) -> None:
         self._db = db_manager
         self._query_builder = query_builder
         self._allowed_runners = allowed_runners
@@ -395,7 +395,8 @@ class QueryRunner:
         excel_name: str = "",
     ) -> DataFrame:
         """
-        Returns a DataFrame with the result data of executing the specified query on the DB.
+        Returns a DataFrame with the result data of executing the specified query on the
+        DB.
 
         The query can include params, optionally.
 
