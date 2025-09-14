@@ -101,7 +101,11 @@ class QueryRunner:
         return combined_df
 
     def get_runners_doorsplit_golds(
-        self, *, split_names_col: bool, best_col: bool, sum_of_best_col: bool
+        self,
+        *,
+        split_names_col: bool,
+        best_col: bool,
+        sum_of_best_col: bool,
     ) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
@@ -110,9 +114,7 @@ class QueryRunner:
         """
         return self.build_combined_data(
             column_header_queries=[
-                self._query_builder.DOORSPLIT_NAMES_QUERY_WITH_TOTAL
-                if split_names_col
-                else ""
+                self._query_builder.DOORSPLIT_NAMES_QUERY_WITH_TOTAL if split_names_col else "",
             ],
             data_queries=[self._query_builder.doorsplit_golds_minimal()],
             best_col=best_col,
@@ -120,7 +122,11 @@ class QueryRunner:
         )
 
     def get_runners_chapter_golds(
-        self, *, chapter_names_col: bool, best_col: bool, sum_of_best_col: bool
+        self,
+        *,
+        chapter_names_col: bool,
+        best_col: bool,
+        sum_of_best_col: bool,
     ) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
@@ -134,9 +140,7 @@ class QueryRunner:
         """
         return self.build_combined_data(
             column_header_queries=[
-                self._query_builder.CHAPTER_NAMES_QUERY_WITH_TOTAL
-                if chapter_names_col
-                else ""
+                self._query_builder.CHAPTER_NAMES_QUERY_WITH_TOTAL if chapter_names_col else "",
             ],
             data_queries=[self._query_builder.chapter_golds_minimal()],
             best_col=best_col,
@@ -144,7 +148,11 @@ class QueryRunner:
         )
 
     def get_runners_chapter_golds_by_doors(
-        self, *, chapter_names_col: bool, best_col: bool, sum_of_best_col: bool
+        self,
+        *,
+        chapter_names_col: bool,
+        best_col: bool,
+        sum_of_best_col: bool,
     ) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
@@ -157,9 +165,7 @@ class QueryRunner:
         """
         return self.build_combined_data(
             column_header_queries=[
-                self._query_builder.CHAPTER_NAMES_QUERY_WITH_TOTAL
-                if chapter_names_col
-                else ""
+                self._query_builder.CHAPTER_NAMES_QUERY_WITH_TOTAL if chapter_names_col else "",
             ],
             data_queries=[self._query_builder.chapter_golds_by_doors_minimal()],
             best_col=best_col,
@@ -167,7 +173,11 @@ class QueryRunner:
         )
 
     def get_runners_area_golds(
-        self, *, area_names_col: bool, best_col: bool, sum_of_best_col: bool
+        self,
+        *,
+        area_names_col: bool,
+        best_col: bool,
+        sum_of_best_col: bool,
     ) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
@@ -179,7 +189,7 @@ class QueryRunner:
         """
         return self.build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY if area_names_col else ""
+                self._query_builder.AREA_NAMES_QUERY if area_names_col else "",
             ],
             data_queries=[self._query_builder.area_golds_minimal()],
             best_col=best_col,
@@ -187,7 +197,11 @@ class QueryRunner:
         )
 
     def get_runners_area_golds_by_chapters(
-        self, *, area_names_col: bool, best_col: bool, sum_of_best_col: bool
+        self,
+        *,
+        area_names_col: bool,
+        best_col: bool,
+        sum_of_best_col: bool,
     ) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
@@ -200,7 +214,7 @@ class QueryRunner:
         """
         return self.build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY if area_names_col else ""
+                self._query_builder.AREA_NAMES_QUERY if area_names_col else "",
             ],
             data_queries=[self._query_builder.area_golds_by_chapters_minimal()],
             best_col=best_col,
@@ -208,7 +222,11 @@ class QueryRunner:
         )
 
     def get_runners_area_golds_by_doors(
-        self, *, area_names_col: bool, best_col: bool, sum_of_best_col: bool
+        self,
+        *,
+        area_names_col: bool,
+        best_col: bool,
+        sum_of_best_col: bool,
     ) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
@@ -221,7 +239,7 @@ class QueryRunner:
         """
         return self.build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY if area_names_col else ""
+                self._query_builder.AREA_NAMES_QUERY if area_names_col else "",
             ],
             data_queries=[self._query_builder.area_golds_by_doors_minimal()],
             best_col=best_col,
@@ -229,7 +247,10 @@ class QueryRunner:
         )
 
     def get_runners_best_paces(
-        self, *, chapter_names_col: bool, best_col: bool
+        self,
+        *,
+        chapter_names_col: bool,
+        best_col: bool,
     ) -> DataFrame:
         """
         Returns a DataFrame where the first row is the name of all runners
@@ -240,7 +261,7 @@ class QueryRunner:
         """
         return self.build_combined_data(
             column_header_queries=[
-                self._query_builder.CHAPTER_NAMES_QUERY if chapter_names_col else ""
+                self._query_builder.CHAPTER_NAMES_QUERY if chapter_names_col else "",
             ],
             data_queries=[self._query_builder.best_paces_minimal()],
             best_col=best_col,
@@ -256,7 +277,7 @@ class QueryRunner:
         """
         data = self.build_combined_data(
             column_header_queries=[
-                self._query_builder.PATTERN_NAMES_QUERY if pattern_names_col else ""
+                self._query_builder.PATTERN_NAMES_QUERY if pattern_names_col else "",
             ],
             data_queries=[
                 self._query_builder.rng_patterns_percentages_minimal(),
@@ -287,19 +308,19 @@ class QueryRunner:
         if stat_names_col:
             dfs.append(
                 pd.DataFrame(
-                    {"Stat": ["Last update", "PB", "Attempts", "Total playtime"]}
-                )
+                    {"Stat": ["Last update", "PB", "Attempts", "Total playtime"]},
+                ),
             )
 
         for runner in self._allowed_runners:
             runner_stats = self.execute(
-                query=self._query_builder.general_stats(runner=runner)
+                query=self._query_builder.general_stats(runner=runner),
             )
             runner_stats["last_update"] = pd.to_datetime(
-                runner_stats["last_update"]
+                runner_stats["last_update"],
             ).dt.strftime(self.GOOD_DATE_FORMAT)
             runner_stats["total_playtime"] = runner_stats["total_playtime"].apply(
-                lambda x: transform_days_hours_mins_secs(x)
+                lambda x: transform_days_hours_mins_secs(x),
             )
 
             runner_stats_transposed = runner_stats.transpose()
@@ -318,7 +339,7 @@ class QueryRunner:
         """
         data = self.build_combined_data(
             column_header_queries=[
-                self._query_builder.DOORSPLIT_NAMES_QUERY if split_names_col else ""
+                self._query_builder.DOORSPLIT_NAMES_QUERY if split_names_col else "",
             ],
             data_queries=[self._query_builder.resets_minimal()],
             best_col=False,
@@ -367,16 +388,16 @@ class QueryRunner:
                     {
                         "Day": weekdays * len(stat_types),
                         "Stat type": repeated_stats,
-                    }
-                )
+                    },
+                ),
             )
 
         for runner in self._allowed_runners:
             runner_weekday = self.execute(
-                query=self._query_builder.weekday_data(runner=runner)
+                query=self._query_builder.weekday_data(runner=runner),
             )
             runner_weekday[runner] = runner_weekday[runner].apply(
-                lambda x: transform_interval_to_hours_mins(x)
+                lambda x: transform_interval_to_hours_mins(x),
             )
             dfs.append(runner_weekday)
 
@@ -404,15 +425,15 @@ class QueryRunner:
         """
         data = self._db.execute(query=query, params=params)
         datetime_cols = data.select_dtypes(
-            include=["datetime64", "datetimetz"]
+            include=["datetime64", "datetimetz"],
         ).columns.tolist()
         for col in datetime_cols:
             data[col] = data[col].apply(
                 lambda x: pd.to_datetime(x, errors="coerce").strftime(
-                    self.GOOD_DATETIME_FORMAT
+                    self.GOOD_DATETIME_FORMAT,
                 )
                 if pd.notna(x)
-                else None
+                else None,
             )
 
         if excel_name:
@@ -456,7 +477,8 @@ class QueryRunner:
             excel_name = f"{self._main_runner}_doorsplit_golds_without_ties"
         return self.execute(
             query=self._query_builder.doorsplit_golds(
-                runner=self._main_runner, extra_condition=extra_condition
+                runner=self._main_runner,
+                extra_condition=extra_condition,
             ),
             excel_name=excel_name,
         )
@@ -476,7 +498,8 @@ class QueryRunner:
 
         return self.execute(
             query=self._query_builder.chapter_golds(
-                runner=self._main_runner, extra_condition=extra_condition
+                runner=self._main_runner,
+                extra_condition=extra_condition,
             ),
             excel_name=excel_name,
         )
@@ -496,7 +519,8 @@ class QueryRunner:
 
         return self.execute(
             query=self._query_builder.area_golds(
-                runner=self._main_runner, extra_condition=extra_condition
+                runner=self._main_runner,
+                extra_condition=extra_condition,
             ),
             excel_name=excel_name,
         )
@@ -529,7 +553,8 @@ class QueryRunner:
 
         return self.execute(
             query=self._query_builder.doorsplits_of_chapter_golds(
-                runner=self._main_runner, extra_condition=extra_condition
+                runner=self._main_runner,
+                extra_condition=extra_condition,
             ),
             excel_name=excel_name,
         )
@@ -549,9 +574,7 @@ class QueryRunner:
         """
         if "{" not in split_name:
             split_name = f"-{split_name}"
-        split_name_formatted = (
-            split_name.replace("{", "").replace("}", "").replace("-", "")
-        )
+        split_name_formatted = split_name.replace("{", "").replace("}", "").replace("-", "")
         excel_name = f"{self._main_runner}_{split_name_formatted}_history"
         return self.execute(
             query=self._query_builder.doorsplit_history(
@@ -570,7 +593,8 @@ class QueryRunner:
         """
         return self.execute(
             query=self._query_builder.compare_runners_doorsplit_golds(
-                runner1=self._main_runner, runner2=other_runner
+                runner1=self._main_runner,
+                runner2=other_runner,
             ),
             excel_name=f"ds_golds_{self._main_runner}_vs_{other_runner}",
         )
@@ -582,7 +606,8 @@ class QueryRunner:
         """
         return self.execute(
             query=self._query_builder.compare_runners_doorsplit_medians(
-                runner1=self._main_runner, runner2=other_runner
+                runner1=self._main_runner,
+                runner2=other_runner,
             ),
             excel_name=f"ds_medians_{self._main_runner}_vs_{other_runner}",
         )
@@ -605,7 +630,7 @@ class QueryRunner:
         """
         return self.execute(
             query=self._query_builder.attempts_per_day_of_the_week(
-                runner=self._main_runner
+                runner=self._main_runner,
             ),
             excel_name=f"attempts_per_day_of_the_week_{self._main_runner}",
         )
