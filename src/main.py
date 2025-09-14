@@ -12,6 +12,9 @@ from splits.splits_manager import SplitsManager
 
 
 def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
+    """
+    Get all relevant data from the database and return it as a dictionary of DataFrames.
+    """
     return {
         "doorsplit_golds": query_runner.get_runners_doorsplit_golds(
             split_names_col=False, best_col=False, sum_of_best_col=False
@@ -44,6 +47,9 @@ def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
 def update_google_sheet(
     sheet_manager: SheetManager, data: dict[str, DataFrame]
 ) -> None:
+    """
+    Update all relevant data to the Google Sheet in specified tabs and starting cells.
+    """
     sheet_manager.upload_dataframe_without_copy(
         tab_name="General", starting_cell="B3", data=data["general_stats"]
     )
@@ -81,6 +87,12 @@ def update_google_sheet(
 
 
 def main() -> None:
+    """
+    Entry point of the application.
+
+    Sets up logging, loads configuration, initializes authentication and managers,
+    synchronizes splits, updates the database, and updates the Google Sheet.
+    """
     setup_logging()
     config = load_config()
 

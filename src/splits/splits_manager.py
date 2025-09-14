@@ -24,13 +24,23 @@ class SplitsManager:
 
     @property
     def splits_output_folder(self) -> Path:
+        """
+        Returns the folder where the splits of the other runners are stored.
+        """
         return self._splits_output_folder
 
     @property
     def currently_allowed_splits(self) -> list[str]:
+        """
+        Returns the list of split filenames that are currently allowed.
+        """
         return self._currently_allowed_splits
 
     def get_splits(self) -> list[Path]:
+        """
+        Returns a list with the Path of all splits files, including the
+        main runner's splits file.
+        """
         return [
             self._main_runner_splits_file,
             *self._splits_output_folder.glob("*.lss"),

@@ -45,6 +45,9 @@ class Config:
 
 
 def load_config() -> Config:
+    """
+    Loads configuration from the YAML file into a Config object and returns it.
+    """
     with YAML_CONFIG_FILE.open("r") as f:
         config = yaml.safe_load(f)
 
@@ -90,7 +93,10 @@ def load_config() -> Config:
     return cfg
 
 
-def setup_logging():
+def setup_logging() -> None:
+    """
+    Sets up logging configuration for the application.
+    """
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",

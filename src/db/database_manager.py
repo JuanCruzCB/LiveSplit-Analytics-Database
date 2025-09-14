@@ -89,6 +89,9 @@ class DatabaseManager:
             return result
 
     def create_config_tables(self) -> None:
+        """
+        Creates the necessary configuration tables in the db.
+        """
         if not self._connection:
             raise DatabaseError
 
@@ -140,4 +143,8 @@ class DatabaseManager:
         return new_updates
 
     def __del__(self) -> None:
+        """
+        Closes the connection to the local Postgres database when
+        the object is destroyed.
+        """
         self.close_connection()

@@ -49,8 +49,8 @@ class LastUpdatesTracker:
         """
         Load the last update timestamps from the storage file.
 
-        - If the storage file does not exist, it will be created with default timestamps.
-        - If the storage file exists, it will be read and parsed.
+        - If the storage file does not exist, it'll be created with default timestamps.
+        - If the storage file exists, it'll be read and parsed.
         - In either case, a dictionary with the data is returned.
         """
         if not self._storage_file.exists():

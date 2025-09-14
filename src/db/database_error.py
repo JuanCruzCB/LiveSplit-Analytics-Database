@@ -15,5 +15,8 @@ class DatabaseError(Exception):
         super().__init__(message)
 
     def __str__(self) -> str:
+        """
+        Returns a string representation of the error.
+        """
         config_info = f" (Config: {self.db_config})" if self.db_config else ""
         return f"{self.message}{config_info}"

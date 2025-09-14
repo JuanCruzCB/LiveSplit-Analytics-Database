@@ -77,7 +77,8 @@ def transform_days_hours_mins_secs(total_playtime: str) -> str:
     Transform a total playtime string in 'X days HH:MM:SS' format into
     'X days and Y hours' format.
     """
-    # TODO: Calculate total seconds from HH:MM:SS then convert to rounded hours, for more accuracy.
+    # TODO: Calculate total seconds from HH:MM:SS then convert to rounded hours,
+    # for more accuracy.
     days = total_playtime.split(" ")[0]
     hours = int(total_playtime.split(" ")[2].split(":")[0])
 

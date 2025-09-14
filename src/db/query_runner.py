@@ -52,18 +52,37 @@ class QueryRunner:
     """
 
     def open_db_connection(self) -> None:
+        """
+        Open the connection to the local postgres db.
+        """
         self._db.open_connection()
 
     def close_db_connection(self) -> None:
+        """
+        Close the connection to the local postgres db.
+        """
         self._db.close_connection()
 
     def create_config_tables(self) -> None:
+        """
+        Create the configuration tables in the DB.
+
+        - Default split names.
+        - Delimiting where each chapter and area starts and ends.
+        - Defining how many splits each area has.
+        - Defining the RNG pattern categorization.
+        - Creating all the dates from 2000-01-01 to 2030-12-31.
+        """
         self._db.create_config_tables()
 
     def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
+        """
+        Update the runner/s tables in the DB by running the splits database
+        builder SQL script once for each splits file in the dict.
+        """
         return self._db.update_runners_tables(splits=splits)
 
-    def build_combined_data(
+    def _build_combined_data(
         self,
         column_header_queries: list[str],
         data_queries: list[str],
@@ -71,6 +90,13 @@ class QueryRunner:
         best_col: bool,
         sum_of_best_col: bool,
     ) -> DataFrame:
+        """
+        Returns a DataFrame that combines all the resulting DataFrames obtained
+        by running all the specified queries, left to right.
+
+        Optionally, it can add a "Best" column and a
+        "Cumulative best" column at the end.
+        """
         dfs = []
         for header_query in column_header_queries:
             if header_query != "":
@@ -112,7 +138,7 @@ class QueryRunner:
         and each column contains all the doorsplit golds of that runner.
         The last row contains the doorsplits sum of best of that runner.
         """
-        return self.build_combined_data(
+        return self._build_combined_data(
             column_header_queries=[
                 self._query_builder.DOORSPLIT_NAMES_QUERY_WITH_TOTAL if split_names_col else "",
             ],
@@ -138,7 +164,7 @@ class QueryRunner:
         In addition, there's a column with the best chapter gold for each
         chapter, and a column with the cumulative best chapters.
         """
-        return self.build_combined_data(
+        return self._build_combined_data(
             column_header_queries=[
                 self._query_builder.CHAPTER_NAMES_QUERY_WITH_TOTAL if chapter_names_col else "",
             ],
@@ -163,7 +189,7 @@ class QueryRunner:
         In addition, there's a column with the best chapter gold for each
         chapter, and a column with the cumulative best chapters.
         """
-        return self.build_combined_data(
+        return self._build_combined_data(
             column_header_queries=[
                 self._query_builder.CHAPTER_NAMES_QUERY_WITH_TOTAL if chapter_names_col else "",
             ],
@@ -187,7 +213,7 @@ class QueryRunner:
         In addition, there's a column with the best area gold for each
         area, and a column with the cumulative best areas.
         """
-        return self.build_combined_data(
+        return self._build_combined_data(
             column_header_queries=[
                 self._query_builder.AREA_NAMES_QUERY if area_names_col else "",
             ],
@@ -212,7 +238,7 @@ class QueryRunner:
         In addition, there's a column with the best area gold for each
         area, and a column with the cumulative best areas.
         """
-        return self.build_combined_data(
+        return self._build_combined_data(
             column_header_queries=[
                 self._query_builder.AREA_NAMES_QUERY if area_names_col else "",
             ],
@@ -237,7 +263,7 @@ class QueryRunner:
         In addition, there's a column with the best area gold for each
         area, and a column with the cumulative best areas.
         """
-        return self.build_combined_data(
+        return self._build_combined_data(
             column_header_queries=[
                 self._query_builder.AREA_NAMES_QUERY if area_names_col else "",
             ],
@@ -259,7 +285,7 @@ class QueryRunner:
         In addition, there's a column with the overall best pace for each
         chapter.
         """
-        return self.build_combined_data(
+        return self._build_combined_data(
             column_header_queries=[
                 self._query_builder.CHAPTER_NAMES_QUERY if chapter_names_col else "",
             ],
@@ -275,7 +301,7 @@ class QueryRunner:
         and also the maximum amount of times in a row they've gotten each pattern
         subtype within each pattern.
         """
-        data = self.build_combined_data(
+        data = self._build_combined_data(
             column_header_queries=[
                 self._query_builder.PATTERN_NAMES_QUERY if pattern_names_col else "",
             ],
@@ -337,7 +363,7 @@ class QueryRunner:
         all doorsplits. As in, what percentage of the runs that get to that split
         end up with the runner resetting on that split.
         """
-        data = self.build_combined_data(
+        data = self._build_combined_data(
             column_header_queries=[
                 self._query_builder.DOORSPLIT_NAMES_QUERY if split_names_col else "",
             ],
@@ -527,11 +553,12 @@ class QueryRunner:
 
     def pb_summary(self) -> DataFrame:
         """
-        Returns a DataFrame with summary data of the runner's PB (personal best), doorsplit
+        Returns a DataFrame with summary data of the runner's PB (personal best),
+        doorsplit
         by doorsplit, useful to provide a sense of where the run went well and where it didn't.
 
-        TODO: There's a mistake on the splits_overview table, doorsplit 77 is duplicated for
-        whatever reason.
+        TODO: There's a mistake on the splits_overview table, doorsplit 77
+        is duplicated for whatever reason.
         """
         return self.execute(
             query=self._query_builder.pb_summary(runner=self._main_runner),
