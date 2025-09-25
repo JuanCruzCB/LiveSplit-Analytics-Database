@@ -20,7 +20,7 @@ class UnauthorizedError(Exception):
 class SheetManager:
     GOOD_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
 
-    def __init__(self, gspread_client: Client, google_sheet_id: str):
+    def __init__(self, gspread_client: Client, google_sheet_id: str) -> None:
         try:
             self._spreadsheet = gspread_client.open_by_key(google_sheet_id)
         except SpreadsheetNotFound as e:

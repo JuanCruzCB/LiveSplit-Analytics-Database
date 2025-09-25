@@ -128,7 +128,7 @@ class SplitsManager:
                     xml_declaration=True,
                 )
 
-    def _check_splits_folder_existence(self):
+    def _check_splits_folder_existence(self) -> None:
         if not self._splits_output_folder.exists():
             msg = "The output folder for the splits of other runners does not exist."
             logger.exception(msg)
