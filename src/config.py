@@ -57,7 +57,7 @@ def load_config() -> Config:
         )
         main_runner_splits_file = Path(config["main"]["main_runner_splits_file"])
         service_account_secrets_file = Path(
-            config["main"]["service_account_secrets_file"]
+            config["main"]["service_account_secrets_file"],
         )
         google_sheet_id = config["main"]["google_sheet_id"]
         google_drive_folder_id = config["main"]["google_drive_folder_id"]
@@ -68,7 +68,10 @@ def load_config() -> Config:
 
         for runner in runners:
             if "," in runner or "-" in runner or " " in runner or "_" in runner:
-                msg = "The runner names cannot have commas, hyphens, underscores or spaces."
+                msg = (
+                    "The runner names cannot have commas, hyphens, "
+                    "underscores or spaces."
+                )
                 logger.exception(msg)
                 raise ValueError(msg)
 

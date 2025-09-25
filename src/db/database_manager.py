@@ -118,7 +118,10 @@ class DatabaseManager:
 
             if db_last_modified > file_last_modified:
                 logger.info(
-                    "Not updating the tables for splits file '%s' since they are already up to date.",
+                    (
+                        "Not updating the tables for splits file '%s' since they are "
+                        "already up to date."
+                    ),
                     split.name,
                 )
                 continue

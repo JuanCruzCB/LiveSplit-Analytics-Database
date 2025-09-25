@@ -108,9 +108,12 @@ class SplitsManager:
             root = splits_file_tree.getroot()
 
             if root is None:
-                msg = f"An unexpected error ocurred while inspecting '{splits_file.name}'."
-                logger.exception(msg)
-                raise SplitsFileParseError(msg)
+                err_msg = (
+                    "An unexpected error occurred while inspecting"
+                    f" '{splits_file.name}'"
+                )
+                logger.exception(err_msg)
+                raise SplitsFileParseError(err_msg)
 
             # 1. Ensure the splits don't have any icons
             for icon in root.findall(".//Icon"):

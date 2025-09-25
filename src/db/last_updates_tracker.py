@@ -61,7 +61,7 @@ class LastUpdatesTracker:
             raw_data = json.load(fp=json_file)
             return {
                 Path(file): datetime.strptime(modtime, self.DATE_TIME_FORMAT).replace(
-                    tzinfo=UTC
+                    tzinfo=UTC,
                 )
                 for file, modtime in raw_data.items()
             }

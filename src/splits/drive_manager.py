@@ -1,8 +1,7 @@
 import logging
 from datetime import UTC, datetime
-from typing import Any
 
-from pydrive2.drive import GoogleDrive
+from pydrive2.drive import GoogleDrive, GoogleDriveFile
 from pydrive2.files import ApiRequestError
 
 from splits.splits_manager import SplitsManager
@@ -52,7 +51,7 @@ class DriveManager:
 
     def _process_remote_file(
         self,
-        remote_file: Any,
+        remote_file: GoogleDriveFile,
         local_splits: dict[str, datetime],
     ) -> None:
         """
@@ -91,14 +90,17 @@ class DriveManager:
             return self._download_drive_splits(filename, remote_file, first_time="")
 
         return logger.info(
-            "Splits file '%s' is already up to date locally, so there's no need to update it.",
+            (
+                "Splits file '%s' is already up to date locally, "
+                "so there's no need to update it."
+            ),
             filename,
         )
 
     def _download_drive_splits(
         self,
         filename: str,
-        splits_file: Any,
+        splits_file: GoogleDriveFile,
         first_time: str = " for the first time",
     ) -> None:
         """

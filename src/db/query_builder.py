@@ -90,7 +90,7 @@ class QueryBuilder:
                     FROM doorsplit_golds2_{runner}
                     ORDER BY split_index
                 );
-                """
+                """  # noqa: E501
 
     def chapter_golds_minimal(self) -> str:
         return """
@@ -112,7 +112,7 @@ class QueryBuilder:
 
                     ORDER BY chapter
                 );
-                """
+                """  # noqa: E501
 
     def chapter_golds_by_doors_minimal(self) -> str:
         return """
@@ -134,7 +134,7 @@ class QueryBuilder:
 
                     ORDER BY chapter
                 );
-                """
+                """  # noqa: E501
 
     def area_golds_minimal(self) -> str:
         return """
@@ -168,7 +168,7 @@ class QueryBuilder:
 
                     ORDER BY sort
                 );
-                """
+                """  # noqa: E501
 
     def area_golds_by_chapters_minimal(self) -> str:
         return """
@@ -202,7 +202,7 @@ class QueryBuilder:
 
                 ORDER BY sort
             );
-            """
+            """  # noqa: E501
 
     def area_golds_by_doors_minimal(self) -> str:
         return """
@@ -236,7 +236,7 @@ class QueryBuilder:
 
                     ORDER BY sort
                 );
-                """
+                """  # noqa: E501
 
     def best_paces_minimal(self) -> str:
         return """
@@ -291,7 +291,7 @@ class QueryBuilder:
                 week_start,
                 week_end
             ORDER BY week_num;
-            """  # noqa: S608
+            """  # noqa: E501, S608
 
     def attempts_per_day_of_the_week(self, runner: str) -> str:
         return f"""
@@ -316,7 +316,7 @@ class QueryBuilder:
             )
             GROUP BY iso_weekday
             ORDER BY iso_weekday;
-            """  # noqa: S608
+            """  # noqa: E501, S608
 
     def attempts_per_day(self, runner: str) -> str:
         return f"""
@@ -574,4 +574,4 @@ class QueryBuilder:
 
                 ORDER BY sort_key, iso_weekday
             );
-            """  # noqa: S608
+            """  # noqa: E501, S608

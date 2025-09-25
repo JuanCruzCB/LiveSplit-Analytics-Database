@@ -28,8 +28,11 @@ class SheetManager:
             logger.exception(msg)
             raise SheetNotFoundError from e
         except PermissionError as e:
-            msg = f"The service account that is being used does not have authorization on the spreadsheet with id = {google_sheet_id}"
-            logger.exception(msg)
+            err_msg = (
+                "The service account that is being used does not have authorization "
+                f"on the spreadsheet with id = {google_sheet_id}"
+            )
+            logger.exception(err_msg)
             raise UnauthorizedError from e
 
     def upload_dataframe_with_copy(

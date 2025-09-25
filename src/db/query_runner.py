@@ -113,7 +113,10 @@ class QueryRunner:
         combined_df = pd.concat(dfs, axis=1)
 
         if not best_col and sum_of_best_col:
-            msg = "Cannot add a cumulative best column without adding a best column first."
+            msg = (
+                "Cannot add a cumulative best column "
+                "without adding a best column first."
+            )
             raise ValueError(msg)
 
         if best_col and not sum_of_best_col:
@@ -562,10 +565,9 @@ class QueryRunner:
         Returns a DataFrame with summary data of the runner's PB (personal best),
         doorsplit by doorsplit, useful to provide a sense of where the run went
         well and where it didn't.
-
-        TODO: There's a mistake on the splits_overview table, doorsplit 77
-        is duplicated for whatever reason.
         """
+        # TODO: There's a mistake on the splits_overview table, doorsplit 77
+        # is duplicated for whatever reason.
         return self.execute(
             query=self._query_builder.pb_summary(runner=self._main_runner),
             excel_name=f"{self._main_runner}_pb_summary",
