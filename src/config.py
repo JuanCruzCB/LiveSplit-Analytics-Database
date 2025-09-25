@@ -53,7 +53,7 @@ def load_config() -> Config:
 
     try:
         other_runners_splits_folder = Path(
-            config["main"]["other_runners_splits_folder"]
+            config["main"]["other_runners_splits_folder"],
         )
         main_runner_splits_file = Path(config["main"]["main_runner_splits_file"])
         service_account_secrets_file = Path(

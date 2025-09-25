@@ -57,11 +57,13 @@ class SplitsManager:
         local_splits = {}
 
         local_splits[self._main_runner_splits_file] = datetime.fromtimestamp(
-            self._main_runner_splits_file.stat().st_mtime, tz=UTC
+            self._main_runner_splits_file.stat().st_mtime,
+            tz=UTC,
         )
         for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
             local_splits[splits_file] = datetime.fromtimestamp(
-                splits_file.stat().st_mtime, tz=UTC
+                splits_file.stat().st_mtime,
+                tz=UTC,
             )
 
         return local_splits
@@ -77,11 +79,13 @@ class SplitsManager:
         local_splits = {}
 
         local_splits[self._main_runner_splits_file.stem] = datetime.fromtimestamp(
-            self._main_runner_splits_file.stat().st_mtime, tz=UTC
+            self._main_runner_splits_file.stat().st_mtime,
+            tz=UTC,
         )
         for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
             local_splits[splits_file.stem] = datetime.fromtimestamp(
-                splits_file.stat().st_mtime, tz=UTC
+                splits_file.stat().st_mtime,
+                tz=UTC,
             )
 
         return local_splits

@@ -17,7 +17,7 @@ class LastUpdatesTracker:
         self._default_data = dict.fromkeys(
             default_files,
             datetime.strptime(self.DEFAULT_TIMESTAMP, self.DATE_TIME_FORMAT).astimezone(
-                UTC
+                UTC,
             ),
         )
 

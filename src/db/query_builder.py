@@ -397,7 +397,10 @@ class QueryBuilder:
             """  # noqa: S608
 
     def doorsplit_history(
-        self, runner: str, order_by: "OrderColumns", order_type: "OrderType"
+        self,
+        runner: str,
+        order_by: "OrderColumns",
+        order_type: "OrderType",
     ) -> str:
         return f"""
             SELECT

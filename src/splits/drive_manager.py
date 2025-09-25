@@ -51,7 +51,9 @@ class DriveManager:
             self._process_remote_file(remote_file, local_splits)
 
     def _process_remote_file(
-        self, remote_file: Any, local_splits: dict[str, datetime]
+        self,
+        remote_file: Any,
+        local_splits: dict[str, datetime],
     ) -> None:
         """
         Checks a remote file of the Google Drive folder.
@@ -94,7 +96,10 @@ class DriveManager:
         )
 
     def _download_drive_splits(
-        self, filename: str, splits_file: Any, first_time: str = " for the first time"
+        self,
+        filename: str,
+        splits_file: Any,
+        first_time: str = " for the first time",
     ) -> None:
         """
         Download the specified splits_file from the Google Drive folder

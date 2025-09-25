@@ -98,7 +98,8 @@ class DatabaseManager:
         logger.info("Creating config tables...")
         config_sql_script = self._config_sql_script.read_text()
         self.execute(
-            query=config_sql_script, message="Created config tables succesfully"
+            query=config_sql_script,
+            message="Created config tables succesfully",
         )
 
     def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:

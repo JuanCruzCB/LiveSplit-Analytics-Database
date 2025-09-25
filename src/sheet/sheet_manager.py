@@ -118,7 +118,7 @@ class SheetManager:
 
             utc_minus_3 = timezone(timedelta(hours=-3))
             current_time = datetime.now(tz=utc_minus_3).strftime(
-                self.GOOD_DATETIME_FORMAT
+                self.GOOD_DATETIME_FORMAT,
             )
             sheet.update_acell(
                 label=cell,
