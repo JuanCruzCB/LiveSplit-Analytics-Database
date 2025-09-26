@@ -69,8 +69,10 @@ class QueryBuilder:
 
     def doorsplit_golds_minimal(self) -> str:
         """
-        Returns an SQL query that fetches all the doorsplit golds of the
-        runner without ties.
+        Returns an SQL query that selects all the doorsplit golds of the
+        runner.
+
+        Tied golds are skipped.
         """
         return """
                 SELECT
@@ -93,6 +95,12 @@ class QueryBuilder:
                 """  # noqa: E501
 
     def chapter_golds_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the chapter golds of the
+        runner.
+
+        Tied golds are skipped.
+        """
         return """
                 SELECT
                     chapter_time_fmt AS {runner}
@@ -115,6 +123,12 @@ class QueryBuilder:
                 """  # noqa: E501
 
     def chapter_golds_by_doors_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the chapter golds of the
+        runner but calculated adding the doorsplit golds of the chapter.
+
+        Tied golds are skipped.
+        """
         return """
                 SELECT
                     chapter_gold_by_doors_fmt AS {runner}
@@ -137,6 +151,12 @@ class QueryBuilder:
                 """  # noqa: E501
 
     def area_golds_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the area golds of the
+        runner.
+
+        Tied golds are skipped.
+        """
         return """
                 SELECT
                     area_time_fmt AS {runner}
@@ -171,6 +191,12 @@ class QueryBuilder:
                 """  # noqa: E501
 
     def area_golds_by_chapters_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the area golds of the
+        runner but calculated adding the chapter golds of the section.
+
+        Tied golds are skipped.
+        """
         return """
             SELECT
                 area_gold_by_chapters_fmt AS {runner}
@@ -205,6 +231,12 @@ class QueryBuilder:
             """  # noqa: E501
 
     def area_golds_by_doors_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the area golds of the
+        runner but calculated adding the doorsplit golds of the section.
+
+        Tied golds are skipped.
+        """
         return """
                 SELECT
                     area_gold_by_doors_fmt AS {runner}
@@ -239,6 +271,12 @@ class QueryBuilder:
                 """  # noqa: E501
 
     def best_paces_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the best paces of the
+        runner.
+
+        Only the pace at the end of each chapter is included.
+        """
         return """
                 SELECT
                     lrt_pace_fmt AS {runner}
@@ -255,24 +293,40 @@ class QueryBuilder:
                 """
 
     def rng_patterns_percentages_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the RNG pattern percentages
+        of the runner.
+        """
         return """
                 SELECT pattern_percentage AS {runner}
                 FROM rng_patterns_stats_{runner};
                 """
 
     def rng_patterns_max_in_a_row_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the maximum instances in a row
+        of each RNG pattern of the runner.
+        """
         return """
                 SELECT max_patterns_in_a_row AS {runner}
                 FROM rng_patterns_stats_{runner};
                 """
 
     def resets_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the reset percentages for each
+        split of the runner.
+        """
         return """
                 SELECT percentage_reset AS {runner}
                 FROM resets2_{runner};
                 """
 
     def attempts_per_week(self, runner: str) -> str:
+        """
+        Returns an SQL query that selects the total number of attempts done
+        for each week of the current year of the runner.
+        """
         return f"""
             SELECT
                 EXTRACT(ISOYEAR FROM dt) AS year_num,
@@ -294,6 +348,10 @@ class QueryBuilder:
             """  # noqa: E501, S608
 
     def attempts_per_day_of_the_week(self, runner: str) -> str:
+        """
+        Returns an SQL query that selects the total number of attempts ever done
+        for each day of the week.
+        """
         return f"""
             SELECT
                 TO_CHAR(DATE '2000-01-03' + (iso_weekday - 1) * INTERVAL '1 day', 'Day') AS weekday,
@@ -319,9 +377,13 @@ class QueryBuilder:
             """  # noqa: E501, S608
 
     def attempts_per_day(self, runner: str) -> str:
+        """
+        Returns an SQL query that selects the total number of attempts ever done
+        for each individual day that the runner did attempts.
+        """
         return f"""
             SELECT
-                TO_CHAR(date_started_at, 'DD/MM/YYYY'),
+                TO_CHAR(date_started_at, 'DD/MM/YYYY') AS date_fmt,
                 EXTRACT(ISODOW FROM date_started_at) AS iso_weekday,
                 attempts_on_date
             FROM
@@ -335,6 +397,10 @@ class QueryBuilder:
             ORDER BY date_started_at;"""  # noqa: S608
 
     def compare_runners_doorsplit_medians(self, runner1: str, runner2: str) -> str:
+        """
+        Returns an SQL query that selects the difference between the median time for
+        each doorsplit of two runners.
+        """
         return f"""
             SELECT
                 runner1.split_index AS split_number,
@@ -366,6 +432,10 @@ class QueryBuilder:
             """  # noqa: S608
 
     def compare_runners_doorsplit_golds(self, runner1: str, runner2: str) -> str:
+        """
+        Returns an SQL query that selects the difference between the gold time for
+        each doorsplit of two runners.
+        """
         return f"""
             SELECT
                 runner1.split_index AS split_number,
@@ -402,6 +472,10 @@ class QueryBuilder:
         order_by: "OrderColumns",
         order_type: "OrderType",
     ) -> str:
+        """
+        Returns an SQL query that selects the entire doorsplit history of a specific
+        split of the runner.
+        """
         return f"""
             SELECT
                 run_id,
@@ -420,6 +494,13 @@ class QueryBuilder:
             """  # noqa: S608
 
     def doorsplits_of_chapter_golds(self, runner: str, extra_condition: str) -> str:
+        """
+        Returns an SQL query that selects the doorsplit times that make up one
+        or all chapter golds of the runner.
+
+        The extra condition can be used to filter by a specific chapter or
+        to show all chapters if it's empty.
+        """
         return f"""
             SELECT
                 run_id,
@@ -437,6 +518,10 @@ class QueryBuilder:
             """  # noqa: S608
 
     def pb_summary(self, runner: str) -> str:
+        """
+        Returns an SQL query that selects the main relevant stats of the runner's PB
+        to get a sense of how the run went.
+        """
         return f"""
             SELECT
                 run_id,
@@ -467,6 +552,12 @@ class QueryBuilder:
             """  # noqa: S608
 
     def doorsplit_golds(self, runner: str, extra_condition: str) -> str:
+        """
+        Returns an SQL query that selects all the doorsplit golds of the runner
+        with relevant data of each one.
+
+        Tied golds can be skipped or included.
+        """
         return f"""
             SELECT
                 run_id,
@@ -482,6 +573,12 @@ class QueryBuilder:
             """  # noqa: S608
 
     def chapter_golds(self, runner: str, extra_condition: str) -> str:
+        """
+        Returns an SQL query that selects all the chapter golds of the runner
+        with relevant data of each one.
+
+        Tied golds can be skipped or included.
+        """
         return f"""
             SELECT
                 run_id,
@@ -496,6 +593,12 @@ class QueryBuilder:
             """  # noqa: S608
 
     def area_golds(self, runner: str, extra_condition: str) -> str:
+        """
+        Returns an SQL query that selects all the area golds of the runner
+        with relevant data of each one.
+
+        Tied golds can be skipped or included.
+        """
         return f"""
             SELECT
                 run_id,
@@ -510,6 +613,11 @@ class QueryBuilder:
             """  # noqa: S608
 
     def general_stats(self, runner: str) -> str:
+        """
+        Returns an SQL query that selects all the basic stats of the runner
+        which includes the last time they updated their splits, their PB,
+        their total attempts and their total playtime.
+        """
         return f"""
             SELECT
                 last_update,
@@ -520,6 +628,10 @@ class QueryBuilder:
             """  # noqa: S608
 
     def weekday_data(self, runner: str) -> str:
+        """
+        Returns an SQL query that selects all the stats related to how
+        the runner performs on each of the seven days of the week.
+        """
         return f"""
             SELECT attempts_to_get_a_pb AS {runner}
             FROM
