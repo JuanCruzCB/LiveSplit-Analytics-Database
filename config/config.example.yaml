@@ -1,16 +1,27 @@
-main:
-    other_runners_splits_folder: 'C:/Path/To/Other runners splits'
-    main_runner_splits_file: 'C:/Path/To/my splits.lss'
-    service_account_secrets_file: 'C:/Path/To/My/service_account_secrets.json'
-    google_sheet_id: my-google-sheet-id
-    google_drive_folder_id: my-google-drive-folder-id
-database:
+# Note: The paths use forward slashes (/) instead of backslashes (\) to avoid escape character issues.
+
+main_runner:
+    name: runner1
+    splits_file: 'C:/Path/To/my splits.lss'
+
+other_runners:
+    names:
+        - runner2
+        - runner3
+    splits_folder: 'C:/Path/To/Other runners splits'
+
+google_api:
+    service_account_secrets_file: 'C:/Path/To/My/service_account_secrets.json'  # Can be left empty
+    google_sheet_id: my-google-sheet-id                                         # Can be left empty
+    google_drive_folder_id: my-google-drive-folder-id                           # Can be left empty
+
+local_database_config:
     dbname: postgres
     user: postgres
     host: localhost
     password: 123
     port: 5432
-runners:
-    - runner1
-    - runner2
-    - runner3
+
+sql_scripts:
+    main_sql_script: 'C:/Path/To/split_database_builder.sql'
+    config_sql_script: 'C:/Path/To/config.sql'

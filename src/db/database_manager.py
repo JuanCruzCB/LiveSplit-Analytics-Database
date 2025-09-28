@@ -5,6 +5,7 @@ from pathlib import Path
 import psycopg
 from pandas import DataFrame
 
+from config import LocalDatabaseConfig
 from db.exceptions import (
     ConnectionError,  # noqa: A004
     NoActiveConnectionError,
@@ -23,7 +24,7 @@ class DatabaseManager:
         self,
         sql_script: Path,
         config_sql_script: Path,
-        db_config: dict[str, str | int],
+        db_config: LocalDatabaseConfig,
         main_runner_name: str,
         last_updates_tracker: LastUpdatesTracker,
     ) -> None:
@@ -41,7 +42,7 @@ class DatabaseManager:
         hardcoded credentials.
         """
         try:
-            self._connection = psycopg.connect(**self._db_config)  # type: ignore  # noqa: PGH003
+            self._connection = psycopg.connect(**self._db_config.dict())  # type: ignore  # noqa: PGH003
         except psycopg.Error as e:
             raise ConnectionError(
                 db_config=self._db_config,
