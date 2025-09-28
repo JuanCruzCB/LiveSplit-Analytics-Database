@@ -74,6 +74,19 @@ class GoogleAPIConfig:
     google_sheet_id: str | None
     google_drive_folder_id: str | None
 
+    def __init__(
+        self,
+        service_account_secrets_file: str | None,
+        google_sheet_id: str | None,
+        google_drive_folder_id: str | None,
+    ) -> None:
+        if service_account_secrets_file is None:
+            self.service_account_secrets_file = service_account_secrets_file
+        else:
+            self.service_account_secrets_file = Path(service_account_secrets_file)
+        self.google_sheet_id = google_sheet_id
+        self.google_drive_folder_id = google_drive_folder_id
+
     def __post_init__(self) -> None:
         if (
             self.service_account_secrets_file
@@ -91,6 +104,15 @@ class LocalDatabaseConfig:
     host: str
     password: int | str
     port: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "dbname": self.dbname,
+            "user": self.user,
+            "host": self.host,
+            "password": self.password,
+            "port": self.port,
+        }
 
 
 @dataclass
@@ -139,11 +161,11 @@ def load_config() -> Config:
 
         google_api_dict = config["google_api"]
         google_api = GoogleAPIConfig(
-            service_account_secrets_file=Path(
-                google_api_dict.get("service_account_secrets_file", None),
-            ),
-            google_sheet_id=google_api_dict.get("google_sheet_id", None),
-            google_drive_folder_id=google_api_dict.get("google_drive_folder_id", None),
+            service_account_secrets_file=google_api_dict[
+                "service_account_secrets_file"
+            ],
+            google_sheet_id=google_api_dict["google_sheet_id"],
+            google_drive_folder_id=google_api_dict["google_drive_folder_id"],
         )
 
         local_db_dict = config["local_database_config"]

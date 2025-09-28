@@ -42,7 +42,7 @@ class DatabaseManager:
         hardcoded credentials.
         """
         try:
-            self._connection = psycopg.connect(**self._db_config.dict())  # type: ignore  # noqa: PGH003
+            self._connection = psycopg.connect(**self._db_config.to_dict())  # type: ignore  # noqa: PGH003
         except psycopg.Error as e:
             raise ConnectionError(
                 db_config=self._db_config,
