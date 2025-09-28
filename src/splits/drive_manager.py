@@ -4,13 +4,10 @@ from datetime import UTC, datetime
 from pydrive2.drive import GoogleDrive, GoogleDriveFile
 from pydrive2.files import ApiRequestError
 
+from splits.exceptions import GoogleDriveFolderNotFoundError
 from splits.splits_manager import SplitsManager
 
 logger = logging.getLogger(__name__)
-
-
-class GoogleDriveFolderNotFoundError(Exception):
-    pass
 
 
 class DriveManager:
