@@ -1,10 +1,7 @@
 import logging
-from datetime import UTC, datetime
 from pathlib import Path
 
-from defusedxml.ElementTree import parse
-
-from splits.splits_file_parse_error import SplitsFileParseError
+from splits.splits_file import SplitsFile
 
 logger = logging.getLogger(__name__)
 
@@ -16,127 +13,70 @@ class SplitsManager:
         main_runner_splits_file: Path,
         allowed_runners: list[str],
     ) -> None:
-        self._splits_output_folder = splits_output_folder
-        self._main_runner_splits_file = main_runner_splits_file
-        self._currently_allowed_splits = [
-            f"splits {runner}.lss" for runner in allowed_runners
-        ]
-
-    @property
-    def splits_output_folder(self) -> Path:
-        """
-        Returns the folder where the splits of the other runners are stored.
-        """
-        return self._splits_output_folder
-
-    @property
-    def currently_allowed_splits(self) -> list[str]:
-        """
-        Returns the list of split filenames that are currently allowed.
-        """
-        return self._currently_allowed_splits
-
-    def get_splits(self) -> list[Path]:
-        """
-        Returns a list with the Path of all splits files, including the
-        main runner's splits file.
-        """
-        return [
-            self._main_runner_splits_file,
-            *self._splits_output_folder.glob("*.lss"),
-        ]
-
-    def get_splits_last_modtime(self) -> dict[Path, datetime]:
-        """
-        Checks the local folder containing the splits of the runners and
-        returns a dict where each key is the splits file name and the value is
-        that splits last modification time.
-        """
-        self._check_splits_folder_existence()
-
-        local_splits = {}
-
-        local_splits[self._main_runner_splits_file] = datetime.fromtimestamp(
-            self._main_runner_splits_file.stat().st_mtime,
-            tz=UTC,
+        splits_files: list[SplitsFile] = []
+        splits_files.append(
+            SplitsFile(
+                file_path=main_runner_splits_file,
+                runner_name=allowed_runners[0],
+                is_main_runner=True,
+            ),
         )
-        for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
-            local_splits[splits_file] = datetime.fromtimestamp(
-                splits_file.stat().st_mtime,
-                tz=UTC,
+        for splits_file in splits_output_folder.glob("*.lss"):
+            runner_name = splits_file.stem[7:]
+            splits_files.append(
+                SplitsFile(file_path=splits_file, runner_name=runner_name),
             )
 
-        return local_splits
+        self._splits_folder = splits_output_folder
+        self._splits_files = splits_files
+        self._allowed_runners = allowed_runners
 
-    def get_splits_stem_last_modtime(self) -> dict[str, datetime]:
+    @property
+    def splits_folder(self) -> Path:
         """
-        Checks the local folder containing the splits of the runners and
-        returns a dict where each key is the splits file name and the value is
-        that splits last modification time.
+        Returns the path where all the local splits files are stored.
         """
-        self._check_splits_folder_existence()
+        return self._splits_folder
 
-        local_splits = {}
+    @property
+    def splits_files_paths(self) -> list[Path]:
+        """
+        Returns the path of every splits file.
+        """
+        return [splits_file.file_path for splits_file in self._splits_files]
 
-        local_splits[self._main_runner_splits_file.stem] = datetime.fromtimestamp(
-            self._main_runner_splits_file.stat().st_mtime,
-            tz=UTC,
+    @property
+    def splits_files(self) -> list[SplitsFile]:
+        """
+        Returns the list of all SplitsFile objects.
+        """
+        return self._splits_files
+
+    @property
+    def allowed_runners(self) -> list[str]:
+        """
+        Returns the list of runner names that are allowed.
+        """
+        return self._allowed_runners
+
+    def clean_all_splits(self) -> None:
+        """
+        Cleans all splits files by calling their individual clean methods.
+        """
+        for splits_file in self._splits_files:
+            splits_file.clean()
+
+    def find_splits_file_by_runner_name(self, runner_name: str) -> SplitsFile | None:
+        """
+        Finds and returns the SplitsFile object that matches the given runner name.
+
+        If no such file exists, returns None.
+        """
+        return next(
+            (
+                splits_file
+                for splits_file in self._splits_files
+                if splits_file.runner_name == runner_name
+            ),
+            None,
         )
-        for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
-            local_splits[splits_file.stem] = datetime.fromtimestamp(
-                splits_file.stat().st_mtime,
-                tz=UTC,
-            )
-
-        return local_splits
-
-    def clean_splits(self) -> None:
-        """
-        Go through each of the splits files and clean them to
-        allow the SQL script to parse them safely.
-
-        To clean them, first remove all data of the Icon tags, then
-        remove any commas from any split name, then ???
-        """
-        logger.info("Cleaning any dirty split files...")
-        self._check_splits_folder_existence()
-
-        for splits_file in self._splits_output_folder.glob(pattern="*.lss"):
-            splits_are_dirty = False
-            logger.info("Checking '%s'...", splits_file.name)
-            splits_file_tree = parse(splits_file)
-            root = splits_file_tree.getroot()
-
-            if root is None:
-                err_msg = (
-                    "An unexpected error occurred while inspecting"
-                    f" '{splits_file.name}'"
-                )
-                logger.exception(err_msg)
-                raise SplitsFileParseError(err_msg)
-
-            # 1. Ensure the splits don't have any icons
-            for icon in root.findall(".//Icon"):
-                if len(icon) > 0 or icon.text:
-                    icon.clear()
-                    splits_are_dirty = True
-
-            # 2. Remove commas from split names
-            for name in root.findall(".//Name"):
-                if name.text is not None and "," in name.text:
-                    name.text = name.text.replace(",", "|")
-                    splits_are_dirty = True
-
-            if splits_are_dirty:
-                logger.info("Splits are dirty, cleaning them...")
-                splits_file_tree.write(
-                    splits_file,
-                    encoding="utf-8",
-                    xml_declaration=True,
-                )
-
-    def _check_splits_folder_existence(self) -> None:
-        if not self._splits_output_folder.exists():
-            msg = "The output folder for the splits of other runners does not exist."
-            logger.exception(msg)
-            raise FileNotFoundError(msg)
