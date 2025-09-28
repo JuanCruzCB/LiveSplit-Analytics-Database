@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from db.utils import (
     transform_days_hours_mins_secs,
     transform_interval_to_hours_mins,
 )
+from splits.splits_file import SplitsFile
 
 type OptionalParams = dict[str, str | int] | None
 
@@ -75,12 +75,12 @@ class QueryRunner:
         """
         self._db.create_config_tables()
 
-    def update_runners_tables(self, splits: dict[Path, datetime]) -> bool:
+    def update_runners_tables(self, splits_files: list[SplitsFile]) -> bool:
         """
         Update the runner/s tables in the DB by running the splits database
         builder SQL script once for each splits file in the dict.
         """
-        return self._db.update_runners_tables(splits=splits)
+        return self._db.update_runners_tables(splits_files=splits_files)
 
     def _build_combined_data(
         self,

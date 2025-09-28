@@ -150,7 +150,7 @@ def main() -> None:
     )
 
     drive.sync_local_splits()
-    splits.clean_splits()
+    splits.clean_all_splits()
 
     sheet = SheetManager(
         gspread_client=google_sheets_auth.auth(),
@@ -158,7 +158,7 @@ def main() -> None:
     )
     last_updates = LastUpdatesTracker(
         storage_file=config.last_updates_file,
-        default_files=splits.get_splits(),
+        default_files=splits.splits_files_paths,
     )
     db = DatabaseManager(
         sql_script=config.sql_script,
@@ -177,7 +177,7 @@ def main() -> None:
     try:
         qr.open_db_connection()
         qr.create_config_tables()
-        if qr.update_runners_tables(splits=splits.get_splits_last_modtime()):
+        if qr.update_runners_tables(splits_files=splits.splits_files):
             all_data = get_all_database_data(qr)
             update_google_sheet(sheet, all_data)
     finally:

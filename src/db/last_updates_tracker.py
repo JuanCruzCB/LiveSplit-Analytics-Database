@@ -21,15 +21,6 @@ class LastUpdatesTracker:
             ),
         )
 
-    def is_first_file_equal_to(self, file: Path) -> bool:
-        """
-        Checks whether the given file is the same as the first
-        file on the JSON file.
-        """
-        last_updates = self.load_last_updates()
-        first_file = next(iter(last_updates))
-        return first_file == file
-
     def set_timestamp_now(self, file: Path) -> None:
         """
         Set the current UTC timestamp for a given file
