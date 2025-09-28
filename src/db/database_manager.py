@@ -5,7 +5,11 @@ from pathlib import Path
 import psycopg
 from pandas import DataFrame
 
-from db.database_error import DatabaseError
+from db.exceptions import (
+    ConnectionError,  # noqa: A004
+    NoActiveConnectionError,
+    QueryExecutionError,
+)
 from db.last_updates_tracker import LastUpdatesTracker
 from splits.splits_file import SplitsFile
 
@@ -39,8 +43,7 @@ class DatabaseManager:
         try:
             self._connection = psycopg.connect(**self._db_config)  # type: ignore  # noqa: PGH003
         except psycopg.Error as e:
-            raise DatabaseError(
-                message="Failed to connect to local Postgres database.",
+            raise ConnectionError(
                 db_config=self._db_config,
                 original_exception=e,
             ) from e
@@ -64,7 +67,7 @@ class DatabaseManager:
         on the db.
         """
         if not self._connection:
-            raise DatabaseError
+            raise NoActiveConnectionError(db_config=self._db_config)
 
         try:
             result = DataFrame()
@@ -80,9 +83,10 @@ class DatabaseManager:
             self._connection.commit()
 
         except psycopg.Error as e:
-            raise DatabaseError(
-                message=f"There was an SQL error while running the query {query}.",
+            raise QueryExecutionError(
+                db_config=self._db_config,
                 original_exception=e,
+                message=f"There was an SQL error while running the query:\n {query}",
             ) from e
         else:
             logger.info("%s in %.3f seconds!", message, end - start)
@@ -93,7 +97,7 @@ class DatabaseManager:
         Creates the necessary configuration tables in the db.
         """
         if not self._connection:
-            raise DatabaseError
+            raise NoActiveConnectionError(db_config=self._db_config)
 
         logger.info("Creating config tables...")
         config_sql_script = self._config_sql_script.read_text()
@@ -107,7 +111,7 @@ class DatabaseManager:
         If there's currently a connection, run the main SQL script.
         """
         if not self._connection:
-            raise DatabaseError
+            raise NoActiveConnectionError(db_config=self._db_config)
 
         logger.info("Updating the database tables...")
         sql_script = self._sql_script.read_text()

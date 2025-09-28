@@ -2,19 +2,13 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-from gspread import Client
+from gspread import Client, Worksheet
 from gspread.exceptions import APIError, SpreadsheetNotFound, WorksheetNotFound
 from pandas import DataFrame
 
+from sheet.exceptions import SheetNotFoundError, UnauthorizedError
+
 logger = logging.getLogger(__name__)
-
-
-class SheetNotFoundError(Exception):
-    pass
-
-
-class UnauthorizedError(Exception):
-    pass
 
 
 class SheetManager:
@@ -35,6 +29,17 @@ class SheetManager:
             logger.exception(err_msg)
             raise UnauthorizedError from e
 
+    def _find_worksheet_by_title(self, title: str) -> Worksheet:
+        """
+        Finds a worksheet inside the spreadsheet by its title.
+        """
+        try:
+            return self._spreadsheet.worksheet(title=title)
+        except WorksheetNotFound as e:
+            msg = f"The tab '{title}' does not exist in the Google Sheet."
+            logger.exception(msg)
+            raise ValueError(msg) from e
+
     def upload_dataframe_with_copy(
         self,
         tab_name: str,
@@ -50,11 +55,11 @@ class SheetManager:
         """
         data_list = data.replace({np.nan: ""}).to_numpy().tolist()
         old_sheet_tab_name = f"{tab_name} old"
-        try:
-            old_sheet = self._spreadsheet.worksheet(title=old_sheet_tab_name)
-            original_sheet = self._spreadsheet.worksheet(title=tab_name)
-            original_data = original_sheet.get_all_values()
+        old_sheet = self._find_worksheet_by_title(title=old_sheet_tab_name)
+        original_sheet = self._find_worksheet_by_title(title=tab_name)
 
+        try:
+            original_data = original_sheet.get_all_values()
             if original_data:
                 old_sheet.update(values=original_data, range_name="A1")
                 logger.info("Backup '%s' overwritten successfully!", old_sheet_tab_name)
@@ -63,10 +68,6 @@ class SheetManager:
                 range_name=starting_cell,
                 values=data_list,
             )
-        except WorksheetNotFound as e:
-            msg = f"Sheet tab '{tab_name}' not found in the Google Sheet."
-            logger.exception(msg)
-            raise ValueError(msg) from e
         except APIError as e:
             msg = f"Google Sheets API error while updating '{tab_name}': {e!s}"
             logger.exception(msg)
@@ -95,10 +96,6 @@ class SheetManager:
                 range_name=starting_cell,
                 values=data_list,
             )
-        except WorksheetNotFound as e:
-            msg = f"Sheet tab '{tab_name}' not found in the Google Sheet."
-            logger.exception(msg)
-            raise ValueError(msg) from e
         except APIError as e:
             msg = f"Google Sheets API error while updating '{tab_name}': {e!s}"
             logger.exception(msg)
@@ -116,9 +113,9 @@ class SheetManager:
         the current date and time (in UTC-3 timezone), to show when
         the Google Sheet was last updated.
         """
-        try:
-            sheet = self._spreadsheet.worksheet(title=tab_name)
+        sheet = self._find_worksheet_by_title(title=tab_name)
 
+        try:
             utc_minus_3 = timezone(timedelta(hours=-3))
             current_time = datetime.now(tz=utc_minus_3).strftime(
                 self.GOOD_DATETIME_FORMAT,
@@ -127,10 +124,6 @@ class SheetManager:
                 label=cell,
                 value=f"Last updated on: {current_time} (UTC-3)",
             )
-        except WorksheetNotFound as e:
-            msg = f"The tab '{tab_name}' does not exist in the Google Sheet."
-            logger.exception(msg)
-            raise ValueError(msg) from e
         except APIError as e:
             msg = "Google Sheets API error during 'upload_last_updated_on'."
             logger.exception(msg)
