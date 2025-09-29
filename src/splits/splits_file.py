@@ -78,7 +78,7 @@ class SplitsFile:
         """
         return self._runner_name
 
-    def clean(self) -> None:
+    def clean(self) -> bool:
         """
         Cleans the splits file by:
         1. Removing Icons (if they exist) from all splits.
@@ -87,12 +87,14 @@ class SplitsFile:
         This ensures compatibility with the database and avoids issues
         with data parsing.
         """
+        is_dirty = False
         tree = parse(self._file_path)
         root = tree.getroot()
 
         # 1. Remove all existing data inside each Icon tag
         for icon in root.findall(".//Icon"):  # type: ignore  # noqa: PGH003
             if len(icon) > 0 or icon.text:
+                is_dirty = True
                 msg = "Removing an icon from splits file: '%s'.", self._file_path
                 logger.warning(msg)
                 icon.clear()
@@ -100,6 +102,7 @@ class SplitsFile:
         # 2. Replace commas in split names with pipes
         for name in root.findall(".//Name"):  # type: ignore  # noqa: PGH003
             if name.text is not None and "," in name.text:
+                is_dirty = True
                 msg = (
                     "Replacing commas (,) with pipes (|) in splits file: '%s'.",
                     self._file_path,
@@ -107,11 +110,13 @@ class SplitsFile:
                 logger.warning(msg)
                 name.text = name.text.replace(",", "|")
 
-        tree.write(
-            self._file_path,
-            encoding="utf-8",
-            xml_declaration=True,
-        )
+        if is_dirty:
+            tree.write(
+                self._file_path,
+                encoding="utf-8",
+                xml_declaration=True,
+            )
+        return is_dirty
 
     def get_last_modified_datetime(self) -> datetime:
         """
@@ -123,12 +128,12 @@ class SplitsFile:
             tz=UTC,
         )
 
-    def is_outdated(self, last_mod_dt: datetime) -> bool:
+    def is_older_than(self, dt: datetime) -> bool:
         """
-        Checks whether this splits file is outdated compared to the given
-        datetime, in UTC timezone.
+        Checks whether this splits file's last modification date and time is
+        older than the given date and time, in UTC.
         """
-        return self.get_last_modified_datetime() < last_mod_dt
+        return self.get_last_modified_datetime() < dt
 
     def get_number_of_splits(self) -> int:
         """

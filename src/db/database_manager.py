@@ -117,23 +117,25 @@ class DatabaseManager:
         new_updates = False
 
         for splits_file in splits_files:
+            path = splits_file.file_path
+
             db_last_modified = self._last_updates_tracker.get_timestamp(
-                file=splits_file.file_path,
+                file=path,
             )
-            if not splits_file.is_outdated(db_last_modified):
+            if splits_file.is_older_than(db_last_modified):
                 logger.info(
                     (
                         "Not updating the tables for splits file '%s' since they are "
                         "already up to date."
                     ),
-                    splits_file.file_path.stem,
+                    path.stem,
                 )
                 continue
 
             modified_script = sql_script.replace("runner", splits_file.runner_name)
             modified_script = modified_script.replace(
                 "path",
-                f"{splits_file.file_path!s}",
+                f"{path!s}",
             )
             self.execute(
                 query=modified_script,
@@ -143,7 +145,7 @@ class DatabaseManager:
                 ),
             )
 
-            self._last_updates_tracker.set_timestamp_now(file=splits_file.file_path)
+            self._last_updates_tracker.set_timestamp_now(file=path)
             new_updates = True
 
         if not new_updates:

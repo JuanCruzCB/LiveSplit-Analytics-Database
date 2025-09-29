@@ -82,7 +82,7 @@ class DriveManager:
         if local_file is None:
             return self._download_file(remote_file, first_time=True)
 
-        if local_file.is_outdated(
+        if local_file.is_older_than(
             datetime.strptime(
                 remote_file["modifiedDate"],
                 self.GOOGLE_DRIVE_DATE_TIME_FORMAT,
