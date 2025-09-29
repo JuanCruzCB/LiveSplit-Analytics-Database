@@ -140,6 +140,7 @@ def run_without_google_api(
     are purely local (they don't get updated with their corresponding remote versions)
     and the resulting data is outputted to excel files instead of to a Google Sheet.
     """
+    splits.validate_all_splits()
     splits.clean_all_splits()
 
     try:
@@ -180,6 +181,7 @@ def run_with_google_drive_and_google_sheets(
     )
 
     drive_manager.sync_local_splits()
+    splits.validate_all_splits()
     splits.clean_all_splits()
     try:
         qr.open_db_connection()
@@ -213,6 +215,7 @@ def run_with_google_drive_only(
     )
 
     drive_manager.sync_local_splits()
+    splits.validate_all_splits()
     splits.clean_all_splits()
     try:
         qr.open_db_connection()
@@ -243,6 +246,7 @@ def run_with_google_sheets_only(
         google_sheet_id=config.google_api.google_sheet_id,  # type: ignore
     )
 
+    splits.validate_all_splits()
     splits.clean_all_splits()
     try:
         qr.open_db_connection()

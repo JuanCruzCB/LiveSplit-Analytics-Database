@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+from splits.exceptions import SplitsFilesComparisonError
 from splits.splits_file import SplitsFile
 
 logger = logging.getLogger(__name__)
@@ -58,9 +59,30 @@ class SplitsManager:
         """
         return self._runner_names
 
+    def validate_all_splits(self) -> None:
+        """
+        Validates all splits files by checking that all of them have
+        the same number of splits.
+        """
+        number_of_splits_main = self._splits_files[0].get_number_of_splits()
+
+        for splits_file in self._splits_files[1:]:
+            number_of_splits = splits_file.get_number_of_splits()
+            if number_of_splits != number_of_splits_main:
+                msg = (
+                    f"The splits file '{splits_file.file_path}' has a different "
+                    f"number of splits ({number_of_splits}) "
+                    f"than the main runner's splits file ({number_of_splits_main})."
+                )
+                logger.exception(msg)
+                raise SplitsFilesComparisonError(msg)
+
     def clean_all_splits(self) -> None:
         """
-        Cleans all splits files by calling their individual clean methods.
+        Cleans all splits files by..
+
+        1. Removing Icons (if they exist) from all splits.
+        2. Replacing all commas in split names by pipes.
         """
         for splits_file in self._splits_files:
             splits_file.clean()

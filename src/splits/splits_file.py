@@ -129,3 +129,11 @@ class SplitsFile:
         datetime, in UTC timezone.
         """
         return self.get_last_modified_datetime() < last_mod_dt
+
+    def get_number_of_splits(self) -> int:
+        """
+        Returns the number of splits in the splits file.
+        """
+        tree = parse(self._file_path)
+        split_names = list(tree.getroot().iter("Name"))  # type: ignore
+        return len(split_names)
