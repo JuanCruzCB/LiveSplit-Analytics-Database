@@ -72,6 +72,13 @@ class SplitsFile:
         return self._file_path
 
     @property
+    def file_path_str(self) -> str:
+        """
+        Returns the file path of the splits file.
+        """
+        return str(self._file_path)
+
+    @property
     def runner_name(self) -> str:
         """
         Returns the name of the runner that is associated with the splits file.

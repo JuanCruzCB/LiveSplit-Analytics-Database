@@ -5,9 +5,10 @@ from typing import Any
 
 import yaml
 
-YAML_CONFIG_FILE = Path(__file__).parent.parent / "config" / "config.yaml"
-OUTPUT_DIR = Path(__file__).parent.parent / "output"
-LAST_UPDATES_FILE = Path(__file__).parent.parent / "config" / "last_table_updates.json"
+PROJECT_DIR = Path(__file__).parent.parent
+YAML_CONFIG_FILE = PROJECT_DIR / "config" / "config.yaml"
+LAST_UPDATES_FILE = PROJECT_DIR / "config" / "last_table_updates.json"
+OUTPUT_DIR = PROJECT_DIR / "output"
 
 OUTPUT_DIR.mkdir(exist_ok=True)
 

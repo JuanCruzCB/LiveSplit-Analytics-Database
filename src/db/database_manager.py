@@ -105,48 +105,59 @@ class DatabaseManager:
             message="Created config tables succesfully",
         )
 
+    def _update_runner_table(self, sql_script: str, splits_file: SplitsFile) -> bool:
+        """
+        Attempt to update the tables for a specific runner, which only happens
+        if the splits last modification time is newer than the last time
+        that runner's tables tables were updated.
+        """
+        db_last_modified = self._last_updates_tracker.get_timestamp(
+            file=splits_file.file_path,
+        )
+        if splits_file.is_older_than(dt=db_last_modified):
+            logger.info(
+                (
+                    "Not updating the tables for splits file '%s' since they are "
+                    "already up to date."
+                ),
+                splits_file.file_path.stem,
+            )
+            return False
+
+        modified_script = sql_script.replace("runner", splits_file.runner_name)
+        modified_script = modified_script.replace(
+            "path",
+            f"{splits_file.file_path_str}",
+        )
+        self.execute(
+            query=modified_script,
+            message=(
+                "Updated the database tables for "
+                f"{splits_file.runner_name} successfully!"
+            ),
+        )
+
+        self._last_updates_tracker.set_timestamp_now(file=splits_file.file_path)
+        return True
+
     def update_runners_tables(self, splits_files: list[SplitsFile]) -> bool:
         """
-        If there's currently a connection, run the main SQL script.
+        If there's currently a connection, attempt to update the tables
+        of all runners.
+
+        Returns true if at least one of the runners' tables were updated,
+        false otherwise.
         """
         if not self._connection:
             raise NoActiveConnectionError(db_config=self._db_config)
 
         logger.info("Updating the database tables...")
         sql_script = self._sql_script.read_text()
-        new_updates = False
 
-        for splits_file in splits_files:
-            path = splits_file.file_path
-
-            db_last_modified = self._last_updates_tracker.get_timestamp(
-                file=path,
-            )
-            if splits_file.is_older_than(db_last_modified):
-                logger.info(
-                    (
-                        "Not updating the tables for splits file '%s' since they are "
-                        "already up to date."
-                    ),
-                    path.stem,
-                )
-                continue
-
-            modified_script = sql_script.replace("runner", splits_file.runner_name)
-            modified_script = modified_script.replace(
-                "path",
-                f"{path!s}",
-            )
-            self.execute(
-                query=modified_script,
-                message=(
-                    "Updated the database tables for "
-                    f"{splits_file.runner_name} successfully!"
-                ),
-            )
-
-            self._last_updates_tracker.set_timestamp_now(file=path)
-            new_updates = True
+        new_updates = any(
+            self._update_runner_table(sql_script=sql_script, splits_file=splits_file)
+            for splits_file in splits_files
+        )
 
         if not new_updates:
             logger.info("The database is already up to date.")
