@@ -13,11 +13,7 @@ class SplitsFile:
     def __init__(
         self,
         file_path: Path,
-        # game_name: str,
-        # category_name: str,
         runner_name: str,
-        *,
-        is_main_runner: bool = False,
     ) -> None:
         self._validate_file_path_exists(file_path)
         self._validate_file_path_structure(file_path)
@@ -25,10 +21,7 @@ class SplitsFile:
         self._validate_file_path_extension(file_path)
 
         self._file_path = file_path
-        # self._game_name = game_name
-        # self._category_name = category_name
         self._runner_name = runner_name
-        self._is_main_runner = is_main_runner
 
     @staticmethod
     def _validate_file_path_exists(file_path: Path) -> None:

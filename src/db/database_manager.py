@@ -25,13 +25,11 @@ class DatabaseManager:
         sql_script: Path,
         config_sql_script: Path,
         db_config: LocalDatabaseConfig,
-        main_runner_name: str,
         last_updates_tracker: LastUpdatesTracker,
     ) -> None:
         self._sql_script = sql_script
         self._config_sql_script = config_sql_script
         self._db_config = db_config
-        self._main_runner_name = main_runner_name
         self._last_updates_tracker = last_updates_tracker
 
         self._connection = None

@@ -70,7 +70,7 @@ class DriveManager:
         file = remote_file["title"]
         runner_name = file.replace(".lss", "").replace("splits ", "")
 
-        if runner_name not in self._splits_manager.allowed_runners:
+        if runner_name not in self._splits_manager.runner_names:
             logger.warning(
                 "Ignoring unknown splits file: '%s'",
                 file,

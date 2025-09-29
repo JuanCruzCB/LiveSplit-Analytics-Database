@@ -37,12 +37,12 @@ class QueryRunner:
         self,
         db_manager: DatabaseManager,
         query_builder: QueryBuilder,
-        allowed_runners: list[str],
+        runner_names: list[str],
         main_runner_name: str,
     ) -> None:
         self._db = db_manager
         self._query_builder = query_builder
-        self._allowed_runners = allowed_runners
+        self._runner_names = runner_names
         self._main_runner = main_runner_name
         self._output_dir = Path(__file__).parent.parent.parent / "output"
         self._output_dir.mkdir(exist_ok=True)
@@ -106,7 +106,7 @@ class QueryRunner:
                 dfs.append(header_column)
 
         for data_query in data_queries:
-            for runner in self._allowed_runners:
+            for runner in self._runner_names:
                 runner_data = self.execute(query=data_query.format(runner=runner))
                 dfs.append(runner_data)
 
@@ -347,7 +347,7 @@ class QueryRunner:
                 ),
             )
 
-        for runner in self._allowed_runners:
+        for runner in self._runner_names:
             runner_stats = self.execute(
                 query=self._query_builder.general_stats(runner=runner),
             )
@@ -427,7 +427,7 @@ class QueryRunner:
                 ),
             )
 
-        for runner in self._allowed_runners:
+        for runner in self._runner_names:
             runner_weekday = self.execute(
                 query=self._query_builder.weekday_data(runner=runner),
             )

@@ -21,14 +21,12 @@ def main() -> None:
     """
     setup_logging()
     config = load_config()
+    runner_names = [config.main_runner.name, *config.other_runners.names]
 
     splits = SplitsManager(
         splits_output_folder=config.other_runners.splits_folder,
         main_runner_splits_file=config.main_runner.splits_file,
-        allowed_runners=[
-            config.main_runner.name,
-            *config.other_runners.names,
-        ],
+        runner_names=runner_names,
     )
     last_updates = LastUpdatesTracker(
         storage_file=config.last_table_updates_file,
@@ -38,16 +36,12 @@ def main() -> None:
         sql_script=config.sql_scripts.main_sql_script,
         config_sql_script=config.sql_scripts.config_sql_script,
         db_config=config.local_db,
-        main_runner_name=config.main_runner.name,
         last_updates_tracker=last_updates,
     )
     query_runner = QueryRunner(
         db_manager=db_manager,
         query_builder=QueryBuilder(),
-        allowed_runners=[
-            config.main_runner.name,
-            *config.other_runners.names,
-        ],
+        runner_names=runner_names,
         main_runner_name=config.main_runner.name,
     )
 

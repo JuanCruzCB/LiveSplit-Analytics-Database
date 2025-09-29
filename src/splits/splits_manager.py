@@ -11,25 +11,24 @@ class SplitsManager:
         self,
         splits_output_folder: Path,
         main_runner_splits_file: Path,
-        allowed_runners: list[str],
+        runner_names: list[str],
     ) -> None:
         splits_files: list[SplitsFile] = []
         splits_files.append(
             SplitsFile(
                 file_path=main_runner_splits_file,
-                runner_name=allowed_runners[0],
-                is_main_runner=True,
+                runner_name=runner_names[0],
             ),
         )
         for splits_file in splits_output_folder.glob("*.lss"):
-            runner_name = splits_file.stem[7:]
+            runner_name = splits_file.stem.replace("splits ", "")
             splits_files.append(
                 SplitsFile(file_path=splits_file, runner_name=runner_name),
             )
 
         self._splits_folder = splits_output_folder
         self._splits_files = splits_files
-        self._allowed_runners = allowed_runners
+        self._runner_names = runner_names
 
     @property
     def splits_folder(self) -> Path:
@@ -53,11 +52,11 @@ class SplitsManager:
         return self._splits_files
 
     @property
-    def allowed_runners(self) -> list[str]:
+    def runner_names(self) -> list[str]:
         """
         Returns the list of runner names that are allowed.
         """
-        return self._allowed_runners
+        return self._runner_names
 
     def clean_all_splits(self) -> None:
         """
