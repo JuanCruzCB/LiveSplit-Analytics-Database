@@ -6,8 +6,10 @@ from typing import Any
 import yaml
 
 YAML_CONFIG_FILE = Path(__file__).parent.parent / "config" / "config.yaml"
-LOG_FILE = Path(__file__).parent.parent / "output" / "history.log"
+OUTPUT_DIR = Path(__file__).parent.parent / "output"
 LAST_UPDATES_FILE = Path(__file__).parent.parent / "config" / "last_table_updates.json"
+
+OUTPUT_DIR.mkdir(exist_ok=True)
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ def setup_logging() -> None:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%d/%m/%Y %I:%M:%S %p",
         handlers=[
-            logging.FileHandler(LOG_FILE),
+            logging.FileHandler(OUTPUT_DIR / "history.log"),
             logging.StreamHandler(),
         ],
     )
@@ -33,6 +35,9 @@ class MainRunnerConfig:
     splits_file: Path
 
     def __post_init__(self) -> None:
+        """
+        Validate that the main runner configuration was initialized correctly.
+        """
         if "," in self.name or "-" in self.name or "_" in self.name or " " in self.name:
             msg = (
                 "The main runner name cannot have commas, hyphens, "
@@ -53,6 +58,9 @@ class OtherRunnersConfig:
     splits_folder: Path
 
     def __post_init__(self) -> None:
+        """
+        Validate that the other runners configuration was initialized correctly.
+        """
         for name in self.names:
             if "," in name or "-" in name or "_" in name or " " in name:
                 msg = (
@@ -88,6 +96,9 @@ class GoogleAPIConfig:
         self.google_drive_folder_id = google_drive_folder_id
 
     def __post_init__(self) -> None:
+        """
+        Validate that the Google API configuration was initialized correctly.
+        """
         if (
             self.service_account_secrets_file
             and not self.service_account_secrets_file.exists()
@@ -106,6 +117,9 @@ class LocalDatabaseConfig:
     port: int
 
     def to_dict(self) -> dict[str, Any]:
+        """
+        Returns the database configuration as a dictionary.
+        """
         return {
             "dbname": self.dbname,
             "user": self.user,
@@ -121,6 +135,9 @@ class SQLScripts:
     config_sql_script: Path
 
     def __post_init__(self) -> None:
+        """
+        Validate that the SQL scripts configuration was initialized correctly.
+        """
         if not self.main_sql_script.exists():
             msg = f"The file {self.main_sql_script} does not exist."
             logger.exception(msg)
@@ -139,6 +156,7 @@ class Config:
     local_db: LocalDatabaseConfig
     sql_scripts: SQLScripts
     last_table_updates_file: Path
+    output_dir: Path
 
 
 def load_config() -> Config:
@@ -196,4 +214,5 @@ def load_config() -> Config:
         local_db=local_db,
         sql_scripts=sql_scripts,
         last_table_updates_file=LAST_UPDATES_FILE,
+        output_dir=OUTPUT_DIR,
     )

@@ -39,13 +39,13 @@ class QueryRunner:
         query_builder: QueryBuilder,
         runner_names: list[str],
         main_runner_name: str,
+        output_dir: Path,
     ) -> None:
         self._db = db_manager
         self._query_builder = query_builder
         self._runner_names = runner_names
         self._main_runner = main_runner_name
-        self._output_dir = Path(__file__).parent.parent.parent / "output"
-        self._output_dir.mkdir(exist_ok=True)
+        self._output_dir = output_dir
 
     """
     MAIN QUERIES

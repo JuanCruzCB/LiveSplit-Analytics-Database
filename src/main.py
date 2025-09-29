@@ -43,10 +43,11 @@ def main() -> None:
         query_builder=QueryBuilder(),
         runner_names=runner_names,
         main_runner_name=config.main_runner.name,
+        output_dir=config.output_dir,
     )
 
     if not config.google_api.service_account_secrets_file:
-        run_without_google_api(splits, query_runner)
+        run_without_google_api(splits, query_runner, config.output_dir)
     elif config.google_api.google_drive_folder_id and config.google_api.google_sheet_id:
         run_with_google_drive_and_google_sheets(
             config,
@@ -57,7 +58,7 @@ def main() -> None:
         config.google_api.google_drive_folder_id
         and not config.google_api.google_sheet_id
     ):
-        run_with_google_drive_only(config, splits, query_runner)
+        run_with_google_drive_only(config, splits, query_runner, config.output_dir)
     elif (
         not config.google_api.google_drive_folder_id
         and config.google_api.google_sheet_id

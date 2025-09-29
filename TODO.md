@@ -3,9 +3,6 @@
   - Shorten the main SQL script.
   - Improve the comments on both SQL scripts.
   - Make the config SQL customizable.
-- [ ] **Make the Google Drive and Google Sheets integration optional**:
-  - If disabled, splits are only gathered from the local directory, and the stats data is outputted to excel files.
-- [ ] **Possibly use TypedDict for YAML configuration in config.py**:
 - [ ] **Make the project work for any game, any category, either one runner or multiple runners.**:
 - [ ] **Have one DB with multiple schemas, one schema per game + category or one DB per game + runner, with just the public schema?**
 - [ ] **Make a CLI, especially to query the DB**.

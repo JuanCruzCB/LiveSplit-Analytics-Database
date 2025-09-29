@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pandas import DataFrame
 
-from auth.google_drive_auth import GoogleDriveAuth  # type: ignore
+from auth.google_drive_auth import GoogleDriveAuth
 from auth.google_sheets_auth import GoogleSheetsAuth
 from config import Config
 from db.query_runner import QueryRunner
@@ -122,19 +122,18 @@ def export_to_google_sheet(
     sheet_manager.upload_last_updated_on(tab_name="Title", cell="A2")
 
 
-def export_to_excel(data: dict[str, DataFrame]) -> None:
+def export_to_excel(data: dict[str, DataFrame], output_dir: Path) -> None:
     """
     Export all relevant data to excel files.
     """
     for name, df in data.items():
-        excel_name = f"{name}.xlsx"
-        output_path = Path().parent.parent / "output" / excel_name
-        df.to_excel(output_path, index=False)
+        df.to_excel(output_dir / f"{name}.xlsx", index=False)
 
 
 def run_without_google_api(
     splits: SplitsManager,
     qr: QueryRunner,
+    output_dir: Path,
 ) -> None:
     """
     Run the application without using Google API services, which means the splits
@@ -148,7 +147,7 @@ def run_without_google_api(
         qr.create_config_tables()
         if qr.update_runners_tables(splits_files=splits.splits_files):
             all_data = get_all_database_data(qr)
-            export_to_excel(all_data)
+            export_to_excel(all_data, output_dir)
     finally:
         # qr.drop_staging_tables()
         qr.close_db_connection()
@@ -197,6 +196,7 @@ def run_with_google_drive_only(
     config: Config,
     splits: SplitsManager,
     qr: QueryRunner,
+    output_dir: Path,
 ) -> None:
     """
     Run the application using Google Drive but not Google Sheets, which means
@@ -219,7 +219,7 @@ def run_with_google_drive_only(
         qr.create_config_tables()
         if qr.update_runners_tables(splits_files=splits.splits_files):
             all_data = get_all_database_data(qr)
-            export_to_excel(all_data)
+            export_to_excel(all_data, output_dir)
     finally:
         # qr.drop_staging_tables()
         qr.close_db_connection()
