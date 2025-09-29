@@ -23,5 +23,5 @@ local_database_config:
     port: 5432
 
 sql_scripts:
-    main_sql_script: 'C:/Path/To/split_database_builder.sql'
-    config_sql_script: 'C:/Path/To/config.sql'
+    main_sql_script: '../sql scripts/splits_database_builder.sql'
+    config_sql_script: '../sql scripts/config.sql'

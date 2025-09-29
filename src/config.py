@@ -178,10 +178,10 @@ def load_config() -> Config:
         )
 
         sql_scripts = SQLScripts(
-            main_sql_script=Path(config["sql_scripts"]["main_sql_script"]),
+            main_sql_script=Path(config["sql_scripts"]["main_sql_script"]).resolve(),
             config_sql_script=Path(
                 config["sql_scripts"]["config_sql_script"],
-            ),
+            ).resolve(),
         )
 
     except KeyError as e:
