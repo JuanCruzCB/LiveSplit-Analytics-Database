@@ -1,3 +1,6 @@
+from config import LocalDatabaseConfig
+
+
 class DatabaseError(Exception):
     """
     Base class for all database-related errors.
@@ -5,7 +8,7 @@ class DatabaseError(Exception):
 
     def __init__(
         self,
-        db_config: dict[str, str | int],
+        db_config: LocalDatabaseConfig,
         original_exception: Exception | None = None,
         message: str = "An error occurred with the database.",
     ) -> None:
@@ -33,7 +36,7 @@ class NoActiveConnectionError(DatabaseError):
 
     def __init__(
         self,
-        db_config: dict[str, str | int],
+        db_config: LocalDatabaseConfig,
         original_exception: Exception | None = None,
         message: str = "No active connection to the database.",
     ) -> None:
@@ -51,7 +54,7 @@ class ConnectionError(DatabaseError):  # noqa: A001
 
     def __init__(
         self,
-        db_config: dict[str, str | int],
+        db_config: LocalDatabaseConfig,
         original_exception: Exception,
         message: str = "Failed to connect to the database.",
     ) -> None:
@@ -69,7 +72,7 @@ class QueryExecutionError(DatabaseError):
 
     def __init__(
         self,
-        db_config: dict[str, str | int],
+        db_config: LocalDatabaseConfig,
         original_exception: Exception,
         message: str = "Failed to execute SQL query.",
     ) -> None:
