@@ -1,4 +1,4 @@
-from config import LocalDatabaseConfig
+from config.config import LocalDatabaseConfig
 
 
 class DatabaseError(Exception):

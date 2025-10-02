@@ -15,7 +15,7 @@ google_api:
     google_sheet_id: my-google-sheet-id                                         # Can be left empty
     google_drive_folder_id: my-google-drive-folder-id                           # Can be left empty
 
-local_database_config:
+local_database:
     dbname: postgres
     user: postgres
     host: localhost
@@ -23,5 +23,5 @@ local_database_config:
     port: 5432
 
 sql_scripts:
-    main_sql_script: '../sql scripts/splits_database_builder.sql'
-    config_sql_script: '../sql scripts/config.sql'
+    builder: '../sql scripts/splits_database_builder.sql'
+    config: '../sql scripts/config.sql'

@@ -5,7 +5,7 @@ from pathlib import Path
 import psycopg
 from pandas import DataFrame
 
-from config import LocalDatabaseConfig
+from config.config import LocalDatabaseConfig
 from db.exceptions import (
     ConnectionError,  # noqa: A004
     NoActiveConnectionError,

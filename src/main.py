@@ -1,4 +1,5 @@
-from config import load_config, setup_logging
+from config.config import load_config
+from config.logger import setup_logging
 from db.database_manager import DatabaseManager
 from db.last_updates_tracker import LastUpdatesTracker
 from db.query_builder import QueryBuilder
@@ -33,8 +34,8 @@ def main() -> None:
         default_files=splits.splits_files_paths,
     )
     db_manager = DatabaseManager(
-        sql_script=config.sql_scripts.main_sql_script,
-        config_sql_script=config.sql_scripts.config_sql_script,
+        sql_script=config.sql_scripts.builder,
+        config_sql_script=config.sql_scripts.config,
         db_config=config.local_db,
         last_updates_tracker=last_updates,
     )

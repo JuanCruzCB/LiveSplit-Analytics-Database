@@ -4,7 +4,7 @@ from pandas import DataFrame
 
 from auth.google_drive_auth import GoogleDriveAuth
 from auth.google_sheets_auth import GoogleSheetsAuth
-from config import Config
+from config.config import Config
 from db.query_runner import QueryRunner
 from sheet.sheet_manager import SheetManager
 from splits.drive_manager import DriveManager
