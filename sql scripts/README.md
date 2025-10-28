@@ -49,3 +49,13 @@ ORDER BY
     table_name,
     ordinal_position;
 ```
+
+- Create a table and load data from a `.txt` file where each line will correspond to one row in the table:
+
+```sql
+CREATE TABLE cfg_default_split_names(split_index SERIAL PRIMARY KEY, split_name TEXT);
+
+COPY cfg_default_split_names(split_name)
+FROM '/path/to/file.txt'
+WITH (FORMAT text);
+```
