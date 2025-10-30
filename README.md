@@ -18,8 +18,10 @@
     - [Functionalities](#functionalities)
     - [Execution flow](#execution-flow)
   - [How to use](#how-to-use)
+    - [Prerequisites](#prerequisites)
     - [Initial setup](#initial-setup)
-    - [Configuration](#configuration)
+    - [Basic configuration](#basic-configuration)
+    - [Extra optional configuration](#extra-optional-configuration)
     - [How to run](#how-to-run)
   - [Possible improvements](#possible-improvements)
 
@@ -44,7 +46,7 @@ In order to properly understand the structure and purpose of this project, some 
 - **Python 3.13**.
 - **uv** for dependency management.
 - **ruff** for linting.
-- **SQL** with **PostgreSQL** 15.
+- **SQL** with **PostgreSQL** 17.
 
 ---
 
@@ -162,18 +164,107 @@ In order to properly understand the structure and purpose of this project, some 
 
 ### Functionalities
 
+...
+
 ### Execution flow
+
+...
 
 ---
 
 ## How to use
 
+### Prerequisites
+
+In order to run this project, you need to have the following programs installed on your system:
+
+- [Git](https://git-scm.com/install/)
+- [Python 3.13](https://www.python.org/downloads/release/python-3139/)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- [PostgreSQL 17](https://www.postgresql.org/download/)
+
 ### Initial setup
 
-### Configuration
+1. Clone the repository:
+
+```bash
+git clone https://github.com/JuanCruzCB/LiveSplit-Analytics-Database.git
+```
+
+2. Go into the project directory:
+
+```bash
+cd LiveSplit-Analytics-Database
+```
+
+3. Install the dependencies using `uv`:
+
+```bash
+uv sync
+```
+
+4. Create a PostgreSQL database and user for the project.
+
+### Basic configuration
+
+5. Inside the `config/` directory, create a copy of `config.example.yaml` and rename it to `config.yaml`.
+6. Edit `config.yaml` and set the PostgreSQL connection parameters to match your database and user created in step 4:
+
+```yaml
+local_database:
+  dbname: postgres
+  user: postgres
+  host: localhost
+  password: 123
+  port: 5432
+```
+
+7. Edit `config.yaml` and set your runner name and the path to your LiveSplit file:
+
+```yaml
+main_runner:
+  name: runner1
+  splits_file: "C:/Path/To/my splits.lss"
+```
+
+**NOTE**: The LiveSplit file can have any name, but the runner's name cannot contain commas (,), hyphens (-), empty spaces ( ), or underscores (\_).
+
+8. Edit `config.yaml` and set the list of the names of other runners to compare to, as well as the path to the directory where their LiveSplit files are stored:
+
+```yaml
+other_runners:
+  names:
+    - runner2
+    - runner3
+  splits_folder: "C:/Path/To/Other runners splits"
+```
+
+**NOTE**: The LiveSplit files of other runners must be named following this exact pattern: `splits <runner_name>.lss`. For example, if the runner name is `Peter`, the LiveSplit file must be named `splits Peter.lss`. The same restrictions on the runner names mentioned in step 7 also apply here.
+
+### Extra optional configuration
+
+9. (Optional) If you want to import LiveSplit files off of Google Drive and/or export the resulting analytics to Google Sheets, follow these steps:
+   1. Set up a **Google Cloud project**.
+   2. Create a **service account** with the necessary permissions.
+   3. Download the service account credentials JSON file.
+   4. Edit `config.yaml` and set the path to the aforementioned JSON file, as well as either the Google Sheet ID or the Google Drive folder ID, or both:
+   ```yaml
+   google_api:
+     service_account_secrets_file: "C:/Path/To/My/service_account_secrets.json" # Can be left empty
+     google_sheet_id: my-google-sheet-id # Can be left empty
+     google_drive_folder_id: my-google-drive-folder-id # Can be left empty
+   ```
 
 ### How to run
+
+10. To run the application, use the following command:
+
+```bash
+uv run src/main.py
+```
 
 ---
 
 ## Possible improvements
+
+...
