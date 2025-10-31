@@ -25,3 +25,5 @@ local_database:
 sql_scripts:
     builder: '../sql scripts/splits_database_builder.sql'
     config: '../sql scripts/config.sql'
+
+exclude_data_before: 2020-01-28 # Format must be YYYY-MM-DD. Can be left empty

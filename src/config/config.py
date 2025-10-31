@@ -4,6 +4,7 @@ from pathlib import Path
 
 import yaml
 
+from config.exclude_data_before_config import ExcludeDataBeforeConfig
 from config.google_api_config import GoogleAPIConfig
 from config.local_database_config import LocalDatabaseConfig
 from config.main_runner_config import MainRunnerConfig
@@ -26,6 +27,7 @@ class Config:
     google_api: GoogleAPIConfig
     local_db: LocalDatabaseConfig
     sql_scripts: SQLScriptsConfig
+    exclude_data_before: ExcludeDataBeforeConfig
     last_table_updates_file: Path
     output_dir: Path
 
@@ -78,6 +80,10 @@ def load_config() -> Config:
             config=Path(config["sql_scripts"]["config"]).resolve(),
         )
 
+        exclude_data_before = ExcludeDataBeforeConfig(
+            date=config.get("exclude_data_before", None),
+        )
+
     except KeyError as e:
         msg = f"The structure of the '{YAML_CONFIG_FILE}' file is invalid."
         logger.exception(msg)
@@ -89,6 +95,7 @@ def load_config() -> Config:
         google_api=google_api,
         local_db=local_db,
         sql_scripts=sql_scripts,
+        exclude_data_before=exclude_data_before,
         last_table_updates_file=LAST_UPDATES_FILE,
         output_dir=OUTPUT_DIR,
     )

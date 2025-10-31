@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import date
 from pathlib import Path
 
 import psycopg
@@ -25,11 +26,16 @@ class DatabaseManager:
         sql_script: Path,
         config_sql_script: Path,
         db_config: LocalDatabaseConfig,
+        exclude_data_before: date | None,
         last_updates_tracker: LastUpdatesTracker,
     ) -> None:
         self._sql_script = sql_script
         self._config_sql_script = config_sql_script
         self._db_config = db_config
+        if exclude_data_before:
+            self._exclude_data_before = exclude_data_before.strftime("%Y-%m-%d")
+        else:
+            self._exclude_data_before = "2000-01-01"
         self._last_updates_tracker = last_updates_tracker
 
         self._connection = None
@@ -153,6 +159,7 @@ class DatabaseManager:
 
         logger.info("Updating the database tables...")
         sql_script = self._sql_script.read_text()
+        sql_script = sql_script.replace("limit-date", self._exclude_data_before)
 
         new_updates = any(
             self._update_runner_table(sql_script=sql_script, splits_file=splits_file)

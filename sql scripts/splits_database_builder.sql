@@ -315,7 +315,7 @@ SELECT
     run_ended_at,
     run_ended_at - run_started_at AS run_duration
 FROM stg_attempts_data3_runner
-WHERE run_id IS NOT NULL AND DATE(run_started_at) >= '2024-10-15'; -- TODO: This date needs to be customizable
+WHERE run_id IS NOT NULL AND DATE(run_started_at) >= 'limit-date';
 
 /* Getting the list of all finished runs and for each finished run, if it was a PB when it was done or not (which also means getting the LRT PB at that time too). */
 

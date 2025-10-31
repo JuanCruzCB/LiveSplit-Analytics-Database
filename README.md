@@ -254,10 +254,20 @@ other_runners:
      google_sheet_id: my-google-sheet-id # Can be left empty
      google_drive_folder_id: my-google-drive-folder-id # Can be left empty
    ```
+10. (Optional) If you want to avoid processing data from the LiveSplit files before a certain date, edit `config.yaml` and set the desired limit date **in `YYYY-MM-DD` format and with no single nor double quotes**:
+
+    1. For example, to ignore all data before January 28, 2020, set this:
+
+    ```yaml
+    exclude_data_before: 2020-01-28 # Can be left empty
+    ```
+
+    2. This can be useful for speeding up the data processing time if the LiveSplit files contain a lot of old data that is not relevant anymore. It can also be useful if the different LiveSplit files to compare against each other have significantly different dates when they began being used.
+    3. If left empty, the date will default to 2000-01-01, effectively processing all data.
 
 ### How to run
 
-10. To run the application, use the following command:
+11. To run the application, use the following command:
 
 ```bash
 uv run src/main.py
