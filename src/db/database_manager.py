@@ -1,12 +1,11 @@
 import logging
 import time
-from datetime import date
 from pathlib import Path
 
 import psycopg
 from pandas import DataFrame
 
-from config.config import LocalDatabaseConfig
+from config.config import ExcludeDataBeforeConfig, LocalDatabaseConfig
 from db.exceptions import (
     ConnectionError,  # noqa: A004
     NoActiveConnectionError,
@@ -26,16 +25,13 @@ class DatabaseManager:
         sql_script: Path,
         config_sql_script: Path,
         db_config: LocalDatabaseConfig,
-        exclude_data_before: date | None,
+        exclude_data_before_config: ExcludeDataBeforeConfig,
         last_updates_tracker: LastUpdatesTracker,
     ) -> None:
         self._sql_script = sql_script
         self._config_sql_script = config_sql_script
         self._db_config = db_config
-        if exclude_data_before:
-            self._exclude_data_before = exclude_data_before.strftime("%Y-%m-%d")
-        else:
-            self._exclude_data_before = "2000-01-01"
+        self._exclude_data_before = exclude_data_before_config.get_date_str()
         self._last_updates_tracker = last_updates_tracker
 
         self._connection = None

@@ -37,7 +37,7 @@ def main() -> None:
         sql_script=config.sql_scripts.builder,
         config_sql_script=config.sql_scripts.config,
         db_config=config.local_db,
-        exclude_data_before=config.exclude_data_before.date,
+        exclude_data_before_config=config.exclude_data_before,
         last_updates_tracker=last_updates,
     )
     query_runner = QueryRunner(
