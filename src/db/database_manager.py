@@ -157,10 +157,13 @@ class DatabaseManager:
         sql_script = self._sql_script.read_text()
         sql_script = sql_script.replace("limit-date", self._exclude_data_before)
 
-        new_updates = any(
-            self._update_runner_table(sql_script=sql_script, splits_file=splits_file)
-            for splits_file in splits_files
-        )
+        new_updates = False
+        for splits_file in splits_files:
+            if self._update_runner_table(
+                sql_script=sql_script,
+                splits_file=splits_file,
+            ):
+                new_updates = True
 
         if not new_updates:
             logger.info("The database is already up to date.")
