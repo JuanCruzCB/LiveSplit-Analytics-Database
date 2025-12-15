@@ -31,7 +31,7 @@ def main() -> None:
     )
     last_updates = LastUpdatesTracker(
         storage_file=config.last_table_updates_file,
-        default_files=splits.splits_files_paths,
+        default_files=splits.get_splits_files_paths(),
     )
     db_manager = DatabaseManager(
         sql_script=config.sql_scripts.builder,

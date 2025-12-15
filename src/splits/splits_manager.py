@@ -14,21 +14,8 @@ class SplitsManager:
         main_runner_splits_file: Path,
         runner_names: list[str],
     ) -> None:
-        splits_files: list[SplitsFile] = []
-        splits_files.append(
-            SplitsFile(
-                file_path=main_runner_splits_file,
-                runner_name=runner_names[0],
-            ),
-        )
-        for splits_file in splits_output_folder.glob("*.lss"):
-            runner_name = splits_file.stem.replace("splits ", "")
-            splits_files.append(
-                SplitsFile(file_path=splits_file, runner_name=runner_name),
-            )
-
         self._splits_folder = splits_output_folder
-        self._splits_files = splits_files
+        self._main_runner_splits_file = main_runner_splits_file
         self._runner_names = runner_names
 
     @property
@@ -38,19 +25,29 @@ class SplitsManager:
         """
         return self._splits_folder
 
-    @property
-    def splits_files_paths(self) -> list[Path]:
+    def get_splits_files_paths(self) -> list[Path]:
         """
         Returns the path of every splits file.
         """
-        return [splits_file.file_path for splits_file in self._splits_files]
+        return list(self._splits_folder.glob("*.lss"))
 
-    @property
-    def splits_files(self) -> list[SplitsFile]:
+    def get_splits_files(self) -> list[SplitsFile]:
         """
         Returns the list of all SplitsFile objects.
         """
-        return self._splits_files
+        splits_files: list[SplitsFile] = []
+        splits_files.append(
+            SplitsFile(
+                file_path=self._main_runner_splits_file,
+                runner_name=self._runner_names[0],
+            ),
+        )
+        for splits_file in self._splits_folder.glob("*.lss"):
+            runner_name = splits_file.stem.replace("splits ", "")
+            splits_files.append(
+                SplitsFile(file_path=splits_file, runner_name=runner_name),
+            )
+        return splits_files
 
     @property
     def runner_names(self) -> list[str]:
@@ -64,9 +61,9 @@ class SplitsManager:
         Validates all splits files by checking that all of them have
         the same number of splits.
         """
-        number_of_splits_main = self._splits_files[0].get_number_of_splits()
+        number_of_splits_main = self.get_splits_files()[0].get_number_of_splits()
 
-        for splits_file in self._splits_files[1:]:
+        for splits_file in self.get_splits_files()[1:]:
             number_of_splits = splits_file.get_number_of_splits()
             if number_of_splits != number_of_splits_main:
                 msg = (
@@ -84,7 +81,7 @@ class SplitsManager:
         1. Removing Icons (if they exist) from all splits.
         2. Replacing all commas in split names by pipes.
         """
-        for splits_file in self._splits_files:
+        for splits_file in self.get_splits_files():
             splits_file.clean()
 
     def find_splits_file_by_runner_name(self, runner_name: str) -> SplitsFile | None:
@@ -96,7 +93,7 @@ class SplitsManager:
         return next(
             (
                 splits_file
-                for splits_file in self._splits_files
+                for splits_file in self.get_splits_files()
                 if splits_file.runner_name == runner_name
             ),
             None,

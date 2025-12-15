@@ -146,7 +146,7 @@ def run_without_google_api(
     try:
         qr.open_db_connection()
         qr.create_config_tables()
-        if qr.update_runners_tables(splits_files=splits.splits_files):
+        if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
             export_to_excel(all_data, output_dir)
     finally:
@@ -186,7 +186,7 @@ def run_with_google_drive_and_google_sheets(
     try:
         qr.open_db_connection()
         qr.create_config_tables()
-        if qr.update_runners_tables(splits_files=splits.splits_files):
+        if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
             export_to_google_sheet(sheet_manager, all_data)
     finally:
@@ -220,7 +220,7 @@ def run_with_google_drive_only(
     try:
         qr.open_db_connection()
         qr.create_config_tables()
-        if qr.update_runners_tables(splits_files=splits.splits_files):
+        if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
             export_to_excel(all_data, output_dir)
     finally:
@@ -251,7 +251,7 @@ def run_with_google_sheets_only(
     try:
         qr.open_db_connection()
         qr.create_config_tables()
-        if qr.update_runners_tables(splits_files=splits.splits_files):
+        if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
             export_to_google_sheet(sheet_manager, all_data)
     finally:
