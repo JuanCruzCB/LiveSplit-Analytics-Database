@@ -1,7 +1,6 @@
 from enum import StrEnum
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
@@ -321,13 +320,8 @@ class QueryRunner:
             best_col=False,
             sum_of_best_col=False,
         )
-        numeric_cols = data.select_dtypes(include=np.number).columns
-        data[numeric_cols] = (
-            data[numeric_cols]
-            .astype(float)
-            .round(2)
-            .clip(lower=0)  # More efficient way to set minimum value to 0
-        )
+        runner_count = len(self._runner_names)
+        data.iloc[:, :runner_count] = data.iloc[:, :runner_count].astype(float).round(2)
         return data
 
     def get_runners_general_stats(self, *, stat_names_col: bool) -> DataFrame:
