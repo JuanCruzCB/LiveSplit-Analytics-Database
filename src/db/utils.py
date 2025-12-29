@@ -74,15 +74,20 @@ def add_best_and_cumulative_best_cols(golds: DataFrame) -> DataFrame:
 
 def transform_days_hours_mins_secs(total_playtime: str) -> str:
     """
-    Transform a total playtime string in 'X days HH:MM:SS' format into
-    'X days and Y hours' format.
+    Transform a total playtime string in 'X days HH:MM:SS'
+    format into 'X hours' format.
     """
-    # TODO: Calculate total seconds from HH:MM:SS then convert to rounded hours,
-    # for more accuracy.
-    days = total_playtime.split(" ")[0]
-    hours = int(total_playtime.split(" ")[2].split(":")[0])
+    hours = 0
+    if "days" in total_playtime:
+        days_part, time_part = total_playtime.split("days")
+        hours += int(days_part.strip()) * 24
+        total_playtime = time_part.strip()
 
-    return f"{days} days and {int(hours)} hours"
+    if ":" in total_playtime:
+        hrs, mins, secs = map(int, total_playtime.split(":"))
+        hours += hrs + mins / 60 + secs / 3600
+
+    return f"{round(hours, 1)} hours"
 
 
 def transform_interval_to_hours_mins(interval: str | None) -> str:
