@@ -1234,12 +1234,26 @@ SELECT
     split_name,
     chapter,
     area,
-    SUM(lrt_time) OVER(PARTITION BY run_id ORDER BY split_index) AS lrt_pace,
-    SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_index) AS rta_pace
-FROM doorsplit_history5_runner
+    lrt_pace,
+    rta_pace
+FROM
+(
+    SELECT
+        run_id,
+        split_index,
+        split_name,
+        chapter,
+        area,
+        SUM(lrt_time) OVER(PARTITION BY run_id ORDER BY split_index) AS lrt_pace,
+        SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_index) AS rta_pace,
+        COUNT(*) OVER (PARTITION BY run_id ORDER BY split_index) AS count_splits
+    FROM doorsplit_history5_joker
+) a
+WHERE count_splits = split_index
 ORDER BY
     run_id,
     split_index;
+
 
 /* Add the overall rank of each pace from the history relative to that split, and also the relative pace rank relative to when that pace was obtained. Also add readable LRT and RTA pace. */
 
