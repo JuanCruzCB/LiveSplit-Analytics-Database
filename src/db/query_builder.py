@@ -407,7 +407,7 @@ class QueryBuilder:
                 runner1.split_name,
                 runner1.lrt_time_med_fmt AS {runner1}_ds_med,
                 runner2.lrt_time_med_fmt AS {runner2}_ds_med,
-                (runner1.lrt_time_med - runner2.lrt_time_med)::TEXT AS difference
+                ROUND(EXTRACT(EPOCH FROM (runner1.lrt_time_med - runner2.lrt_time_med))::NUMERIC, 3) AS difference
             FROM
             (
                 SELECT
@@ -429,7 +429,7 @@ class QueryBuilder:
             ) runner2
             ON runner1.split_index = runner2.split_index
             ORDER BY runner1.split_index;
-            """  # noqa: S608
+            """  # noqa: E501, S608
 
     def compare_runners_doorsplit_golds(self, runner1: str, runner2: str) -> str:
         """
@@ -442,7 +442,7 @@ class QueryBuilder:
                 runner1.split_name,
                 runner1.lrt_time_fmt AS {runner1}_ds_gold,
                 runner2.lrt_time_fmt AS {runner2}_ds_gold,
-                (runner1.lrt_time - runner2.lrt_time)::TEXT AS difference
+                ROUND(EXTRACT(EPOCH FROM (runner1.lrt_time - runner2.lrt_time))::NUMERIC, 3) AS difference
             FROM
             (
                 SELECT DISTINCT
@@ -464,7 +464,7 @@ class QueryBuilder:
             ) runner2
             ON runner1.split_index = runner2.split_index
             ORDER BY runner1.split_index;
-            """  # noqa: S608
+            """  # noqa: E501, S608
 
     def doorsplit_history(
         self,
