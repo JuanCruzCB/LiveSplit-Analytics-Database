@@ -1247,7 +1247,7 @@ FROM
         SUM(lrt_time) OVER(PARTITION BY run_id ORDER BY split_index) AS lrt_pace,
         SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_index) AS rta_pace,
         COUNT(*) OVER (PARTITION BY run_id ORDER BY split_index) AS count_splits
-    FROM doorsplit_history5_joker
+    FROM doorsplit_history5_runner
 ) a
 WHERE count_splits = split_index
 ORDER BY
