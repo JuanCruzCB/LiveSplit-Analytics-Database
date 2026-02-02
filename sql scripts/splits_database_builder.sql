@@ -1224,7 +1224,7 @@ ORDER BY sort;
 
 --#region PACES
 
-/* History of all paces of all runs, for as long as each run lasted. The pace is simply the cumulative sum of the LRT/RTA time split per split. */
+/* History of all paces of all runs, for as long as each run lasted. The pace is simply the cumulative sum of the LRT/RTA time split per split. Also add well formatted LRT and RTA pace, as well as the overall rank of each pace, for each split, and what the best pace was on that split when that pace was obtained. */
 
 DROP TABLE IF EXISTS stg_pace_history1_runner;
 CREATE TABLE stg_pace_history1_runner AS
@@ -1235,7 +1235,11 @@ SELECT
     chapter,
     area,
     lrt_pace,
-    rta_pace
+    LTRIM(TO_CHAR(lrt_pace, 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_fmt,
+    rta_pace,
+    LTRIM(TO_CHAR(rta_pace, 'HH24:MI:SS.FF3'), '0:') AS rta_pace_fmt,
+    RANK() OVER(PARTITION BY split_index ORDER BY lrt_pace) AS pace_rank,
+    MIN(lrt_pace) OVER(PARTITION BY split_index ORDER BY run_id) AS best_pace_at_that_time
 FROM
 (
     SELECT
@@ -1248,41 +1252,53 @@ FROM
         SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_index) AS rta_pace,
         COUNT(*) OVER (PARTITION BY run_id ORDER BY split_index) AS count_splits
     FROM doorsplit_history5_runner
-) a
+) dsh
 WHERE count_splits = split_index
 ORDER BY
     run_id,
     split_index;
 
+/* Add rank of each individual pace relative to when it was obtained. */
 
-/* Add the overall rank of each pace from the history relative to that split, and also the relative pace rank relative to when that pace was obtained. Also add readable LRT and RTA pace. */
-
-DROP TABLE IF EXISTS pace_history2_runner;
-CREATE TABLE pace_history2_runner AS
+DROP TABLE IF EXISTS stg_pace_history2_runner;
+CREATE TABLE stg_pace_history2_runner AS
 SELECT
-    run_id,
-    split_index,
-    split_name,
-    chapter,
-    area,
-    (
-        SELECT
-            COUNT(*)
-        FROM stg_pace_history1_runner p2
-        WHERE p2.split_index = p1.split_index
-            AND p2.run_id <= p1.run_id
-            AND p2.lrt_pace < p1.lrt_pace
-    ) + 1 AS pace_rank_at_that_time,
-    RANK() OVER(PARTITION BY split_index ORDER BY lrt_pace) AS pace_rank,
-    MIN(lrt_pace) OVER(PARTITION BY split_index ORDER BY run_id) AS best_pace_at_that_time,
-    lrt_pace,
-    LTRIM(TO_CHAR(lrt_pace, 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_fmt,
-    rta_pace,
-    LTRIM(TO_CHAR(rta_pace, 'HH24:MI:SS.FF3'), '0:') AS rta_pace_fmt
+    *
+FROM
+(
+    SELECT
+        p1.*,
+        p2.lrt_pace AS pace_time3,
+        p2.run_id AS run_id2,
+        RANK() OVER(PARTITION BY p1.split_index, p1.run_id ORDER BY p2.lrt_pace) AS pace_rank_at_that_time
+    FROM stg_pace_history1_runner p1
+    JOIN stg_pace_history1_runner p2
+    ON p1.split_index = p2.split_index AND p1.run_id >= p2.run_id
+) a
+WHERE run_id = run_id2;
+
+/* Combine the two previous tables into one. */
+
+DROP TABLE IF EXISTS pace_history3_runner;
+CREATE TABLE pace_history3_runner AS
+SELECT
+    p1.run_id,
+    p1.split_index,
+    p1.split_name,
+    p1.chapter,
+    p1.area,
+    p2.pace_rank_at_that_time,
+    p1.pace_rank,
+    p1.best_pace_at_that_time,
+    p1.lrt_pace,
+    p1.lrt_pace_fmt,
+    p1.rta_pace,
+    p1.rta_pace_fmt
 FROM stg_pace_history1_runner p1
+LEFT JOIN stg_pace_history2_runner p2 on p1.run_id = p2.run_id and p1.split_index = p2.split_index
 ORDER BY
-    run_id,
-    split_index;
+    p1.run_id,
+    p1.split_index;
 
 /* Best overall pace for each split. */
 
@@ -1298,7 +1314,7 @@ SELECT
     lrt_pace_fmt,
     rta_pace,
     rta_pace_fmt
-FROM pace_history2_runner
+FROM pace_history3_runner
 WHERE pace_rank = 1
 ORDER BY split_index;
 
@@ -1315,7 +1331,7 @@ SELECT
     LTRIM(TO_CHAR(AVG(lrt_pace), 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_avg_fmt,
     PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_pace) AS lrt_pace_med,
     LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_pace), 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_med_fmt
-FROM pace_history2_runner
+FROM pace_history3_runner
 GROUP BY
     split_index,
     split_name,
@@ -1963,7 +1979,7 @@ SELECT
 
 FROM doorsplit_history5_runner dsh
 
-LEFT JOIN pace_history2_runner ph
+LEFT JOIN pace_history3_runner ph
 ON dsh.run_id = ph.run_id AND dsh.split_index = ph.split_index
 
 LEFT JOIN paces_best_runner bp
@@ -2094,7 +2110,7 @@ FROM
         ROW_NUMBER() OVER(PARTITION BY dg.split_index ORDER BY ph.lrt_pace - bp.lrt_pace) AS ds_gold_instance
     FROM doorsplit_golds2_runner dg
 
-    LEFT JOIN pace_history2_runner ph
+    LEFT JOIN pace_history3_runner ph
     ON dg.run_id = ph.run_id AND dg.split_index = ph.split_index
 
     LEFT JOIN paces_best_runner bp
