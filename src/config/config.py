@@ -40,7 +40,7 @@ def load_config() -> Config:
 
     if not YAML_CONFIG_FILE.exists():
         msg = f"The configuration file '{YAML_CONFIG_FILE}' does not exist."
-        logger.exception(msg)
+        logger.error(msg)
         raise FileNotFoundError(msg)
 
     with YAML_CONFIG_FILE.open("r") as f:

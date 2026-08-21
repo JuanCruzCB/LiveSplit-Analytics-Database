@@ -19,7 +19,7 @@ class ExcludeDataBeforeConfig:
 
         if self.date >= date.today():  # noqa: DTZ011
             msg = f"The date {self.date} must be before the current date."
-            logger.exception(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
     def get_date_str(self) -> str:

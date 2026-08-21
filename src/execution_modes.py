@@ -165,19 +165,19 @@ def run_with_google_drive_and_google_sheets(
     data is uploaded to the Google Sheet.
     """
     google_drive = GoogleDriveAuth(
-        service_account_secrets_file=config.google_api.service_account_secrets_file,  # type: ignore
+        service_account_secrets_file=config.google_api.service_account_secrets_file,
     )
     google_sheets = GoogleSheetsAuth(
-        service_account_secrets_file=config.google_api.service_account_secrets_file,  # type: ignore
+        service_account_secrets_file=config.google_api.service_account_secrets_file,
     )
     drive_manager = DriveManager(
-        google_drive_folder_id=config.google_api.google_drive_folder_id,  # type: ignore
+        google_drive_folder_id=config.google_api.google_drive_folder_id,
         google_drive=google_drive.auth(),
         splits_manager=splits,
     )
     sheet_manager = SheetManager(
         gspread_client=google_sheets.auth(),
-        google_sheet_id=config.google_api.google_sheet_id,  # type: ignore
+        google_sheet_id=config.google_api.google_sheet_id,
     )
 
     drive_manager.sync_local_splits()
@@ -206,10 +206,10 @@ def run_with_google_drive_only(
     data is exported to excel files.
     """
     google_drive = GoogleDriveAuth(
-        service_account_secrets_file=config.google_api.service_account_secrets_file,  # type: ignore
+        service_account_secrets_file=config.google_api.service_account_secrets_file,
     )
     drive_manager = DriveManager(
-        google_drive_folder_id=config.google_api.google_drive_folder_id,  # type: ignore
+        google_drive_folder_id=config.google_api.google_drive_folder_id,
         google_drive=google_drive.auth(),
         splits_manager=splits,
     )
@@ -239,11 +239,11 @@ def run_with_google_sheets_only(
     Google Sheet.
     """
     google_sheets = GoogleSheetsAuth(
-        service_account_secrets_file=config.google_api.service_account_secrets_file,  # type: ignore
+        service_account_secrets_file=config.google_api.service_account_secrets_file,
     )
     sheet_manager = SheetManager(
         gspread_client=google_sheets.auth(),
-        google_sheet_id=config.google_api.google_sheet_id,  # type: ignore
+        google_sheet_id=config.google_api.google_sheet_id,
     )
 
     splits.validate_all_splits()

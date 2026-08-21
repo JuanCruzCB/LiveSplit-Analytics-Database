@@ -14,7 +14,7 @@ class GoogleSheetsAuth:
     Manage authentication with Google Sheets API.
     """
 
-    service_account_secrets_file: Path
+    service_account_secrets_file: Path | None
 
     def auth(self) -> Client:
         """
@@ -25,7 +25,7 @@ class GoogleSheetsAuth:
         try:
             logger.info("Authenticating on Google Sheets...")
             client = authorize(
-                credentials=Credentials.from_service_account_file(
+                credentials=Credentials.from_service_account_file(  # pyright: ignore[reportUnknownMemberType]
                     filename=str(self.service_account_secrets_file),
                     scopes=[
                         "https://www.googleapis.com/auth/spreadsheets",

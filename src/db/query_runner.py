@@ -1,10 +1,11 @@
-from enum import StrEnum
 from pathlib import Path
+from typing import Final
 
 import pandas as pd
 from pandas import DataFrame
 
 from db.database_manager import DatabaseManager
+from db.order_by import OrderColumns, OrderType
 from db.query_builder import QueryBuilder
 from db.utils import (
     add_best_and_cumulative_best_cols,
@@ -16,21 +17,9 @@ from splits.splits_file import SplitsFile
 type OptionalParams = dict[str, str | int] | None
 
 
-class OrderColumns(StrEnum):
-    RUN_ID = "run_id"
-    SPLIT_INDEX = "split_index"
-    LRT_TIME = "lrt_time"
-    RUN_STARTED_AT = "run_started_at"
-
-
-class OrderType(StrEnum):
-    ASCENDING = ""
-    DESCENDING = "DESC"
-
-
 class QueryRunner:
-    GOOD_DATE_FORMAT = "%d/%m/%Y"
-    GOOD_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S UTC"
+    GOOD_DATE_FORMAT: Final[str] = "%d/%m/%Y"
+    GOOD_DATETIME_FORMAT: Final[str] = "%d/%m/%Y %H:%M:%S UTC"
 
     def __init__(
         self,
@@ -40,11 +29,11 @@ class QueryRunner:
         main_runner_name: str,
         output_dir: Path,
     ) -> None:
-        self._db = db_manager
-        self._query_builder = query_builder
-        self._runner_names = runner_names
-        self._main_runner = main_runner_name
-        self._output_dir = output_dir
+        self._db: DatabaseManager = db_manager
+        self._query_builder: QueryBuilder = query_builder
+        self._runner_names: list[str] = runner_names
+        self._main_runner: str = main_runner_name
+        self._output_dir: Path = output_dir
 
     """
     MAIN QUERIES
@@ -96,7 +85,7 @@ class QueryRunner:
         Optionally, it can add a "Best" column and a
         "Cumulative best" column at the end.
         """
-        dfs = []
+        dfs: list[DataFrame] = []
         for header_query in column_header_queries:
             if header_query != "":
                 header_column = self.execute(query=header_query)
@@ -332,7 +321,7 @@ class QueryRunner:
         3) Their total number of attempts.
         4) Their total playtime, in days and hours.
         """
-        dfs = []
+        dfs: list[DataFrame] = []
 
         if stat_names_col:
             dfs.append(
@@ -384,7 +373,7 @@ class QueryRunner:
         Returns a DataFrame with many different stats related to how
         each runner performs on the seven days of the week.
         """
-        dfs = []
+        dfs: list[DataFrame] = []
 
         if weekday_stat_cols:
             weekdays = [
@@ -458,11 +447,13 @@ class QueryRunner:
         ).columns.tolist()
         for col in datetime_cols:
             data[col] = data[col].apply(
-                lambda x: pd.to_datetime(x, errors="coerce").strftime(
-                    self.GOOD_DATETIME_FORMAT,
-                )
-                if pd.notna(x)
-                else None,
+                lambda x: (
+                    pd.to_datetime(x, errors="coerce").strftime(
+                        self.GOOD_DATETIME_FORMAT,
+                    )
+                    if pd.notna(x)
+                    else None
+                ),
             )
 
         if excel_name:
@@ -476,7 +467,7 @@ class QueryRunner:
         """
         for table in self.export_table_names():
             if "stg" in table:
-                self.execute(query=f"DROP TABLE {table};")
+                _ = self.execute(query=f"DROP TABLE {table};")
 
     def export_table_names(self) -> list[str]:
         """
@@ -488,7 +479,7 @@ class QueryRunner:
         tables_df = self.execute(query=self._query_builder.TABLE_NAMES_QUERY)
         tables = tables_df["table_name"].to_list()
         with Path(self._output_dir / "tables.txt").open("w") as f:
-            f.write("\n".join(tables))
+            _ = f.write("\n".join(tables))
 
         return tables
 

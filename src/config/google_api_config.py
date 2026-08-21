@@ -33,5 +33,5 @@ class GoogleAPIConfig:
             and not self.service_account_secrets_file.exists()
         ):
             msg = f"The file {self.service_account_secrets_file} does not exist."
-            logger.exception(msg)
+            logger.error(msg)
             raise FileNotFoundError(msg)

@@ -20,8 +20,8 @@ class SplitsFile:
         self._validate_file_path_is_file(file_path)
         self._validate_file_path_extension(file_path)
 
-        self._file_path = file_path
-        self._runner_name = runner_name
+        self._file_path: Path = file_path
+        self._runner_name: str = runner_name
 
     @staticmethod
     def _validate_file_path_exists(file_path: Path) -> None:
@@ -30,7 +30,7 @@ class SplitsFile:
         """
         if not file_path.exists():
             msg = f"Splits file does not exist: '{file_path}'."
-            logger.exception(msg)
+            logger.error(msg)
             raise FileNotFoundError(msg)
 
     @staticmethod
@@ -41,7 +41,7 @@ class SplitsFile:
         tree = parse(file_path)
         if tree.getroot() is None:
             msg = f"Invalid XML structure in splits file: '{file_path}'."
-            logger.exception(msg)
+            logger.error(msg)
             raise SplitsFileStructureError(msg)
 
     @staticmethod
@@ -51,7 +51,7 @@ class SplitsFile:
         """
         if not file_path.is_file():
             msg = f"Path is not a file: '{file_path}'."
-            logger.exception(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
     @staticmethod
@@ -61,7 +61,7 @@ class SplitsFile:
         """
         if file_path.suffix.lower() != ".lss":
             msg = f"Splits file must have a .lss extension: '{file_path}'."
-            logger.exception(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
     @property
@@ -97,6 +97,10 @@ class SplitsFile:
         is_dirty = False
         tree = parse(self._file_path)
         root = tree.getroot()
+        if root is None:
+            msg = f"Invalid XML structure in splits file: '{self._file_path}'."
+            logger.error(msg)
+            raise SplitsFileStructureError(msg)
 
         # 1. Remove all existing data inside each Icon tag
         for icon in root.findall(".//Icon"):  # type: ignore  # noqa: PGH003
@@ -146,6 +150,12 @@ class SplitsFile:
         """
         Returns the number of splits in the splits file.
         """
-        tree = parse(self._file_path)
-        split_names = list(tree.getroot().iter("Name"))  # type: ignore
+        root = parse(self._file_path).getroot()
+        if root is None:
+            msg = f"Invalid XML structure in splits file: '{self._file_path}'."
+            logger.error(msg)
+            raise SplitsFileStructureError(msg)
+
+        elements = root.iter("Name")
+        split_names = list(elements)
         return len(split_names)

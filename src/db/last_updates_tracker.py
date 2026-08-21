@@ -1,6 +1,7 @@
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Final, cast
 
 
 class LastUpdatesTracker:
@@ -9,12 +10,12 @@ class LastUpdatesTracker:
     The tracking is loaded to and from a JSON file.
     """
 
-    DATE_TIME_FORMAT = "%d/%m/%Y %H:%M:%S"
-    DEFAULT_TIMESTAMP = "1/1/2000 00:00:00"
+    DATE_TIME_FORMAT: Final[str] = "%d/%m/%Y %H:%M:%S"
+    DEFAULT_TIMESTAMP: Final[str] = "1/1/2000 00:00:00"
 
     def __init__(self, storage_file: Path, default_files: list[Path]) -> None:
-        self._storage_file = storage_file
-        self._default_data = dict.fromkeys(
+        self._storage_file: Path = storage_file
+        self._default_data: dict[Path, datetime] = dict.fromkeys(
             default_files,
             datetime.strptime(self.DEFAULT_TIMESTAMP, self.DATE_TIME_FORMAT).astimezone(
                 UTC,
@@ -49,7 +50,7 @@ class LastUpdatesTracker:
             return self._default_data
 
         with self._storage_file.open(mode="r") as json_file:
-            raw_data = json.load(fp=json_file)
+            raw_data = cast("dict[str, str]", json.load(fp=json_file))
             return {
                 Path(file): datetime.strptime(modtime, self.DATE_TIME_FORMAT).replace(
                     tzinfo=UTC,

@@ -1,8 +1,12 @@
 import logging
 from datetime import UTC, datetime
+from typing import Final
 
-from pydrive2.drive import GoogleDrive, GoogleDriveFile
-from pydrive2.files import ApiRequestError
+from pydrive2.drive import (  # pyright: ignore[reportMissingTypeStubs]
+    GoogleDrive,
+    GoogleDriveFile,
+)
+from pydrive2.files import ApiRequestError  # pyright: ignore[reportMissingTypeStubs]
 
 from splits.exceptions import GoogleDriveFolderNotFoundError
 from splits.splits_manager import SplitsManager
@@ -11,17 +15,17 @@ logger = logging.getLogger(__name__)
 
 
 class DriveManager:
-    GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+    GOOGLE_DRIVE_DATE_TIME_FORMAT: Final[str] = "%Y-%m-%dT%H:%M:%S.%fZ"
 
     def __init__(
         self,
-        google_drive_folder_id: str,
+        google_drive_folder_id: str | None,
         google_drive: GoogleDrive,
         splits_manager: SplitsManager,
     ) -> None:
-        self._google_drive_folder_id = google_drive_folder_id
-        self._google_drive = google_drive
-        self._splits_manager = splits_manager
+        self._google_drive_folder_id: str | None = google_drive_folder_id
+        self._google_drive: GoogleDrive = google_drive
+        self._splits_manager: SplitsManager = splits_manager
 
     def sync_local_splits(self) -> None:
         """
@@ -41,6 +45,10 @@ class DriveManager:
         List all non-trashed files in the Google Drive folder specified
         in the constructor.
         """
+        if self._google_drive_folder_id is None:
+            msg = "Google Drive folder ID is not set."
+            raise ValueError(msg)
+
         query = {"q": f"'{self._google_drive_folder_id}' in parents and trashed=false"}
         try:
             return self._google_drive.ListFile(query).GetList()

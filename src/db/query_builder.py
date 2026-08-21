@@ -1,11 +1,11 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final, LiteralString
 
 if TYPE_CHECKING:
-    from db.query_runner import OrderColumns, OrderType
+    from db.order_by import OrderColumns, OrderType
 
 
 class QueryBuilder:
-    DOORSPLIT_NAMES_QUERY_WITH_TOTAL = """
+    DOORSPLIT_NAMES_QUERY_WITH_TOTAL: Final[LiteralString] = """
     SELECT split_name
     FROM
     (
@@ -20,12 +20,12 @@ class QueryBuilder:
     ) split_names
     ORDER BY split_names.split_index;
     """
-    DOORSPLIT_NAMES_QUERY = """
+    DOORSPLIT_NAMES_QUERY: Final[LiteralString] = """
     SELECT split_name
     FROM cfg_default_split_names
     ORDER BY split_index;
     """
-    CHAPTER_NAMES_QUERY_WITH_TOTAL = """
+    CHAPTER_NAMES_QUERY_WITH_TOTAL: Final[LiteralString] = """
     SELECT chapter
     FROM cfg_chapter_area_splits_from_to
 
@@ -34,11 +34,11 @@ class QueryBuilder:
     SELECT 'Total'
     ORDER BY chapter;
     """
-    CHAPTER_NAMES_QUERY = """
+    CHAPTER_NAMES_QUERY: Final[LiteralString] = """
     SELECT chapter
     FROM cfg_chapter_area_splits_from_to;
     """
-    AREA_NAMES_QUERY = """
+    AREA_NAMES_QUERY: Final[LiteralString] = """
     SELECT area
     FROM
     (
@@ -53,13 +53,13 @@ class QueryBuilder:
     ) area_names
     ORDER BY area_names.sort;
     """
-    TABLE_NAMES_QUERY = """
+    TABLE_NAMES_QUERY: Final[LiteralString] = """
     SELECT table_name
     FROM information_schema.tables
     WHERE table_schema = 'public'
     ORDER BY table_name;
     """
-    PATTERN_NAMES_QUERY = """
+    PATTERN_NAMES_QUERY: Final[LiteralString] = """
     SELECT SUBSTRING(pattern_name, 3) AS pattern
     FROM cfg_rng_pattern_rules;
     """

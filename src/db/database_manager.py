@@ -5,7 +5,8 @@ from pathlib import Path
 import psycopg
 from pandas import DataFrame
 
-from config.config import ExcludeDataBeforeConfig, LocalDatabaseConfig
+from config.exclude_data_before_config import ExcludeDataBeforeConfig
+from config.local_database_config import LocalDatabaseConfig
 from db.exceptions import (
     ConnectionError,  # noqa: A004
     NoActiveConnectionError,
@@ -28,13 +29,13 @@ class DatabaseManager:
         exclude_data_before_config: ExcludeDataBeforeConfig,
         last_updates_tracker: LastUpdatesTracker,
     ) -> None:
-        self._sql_script = sql_script
-        self._config_sql_script = config_sql_script
-        self._db_config = db_config
-        self._exclude_data_before = exclude_data_before_config.get_date_str()
-        self._last_updates_tracker = last_updates_tracker
+        self._sql_script: Path = sql_script
+        self._config_sql_script: Path = config_sql_script
+        self._db_config: LocalDatabaseConfig = db_config
+        self._exclude_data_before: str = exclude_data_before_config.get_date_str()
+        self._last_updates_tracker: LastUpdatesTracker = last_updates_tracker
 
-        self._connection = None
+        self._connection: psycopg.Connection | None = None
 
     def open_connection(self) -> None:
         """
@@ -74,7 +75,7 @@ class DatabaseManager:
             result = DataFrame()
             start = time.time()
             with self._connection.cursor() as cur:
-                cur.execute(query, params)  # type: ignore  # noqa: PGH003
+                _ = cur.execute(query, params)
                 end = time.time()
                 if cur.description:
                     data = cur.fetchall()
@@ -102,7 +103,7 @@ class DatabaseManager:
 
         logger.info("Creating config tables...")
         config_sql_script = self._config_sql_script.read_text()
-        self.execute(
+        _ = self.execute(
             query=config_sql_script,
             message="Created config tables succesfully",
         )
@@ -131,7 +132,7 @@ class DatabaseManager:
             "path",
             f"{splits_file.file_path_str}",
         )
-        self.execute(
+        _ = self.execute(
             query=modified_script,
             message=(
                 "Updated the database tables for "

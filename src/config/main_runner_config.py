@@ -19,10 +19,10 @@ class MainRunnerConfig:
                 "The main runner name cannot have commas, hyphens, "
                 "underscores or spaces."
             )
-            logger.exception(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         if not self.splits_file.exists():
             msg = f"The file {self.splits_file} does not exist."
-            logger.exception(msg)
+            logger.error(msg)
             raise FileNotFoundError(msg)

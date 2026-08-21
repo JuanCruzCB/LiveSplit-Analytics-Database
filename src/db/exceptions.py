@@ -1,4 +1,6 @@
-from config.config import LocalDatabaseConfig
+from typing import override
+
+from config.local_database_config import LocalDatabaseConfig
 
 
 class DatabaseError(Exception):
@@ -13,10 +15,11 @@ class DatabaseError(Exception):
         message: str = "An error occurred with the database.",
     ) -> None:
         super().__init__(message)
-        self.message = message
-        self.db_config = db_config
-        self.original_exception = original_exception
+        self.message: str = message
+        self.db_config: LocalDatabaseConfig = db_config
+        self.original_exception: Exception | None = original_exception
 
+    @override
     def __str__(self) -> str:
         """
         Return a string representation of the error.

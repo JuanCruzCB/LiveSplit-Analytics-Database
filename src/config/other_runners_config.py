@@ -20,10 +20,10 @@ class OtherRunnersConfig:
                     "The runner names cannot have commas, hyphens, "
                     "underscores or spaces."
                 )
-                logger.exception(msg)
+                logger.error(msg)
                 raise ValueError(msg)
 
         if not self.splits_folder.exists():
             msg = f"The folder {self.splits_folder} does not exist."
-            logger.exception(msg)
+            logger.error(msg)
             raise FileNotFoundError(msg)

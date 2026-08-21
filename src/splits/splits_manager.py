@@ -14,9 +14,9 @@ class SplitsManager:
         main_runner_splits_file: Path,
         runner_names: list[str],
     ) -> None:
-        self._splits_folder = splits_output_folder
-        self._main_runner_splits_file = main_runner_splits_file
-        self._runner_names = runner_names
+        self._splits_folder: Path = splits_output_folder
+        self._main_runner_splits_file: Path = main_runner_splits_file
+        self._runner_names: list[str] = runner_names
 
     @property
     def splits_folder(self) -> Path:
@@ -71,7 +71,7 @@ class SplitsManager:
                     f"number of splits ({number_of_splits}) "
                     f"than the main runner's splits file ({number_of_splits_main})."
                 )
-                logger.exception(msg)
+                logger.error(msg)
                 raise SplitsFilesComparisonError(msg)
 
     def clean_all_splits(self) -> None:
@@ -82,7 +82,7 @@ class SplitsManager:
         2. Replacing all commas in split names by pipes.
         """
         for splits_file in self.get_splits_files():
-            splits_file.clean()
+            _ = splits_file.clean()
 
     def find_splits_file_by_runner_name(self, runner_name: str) -> SplitsFile | None:
         """

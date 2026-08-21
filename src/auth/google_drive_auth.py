@@ -2,8 +2,8 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from pydrive2.auth import GoogleAuth
-from pydrive2.drive import GoogleDrive
+from pydrive2.auth import GoogleAuth  # pyright: ignore[reportMissingTypeStubs]
+from pydrive2.drive import GoogleDrive  # pyright: ignore[reportMissingTypeStubs]
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class GoogleDriveAuth:
     Manage authentication with Google Drive API.
     """
 
-    service_account_secrets_file: Path
+    service_account_secrets_file: Path | None
 
     def auth(self) -> GoogleDrive:
         """

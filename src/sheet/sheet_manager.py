@@ -1,8 +1,9 @@
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Final
 
 import numpy as np
-from gspread import Client, Worksheet
+from gspread import Client, Spreadsheet, Worksheet
 from gspread.exceptions import APIError, SpreadsheetNotFound, WorksheetNotFound
 from pandas import DataFrame
 
@@ -12,11 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 class SheetManager:
-    GOOD_DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
+    GOOD_DATETIME_FORMAT: Final[str] = "%d/%m/%Y %H:%M:%S"
 
-    def __init__(self, gspread_client: Client, google_sheet_id: str) -> None:
+    def __init__(self, gspread_client: Client, google_sheet_id: str | None) -> None:
+        if google_sheet_id is None:
+            msg = "The Google Sheet ID is not set in the configuration."
+            logger.error(msg)
+            raise ValueError(msg)
+
         try:
-            self._spreadsheet = gspread_client.open_by_key(google_sheet_id)
+            self._spreadsheet: Spreadsheet = gspread_client.open_by_key(google_sheet_id)
         except SpreadsheetNotFound as e:
             msg = f"The spreadsheet with id = {google_sheet_id} was not found."
             logger.exception(msg)
@@ -61,10 +67,10 @@ class SheetManager:
         try:
             original_data = original_sheet.get_all_values()
             if original_data:
-                old_sheet.update(values=original_data, range_name="A1")
+                _ = old_sheet.update(values=original_data, range_name="A1")
                 logger.info("Backup '%s' overwritten successfully!", old_sheet_tab_name)
 
-            original_sheet.update(
+            _ = original_sheet.update(
                 range_name=starting_cell,
                 values=data_list,
             )
@@ -92,7 +98,7 @@ class SheetManager:
         data_list = data.replace({np.nan: ""}).to_numpy().tolist()
         original_sheet = self._spreadsheet.worksheet(title=tab_name)
         try:
-            original_sheet.update(
+            _ = original_sheet.update(
                 range_name=starting_cell,
                 values=data_list,
             )
@@ -120,7 +126,7 @@ class SheetManager:
             current_time = datetime.now(tz=utc_minus_3).strftime(
                 self.GOOD_DATETIME_FORMAT,
             )
-            sheet.update_acell(
+            _ = sheet.update_acell(
                 label=cell,
                 value=f"Last updated on: {current_time} (UTC-3)",
             )

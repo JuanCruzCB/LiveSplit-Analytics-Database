@@ -16,9 +16,9 @@ class SQLScriptsConfig:
         """
         if not self.builder.exists():
             msg = f"The file {self.builder} does not exist."
-            logger.exception(msg)
+            logger.error(msg)
             raise FileNotFoundError(msg)
         if not self.config.exists():
             msg = f"The file {self.config} does not exist."
-            logger.exception(msg)
+            logger.error(msg)
             raise FileNotFoundError(msg)
