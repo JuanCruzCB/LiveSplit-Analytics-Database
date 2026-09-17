@@ -23,3 +23,6 @@ last_table_updates.json
 __pycache__/
 *.pyc
 *.pyo
+
+# Misc
+del-excels.ps1
