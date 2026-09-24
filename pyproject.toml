@@ -8,6 +8,7 @@ dependencies = [
     "basedpyright>=1.39.10",
     "defusedxml>=0.7.1",
     "gspread>=6.2.1",
+    "loguru>=0.7.3",
     "openpyxl>=3.1.5",
     "pandas-stubs>=3.0.5.260730",
     "polars>=1.44.2",
