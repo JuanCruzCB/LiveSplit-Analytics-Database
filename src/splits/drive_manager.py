@@ -1,7 +1,7 @@
-import logging
 from datetime import UTC, datetime
 from typing import Final
 
+from loguru import logger
 from pydrive2.drive import (  # pyright: ignore[reportMissingTypeStubs]
     GoogleDrive,
     GoogleDriveFile,
@@ -10,8 +10,6 @@ from pydrive2.files import ApiRequestError  # pyright: ignore[reportMissingTypeS
 
 from splits.exceptions import GoogleDriveFolderNotFoundError
 from splits.splits_manager import SplitsManager
-
-logger = logging.getLogger(__name__)
 
 
 class DriveManager:
@@ -54,7 +52,7 @@ class DriveManager:
             return self._google_drive.ListFile(query).GetList()
         except ApiRequestError as e:
             logger.exception(
-                "There's no Google Drive folder with id = %s",
+                "There's no Google Drive folder with id = {}",
                 self._google_drive_folder_id,
             )
             raise GoogleDriveFolderNotFoundError from e
@@ -80,7 +78,7 @@ class DriveManager:
 
         if runner_name not in self._splits_manager.runner_names:
             logger.warning(
-                "Ignoring unknown splits file: '%s'",
+                "Ignoring unknown splits file: '{}'",
                 file,
             )
             return None
@@ -100,7 +98,7 @@ class DriveManager:
 
         return logger.info(
             (
-                "Splits file '%s' is already up to date locally, "
+                "Splits file '{}' is already up to date locally, "
                 "so there's no need to update it."
             ),
             local_file.file_path.stem,
@@ -121,7 +119,7 @@ class DriveManager:
         """
         filename = file["title"]
         logger.info(
-            "Downloading '%s'%s...",
+            "Downloading '{}'{}...",
             filename,
             " for the first time" if first_time else "",
         )

@@ -1,12 +1,10 @@
-import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
 from defusedxml.ElementTree import parse
+from loguru import logger
 
 from splits.exceptions import SplitsFileStructureError
-
-logger = logging.getLogger(__name__)
 
 
 class SplitsFile:
@@ -106,7 +104,7 @@ class SplitsFile:
         for icon in root.findall(".//Icon"):  # type: ignore  # noqa: PGH003
             if len(icon) > 0 or icon.text:
                 is_dirty = True
-                msg = "Removing an icon from splits file: '%s'.", self._file_path
+                msg = "Removing an icon from splits file: '{}'.", self._file_path
                 logger.warning(msg)
                 icon.clear()
 
@@ -115,7 +113,7 @@ class SplitsFile:
             if name.text is not None and "," in name.text:
                 is_dirty = True
                 msg = (
-                    "Replacing commas (,) with pipes (|) in splits file: '%s'.",
+                    "Replacing commas (,) with pipes (|) in splits file: '{}'.",
                     self._file_path,
                 )
                 logger.warning(msg)

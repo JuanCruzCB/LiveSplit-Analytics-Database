@@ -1,14 +1,12 @@
-import logging
 from datetime import datetime, timedelta, timezone
 from typing import Final
 
 from gspread import Client, Spreadsheet, Worksheet
 from gspread.exceptions import APIError, SpreadsheetNotFound, WorksheetNotFound
+from loguru import logger
 from polars import DataFrame
 
 from sheet.exceptions import SheetNotFoundError, UnauthorizedError
-
-logger = logging.getLogger(__name__)
 
 
 class SheetManager:
@@ -67,7 +65,7 @@ class SheetManager:
             original_data = original_sheet.get_all_values()
             if original_data:
                 _ = old_sheet.update(values=original_data, range_name="A1")
-                logger.info("Backup '%s' overwritten successfully!", old_sheet_tab_name)
+                logger.info("Backup '{}' overwritten successfully!", old_sheet_tab_name)
 
             _ = original_sheet.update(
                 range_name=starting_cell,
@@ -82,7 +80,7 @@ class SheetManager:
             logger.exception(msg)
             raise RuntimeError(msg) from e
         else:
-            logger.info("Sheet '%s' updated successfully!", tab_name)
+            logger.info("Sheet '{}' updated successfully!", tab_name)
 
     def upload_dataframe_without_copy(
         self,
@@ -110,7 +108,7 @@ class SheetManager:
             logger.exception(msg)
             raise RuntimeError(msg) from e
         else:
-            logger.info("Sheet '%s' updated successfully!", tab_name)
+            logger.info("Sheet '{}' updated successfully!", tab_name)
 
     def upload_last_updated_on(self, tab_name: str, cell: str) -> None:
         """
@@ -138,4 +136,4 @@ class SheetManager:
             logger.exception(msg)
             raise RuntimeError(msg) from e
         else:
-            logger.info("Sheet '%s' updated successfully!", sheet.title)
+            logger.info("Sheet '{}' updated successfully!", sheet.title)

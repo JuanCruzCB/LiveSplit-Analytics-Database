@@ -1,8 +1,8 @@
-import logging
 import time
 from pathlib import Path
 
 import psycopg
+from loguru import logger
 from polars import DataFrame
 
 from config.exclude_data_before_config import ExcludeDataBeforeConfig
@@ -14,8 +14,6 @@ from db.exceptions import (
 )
 from db.last_updates_tracker import LastUpdatesTracker
 from splits.splits_file import SplitsFile
-
-logger = logging.getLogger(__name__)
 
 type OptionalParams = dict[str, str | int] | None
 
@@ -91,7 +89,7 @@ class DatabaseManager:
                 message=f"There was an SQL error while running the query:\n {query}",
             ) from e
         else:
-            logger.info("%s in %.3f seconds!", message, end - start)
+            logger.info("{} in {:.3f} seconds!", message, end - start)
             return result
 
     def create_config_tables(self) -> None:
@@ -120,7 +118,7 @@ class DatabaseManager:
         if splits_file.is_older_than(dt=db_last_modified):
             logger.info(
                 (
-                    "Not updating the tables for splits file '%s' since they are "
+                    "Not updating the tables for splits file '{}' since they are "
                     "already up to date."
                 ),
                 splits_file.file_path.stem,
