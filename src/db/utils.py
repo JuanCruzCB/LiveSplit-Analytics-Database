@@ -1,6 +1,7 @@
 from decimal import Decimal
 
-from pandas import DataFrame
+import polars as pl
+from polars import DataFrame
 
 
 def format_time(seconds: Decimal) -> str:
@@ -47,29 +48,53 @@ def calculate_best_time(times: list[str]) -> str:
     return format_time(min(times_decimal))
 
 
-def add_best_and_cumulative_best_cols(golds: DataFrame) -> DataFrame:
+def add_best_and_cumulative_best_cols(times: DataFrame) -> DataFrame:
     """
-    Receives a DataFrame with the runners golds and calculates the best gold
-    and cumulative best gold of all the data, then adds these as new columns
+    Receives a DataFrame with the runners times and calculates the best time
+    and cumulative best time of all the data, then adds these as new columns
     and returns the modified DataFrame.
     """
-    golds["Best gold"] = golds.apply(
-        lambda row: calculate_best_time(row),
-        axis=1,
+    times = times.with_columns(
+        pl.struct(times.columns)
+        .map_elements(
+            function=lambda row: calculate_best_time(times=list(row.values())),
+            return_dtype=pl.String,
+        )
+        .alias(name="Best"),
     )
 
-    golds["Best gold seconds"] = golds["Best gold"].map(parse_time)
-    golds["Cumulative best seconds"] = golds["Best gold seconds"].cumsum()
-    golds["Cumulative best"] = golds["Cumulative best seconds"].apply(format_time)
-    golds = golds.drop(columns=["Best gold seconds", "Cumulative best seconds"])
+    times = times.with_columns(
+        pl.col(name="Best")
+        .map_elements(
+            function=parse_time,
+            return_dtype=pl.Decimal(precision=None, scale=3),
+        )
+        .alias(name="Best (seconds)"),
+    )
 
-    # Remove last row of the Best gold and Cumulative best columns.
-    best_gold_idx = golds.columns.get_loc("Best gold")
-    cumulative_best_idx = golds.columns.get_loc("Cumulative best")
-    golds.iloc[golds.index[-1], best_gold_idx] = ""  # type: ignore  # noqa: PGH003
-    golds.iloc[golds.index[-1], cumulative_best_idx] = ""  # type: ignore  # noqa: PGH003
+    times = times.with_columns(
+        pl.col(name="Best (seconds)").cum_sum().alias(name="Cumulative best (seconds)"),
+    )
 
-    return golds
+    times = times.with_columns(
+        pl.col(name="Cumulative best (seconds)")
+        .map_elements(function=format_time, return_dtype=pl.String)
+        .alias(name="Cumulative best"),
+    )
+
+    times = times.drop(["Best (seconds)", "Cumulative best (seconds)"])
+
+    # Remove the last row of the Best and Cumulative best columns.
+    return times.with_columns(
+        pl.when(pl.int_range(0, pl.len()) == pl.len() - 1)
+        .then(statement=pl.lit(value=""))
+        .otherwise(statement=pl.col(name="Best"))
+        .alias(name="Best"),
+        pl.when(pl.int_range(0, pl.len()) == pl.len() - 1)
+        .then(statement=pl.lit(value=""))
+        .otherwise(statement=pl.col(name="Cumulative best"))
+        .alias(name="Cumulative best"),
+    )
 
 
 def transform_days_hours_mins_secs(total_playtime: str) -> str:

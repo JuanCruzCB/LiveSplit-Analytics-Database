@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Final
 
-import pandas as pd
-from pandas import DataFrame
+import polars as pl
+from polars import DataFrame
 
 from db.database_manager import DatabaseManager
 from db.order_by import OrderColumns, OrderType
@@ -89,8 +89,9 @@ class QueryRunner:
         for header_query in column_header_queries:
             if header_query != "":
                 header_column = self.execute(query=header_query)
-                header_column.columns = header_column.columns.str.replace("_", " ")
-                header_column.columns = header_column.columns.str.title()
+                header_column = header_column.rename(
+                    mapping=lambda col: col.replace("_", " ").title(),
+                )
                 dfs.append(header_column)
 
         for data_query in data_queries:
@@ -98,7 +99,16 @@ class QueryRunner:
                 runner_data = self.execute(query=data_query.format(runner=runner))
                 dfs.append(runner_data)
 
-        combined_df = pd.concat(dfs, axis=1)
+        # Before concatenating all the dfs, we need to make sure that there are no
+        # column name duplicates, otherwise polars will throw an error:
+        for i, df in enumerate(dfs):
+            if df.columns[0] in [
+                col for j, d in enumerate(dfs) if j != i for col in d.columns
+            ]:
+                df.columns = [f"{df.columns[0]}_{i}"]
+                dfs[i] = df
+
+        combined_df = pl.concat(items=dfs, how="horizontal")
 
         if not best_col and sum_of_best_col:
             msg = (
@@ -109,13 +119,13 @@ class QueryRunner:
 
         if best_col and not sum_of_best_col:
             combined_df = add_best_and_cumulative_best_cols(combined_df)
-            combined_df = combined_df.drop(columns=["Cumulative best"])
+            combined_df = combined_df.drop("Cumulative best")
         elif best_col and sum_of_best_col:
             combined_df = add_best_and_cumulative_best_cols(combined_df)
 
-        combined_df.columns = combined_df.columns.str.replace("_", " ")
-        combined_df.columns = combined_df.columns.str.title()
-        return combined_df
+        return combined_df.rename(
+            mapping=lambda col: col.replace("_", " ").title(),
+        )
 
     def get_runners_doorsplit_golds(
         self,
@@ -310,8 +320,12 @@ class QueryRunner:
             sum_of_best_col=False,
         )
         runner_count = len(self._runner_names)
-        data.iloc[:, :runner_count] = data.iloc[:, :runner_count].astype(float).round(2)
-        return data
+        return data.with_columns(
+            [
+                pl.col(name=col).cast(dtype=pl.Float64).round(decimals=2)
+                for col in data.columns[:runner_count]
+            ],
+        )
 
     def get_runners_general_stats(self, *, stat_names_col: bool) -> DataFrame:
         """
@@ -325,8 +339,8 @@ class QueryRunner:
 
         if stat_names_col:
             dfs.append(
-                pd.DataFrame(
-                    {"Stat": ["Last update", "PB", "Attempts", "Total playtime"]},
+                DataFrame(
+                    data={"Stat": ["Last update", "PB", "Attempts", "Total playtime"]},
                 ),
             )
 
@@ -334,20 +348,26 @@ class QueryRunner:
             runner_stats = self.execute(
                 query=self._query_builder.general_stats(runner=runner),
             )
-            runner_stats["last_update"] = pd.to_datetime(
-                runner_stats["last_update"],
-            ).dt.strftime(self.GOOD_DATE_FORMAT)
-            runner_stats["total_playtime"] = runner_stats["total_playtime"].apply(
-                lambda x: transform_days_hours_mins_secs(x),
+            runner_stats = runner_stats.with_columns(
+                pl.col(name="last_update")
+                .str.to_datetime()
+                .dt.strftime(format=self.GOOD_DATE_FORMAT),
+                pl.col(name="total_playtime").map_elements(
+                    function=transform_days_hours_mins_secs,
+                    return_dtype=pl.String,
+                ),
             )
 
-            runner_stats_transposed = runner_stats.transpose()
-            runner_stats = pd.DataFrame({runner: runner_stats_transposed[0].to_list()})
+            runner_stats = runner_stats.select(
+                pl.all().cast(dtype=pl.String),
+            ).transpose(
+                include_header=False,
+                column_names=[runner],
+            )
             dfs.append(runner_stats)
 
-        overall_df = pd.concat(dfs, axis=1)
-        overall_df.columns = overall_df.columns.str.capitalize()
-        return overall_df
+        overall_df = pl.concat(items=dfs, how="horizontal")
+        return overall_df.rename(mapping=lambda col: col.capitalize())
 
     def get_runners_resets(self, *, split_names_col: bool) -> DataFrame:
         """
@@ -365,8 +385,15 @@ class QueryRunner:
         )
         skip_cols = 1 if split_names_col else 0
         numeric_cols = data.columns[skip_cols:]
-        data[numeric_cols] = data[numeric_cols].astype(float).round(2).clip(lower=0)
-        return data
+        return data.with_columns(
+            [
+                pl.col(name=col)
+                .cast(dtype=pl.Float64)
+                .round(decimals=2)
+                .clip(lower_bound=0)
+                for col in numeric_cols
+            ],
+        )
 
     def get_runners_weekday_data(self, *, weekday_stat_cols: bool) -> DataFrame:
         """
@@ -397,13 +424,13 @@ class QueryRunner:
                 "Attempts to get a best pace",
                 "Playtime to get a best pace",
             ]
-            repeated_stats = []
+            repeated_stats: list[str] = []
             for stat in stat_types:
                 repeated_stats.extend([stat] * 7)
 
             dfs.append(
                 DataFrame(
-                    {
+                    data={
                         "Day": weekdays * len(stat_types),
                         "Stat type": repeated_stats,
                     },
@@ -414,14 +441,16 @@ class QueryRunner:
             runner_weekday = self.execute(
                 query=self._query_builder.weekday_data(runner=runner),
             )
-            runner_weekday[runner] = runner_weekday[runner].apply(
-                lambda x: transform_interval_to_hours_mins(x),
+            runner_weekday = runner_weekday.with_columns(
+                pl.col(name=runner).map_elements(
+                    function=transform_interval_to_hours_mins,
+                    return_dtype=pl.String,
+                ),
             )
             dfs.append(runner_weekday)
 
-        overall_df = pd.concat(dfs, axis=1)
-        overall_df.columns = overall_df.columns.str.capitalize()
-        return overall_df
+        overall_df = pl.concat(items=dfs, how="horizontal")
+        return overall_df.rename(mapping=lambda col: col.capitalize())
 
     """
     SECONDARY QUERIES
@@ -442,22 +471,29 @@ class QueryRunner:
         The result data can be exported to an excel file, optionally.
         """
         data = self._db.execute(query=query, params=params)
-        datetime_cols = data.select_dtypes(
-            include=["datetime64", "datetimetz"],
-        ).columns.tolist()
-        for col in datetime_cols:
-            data[col] = data[col].apply(
-                lambda x: (
-                    pd.to_datetime(x, errors="coerce").strftime(
-                        self.GOOD_DATETIME_FORMAT,
-                    )
-                    if pd.notna(x)
-                    else None
-                ),
-            )
+        date_cols = [
+            col for col, dtype in data.schema.items() if isinstance(dtype, pl.Date)
+        ]
+        datetime_cols = [
+            col for col, dtype in data.schema.items() if isinstance(dtype, pl.Datetime)
+        ]
+        data = data.with_columns(
+            [
+                pl.col(name=col)
+                .dt.strftime(format=self.GOOD_DATE_FORMAT)
+                .alias(name=col)
+                for col in date_cols
+            ]
+            + [
+                pl.col(name=col)
+                .dt.strftime(format=self.GOOD_DATETIME_FORMAT)
+                .alias(name=col)
+                for col in datetime_cols
+            ],
+        )
 
         if excel_name:
-            data.to_excel(self._output_dir / f"{excel_name}.xlsx", index=False)
+            _ = data.write_excel(workbook=self._output_dir / f"{excel_name}.xlsx")
         return data
 
     def drop_staging_tables(self) -> None:
