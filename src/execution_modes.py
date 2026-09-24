@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pandas import DataFrame
+from polars import DataFrame
 
 from auth.google_drive_auth import GoogleDriveAuth
 from auth.google_sheets_auth import GoogleSheetsAuth
@@ -127,7 +127,7 @@ def export_to_excel(data: dict[str, DataFrame], output_dir: Path) -> None:
     Export all relevant data to excel files.
     """
     for name, df in data.items():
-        df.to_excel(output_dir / f"{name}.xlsx", index=False)
+        _ = df.write_excel(workbook=output_dir / f"{name}.xlsx")
 
 
 def run_without_google_api(

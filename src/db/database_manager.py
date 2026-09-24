@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 
 import psycopg
-from pandas import DataFrame
+from polars import DataFrame
 
 from config.exclude_data_before_config import ExcludeDataBeforeConfig
 from config.local_database_config import LocalDatabaseConfig
@@ -80,7 +80,7 @@ class DatabaseManager:
                 if cur.description:
                     data = cur.fetchall()
                     columns = [desc.name for desc in cur.description]
-                    result = DataFrame(data=data, columns=columns)
+                    result = DataFrame(data=data, schema=columns, orient="row")
 
             self._connection.commit()
 

@@ -2,10 +2,9 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Final
 
-import numpy as np
 from gspread import Client, Spreadsheet, Worksheet
 from gspread.exceptions import APIError, SpreadsheetNotFound, WorksheetNotFound
-from pandas import DataFrame
+from polars import DataFrame
 
 from sheet.exceptions import SheetNotFoundError, UnauthorizedError
 
@@ -59,7 +58,7 @@ class SheetManager:
         Then updates the tab of the Google Sheet named 'tab_name' starting from the
         cell 'starting_cell', with the 'data' that was sent.
         """
-        data_list = data.replace({np.nan: ""}).to_numpy().tolist()
+        data_list = data.fill_nan(value=None).to_numpy().tolist()
         old_sheet_tab_name = f"{tab_name} old"
         old_sheet = self._find_worksheet_by_title(title=old_sheet_tab_name)
         original_sheet = self._find_worksheet_by_title(title=tab_name)
@@ -95,7 +94,7 @@ class SheetManager:
         Updates the tab of the Google Sheet named 'tab_name' starting from the
         cell 'starting_cell', with the 'data' that was sent.
         """
-        data_list = data.replace({np.nan: ""}).to_numpy().tolist()
+        data_list = data.fill_nan(value=None).to_numpy().tolist()
         original_sheet = self._spreadsheet.worksheet(title=tab_name)
         try:
             _ = original_sheet.update(
