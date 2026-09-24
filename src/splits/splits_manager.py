@@ -1,10 +1,9 @@
-import logging
 from pathlib import Path
+
+from loguru import logger
 
 from splits.exceptions import SplitsFilesComparisonError
 from splits.splits_file import SplitsFile
-
-logger = logging.getLogger(__name__)
 
 
 class SplitsManager:

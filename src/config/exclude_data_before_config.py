@@ -1,8 +1,7 @@
-import logging
 from dataclasses import dataclass
 from datetime import date
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 @dataclass

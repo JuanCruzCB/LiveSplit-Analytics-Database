@@ -1,4 +1,3 @@
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,9 +14,6 @@ PROJECT_DIR = Path(__file__).parent.parent.parent
 YAML_CONFIG_FILE = PROJECT_DIR / "config" / "config.yaml"
 LAST_UPDATES_FILE = PROJECT_DIR / "config" / "last_table_updates.json"
 OUTPUT_DIR = PROJECT_DIR / "output"
-
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass

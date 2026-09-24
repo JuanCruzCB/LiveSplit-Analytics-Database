@@ -1,11 +1,9 @@
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+from loguru import logger
 from pydrive2.auth import GoogleAuth  # pyright: ignore[reportMissingTypeStubs]
 from pydrive2.drive import GoogleDrive  # pyright: ignore[reportMissingTypeStubs]
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass

@@ -1,11 +1,9 @@
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 from google.oauth2.service_account import Credentials
 from gspread import Client, authorize
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 @dataclass
