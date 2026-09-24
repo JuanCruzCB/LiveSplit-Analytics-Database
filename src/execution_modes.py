@@ -11,49 +11,49 @@ from splits.drive_manager import DriveManager
 from splits.splits_manager import SplitsManager
 
 
-def get_all_database_data(query_runner: QueryRunner) -> dict[str, DataFrame]:
+def get_all_database_data(qr: QueryRunner) -> dict[str, DataFrame]:
     """
     Get all relevant data from the database and return it as a dictionary of DataFrames.
     """
     return {
-        "doorsplit_golds": query_runner.get_runners_doorsplit_golds(
+        "doorsplit_golds": qr.get_runners_doorsplit_golds(
             split_names_col=False,
             best_col=False,
             sum_of_best_col=False,
         ),
-        "chapter_golds": query_runner.get_runners_chapter_golds(
+        "chapter_golds": qr.get_runners_chapter_golds(
             chapter_names_col=False,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "chapter_golds_by_doors": query_runner.get_runners_chapter_golds_by_doors(
+        "chapter_golds_by_doors": qr.get_runners_chapter_golds_by_doors(
             chapter_names_col=False,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "area_golds": query_runner.get_runners_area_golds(
+        "area_golds": qr.get_runners_area_golds(
             area_names_col=False,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "area_golds_by_chapters": query_runner.get_runners_area_golds_by_chapters(
+        "area_golds_by_chapters": qr.get_runners_area_golds_by_chapters(
             area_names_col=False,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "area_golds_by_doors": query_runner.get_runners_area_golds_by_doors(
+        "area_golds_by_doors": qr.get_runners_area_golds_by_doors(
             area_names_col=False,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "best_paces": query_runner.get_runners_best_paces(
+        "best_paces": qr.get_runners_best_paces(
             chapter_names_col=False,
             best_col=True,
         ),
-        "rng_patterns": query_runner.get_runners_rng_patterns(pattern_names_col=False),
-        "general_stats": query_runner.get_runners_general_stats(stat_names_col=False),
-        "resets": query_runner.get_runners_resets(split_names_col=False),
-        "weekday_data": query_runner.get_runners_weekday_data(weekday_stat_cols=False),
+        "rng_patterns": qr.get_runners_rng_patterns(pattern_names_col=False),
+        "general_stats": qr.get_runners_general_stats(stat_names_col=False),
+        "resets": qr.get_runners_resets(split_names_col=False),
+        "weekday_data": qr.get_runners_weekday_data(weekday_stat_cols=False),
     }
 
 
@@ -148,7 +148,7 @@ def run_without_google_api(
         qr.create_config_tables()
         if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
-            export_to_excel(all_data, output_dir)
+            export_to_excel(data=all_data, output_dir=output_dir)
     finally:
         # qr.drop_staging_tables()
         qr.close_db_connection()
@@ -188,7 +188,7 @@ def run_with_google_drive_and_google_sheets(
         qr.create_config_tables()
         if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
-            export_to_google_sheet(sheet_manager, all_data)
+            export_to_google_sheet(sheet_manager=sheet_manager, data=all_data)
     finally:
         # qr.drop_staging_tables()
         qr.close_db_connection()
@@ -222,7 +222,7 @@ def run_with_google_drive_only(
         qr.create_config_tables()
         if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
-            export_to_excel(all_data, output_dir)
+            export_to_excel(data=all_data, output_dir=output_dir)
     finally:
         # qr.drop_staging_tables()
         qr.close_db_connection()
@@ -253,7 +253,7 @@ def run_with_google_sheets_only(
         qr.create_config_tables()
         if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
-            export_to_google_sheet(sheet_manager, all_data)
+            export_to_google_sheet(sheet_manager=sheet_manager, data=all_data)
     finally:
         # qr.drop_staging_tables()
         qr.close_db_connection()

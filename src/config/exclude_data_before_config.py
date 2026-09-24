@@ -27,4 +27,4 @@ class ExcludeDataBeforeConfig:
 
         If the date is None, return a default date string "2000-01-01".
         """
-        return self.date.strftime("%Y-%m-%d") if self.date else "2000-01-01"
+        return self.date.strftime(format="%Y-%m-%d") if self.date else "2000-01-01"

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+from loguru import logger
 
 from config.exclude_data_before_config import ExcludeDataBeforeConfig
 from config.google_api_config import GoogleAPIConfig
@@ -40,7 +41,7 @@ def load_config() -> Config:
         raise FileNotFoundError(msg)
 
     with YAML_CONFIG_FILE.open("r") as f:
-        config = yaml.safe_load(f)
+        config = yaml.safe_load(stream=f)
 
     try:
         main_runner = MainRunnerConfig(

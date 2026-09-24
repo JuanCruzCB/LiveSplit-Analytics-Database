@@ -118,10 +118,10 @@ class QueryRunner:
             raise ValueError(msg)
 
         if best_col and not sum_of_best_col:
-            combined_df = add_best_and_cumulative_best_cols(combined_df)
+            combined_df = add_best_and_cumulative_best_cols(times=combined_df)
             combined_df = combined_df.drop("Cumulative best")
         elif best_col and sum_of_best_col:
-            combined_df = add_best_and_cumulative_best_cols(combined_df)
+            combined_df = add_best_and_cumulative_best_cols(times=combined_df)
 
         return combined_df.rename(
             mapping=lambda col: col.replace("_", " ").title(),

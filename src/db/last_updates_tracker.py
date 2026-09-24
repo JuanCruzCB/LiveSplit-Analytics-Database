@@ -18,7 +18,7 @@ class LastUpdatesTracker:
         self._default_data: dict[Path, datetime] = dict.fromkeys(
             default_files,
             datetime.strptime(self.DEFAULT_TIMESTAMP, self.DATE_TIME_FORMAT).astimezone(
-                UTC,
+                tz=UTC,
             ),
         )
 
@@ -28,8 +28,8 @@ class LastUpdatesTracker:
         and save the update to the JSON file.
         """
         last_updates = self.load_last_updates()
-        last_updates[file] = datetime.now().astimezone(UTC)
-        self.save_last_updates(last_updates)
+        last_updates[file] = datetime.now().astimezone(tz=UTC)
+        self.save_last_updates(updates=last_updates)
 
     def get_timestamp(self, file: Path) -> datetime:
         """
@@ -46,7 +46,7 @@ class LastUpdatesTracker:
         - In either case, a dictionary with the data is returned.
         """
         if not self._storage_file.exists():
-            self.save_last_updates(self._default_data)
+            self.save_last_updates(updates=self._default_data)
             return self._default_data
 
         with self._storage_file.open(mode="r") as json_file:
@@ -63,7 +63,7 @@ class LastUpdatesTracker:
         Save the given update timestamps to the JSON file.
         """
         serializable_dict = {
-            str(file): modtime.strftime(self.DATE_TIME_FORMAT)
+            str(file): modtime.strftime(format=self.DATE_TIME_FORMAT)
             for file, modtime in updates.items()
         }
         with self._storage_file.open(mode="w") as json_file:

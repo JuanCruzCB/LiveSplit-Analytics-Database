@@ -40,7 +40,7 @@ def main() -> None:
         exclude_data_before_config=config.exclude_data_before,
         last_updates_tracker=last_updates,
     )
-    query_runner = QueryRunner(
+    qr = QueryRunner(
         db_manager=db_manager,
         query_builder=QueryBuilder(),
         runner_names=runner_names,
@@ -49,23 +49,23 @@ def main() -> None:
     )
 
     if not config.google_api.service_account_secrets_file:
-        run_without_google_api(splits, query_runner, config.output_dir)
+        run_without_google_api(splits, qr, config.output_dir)
     elif config.google_api.google_drive_folder_id and config.google_api.google_sheet_id:
         run_with_google_drive_and_google_sheets(
             config,
             splits,
-            query_runner,
+            qr,
         )
     elif (
         config.google_api.google_drive_folder_id
         and not config.google_api.google_sheet_id
     ):
-        run_with_google_drive_only(config, splits, query_runner, config.output_dir)
+        run_with_google_drive_only(config, splits, qr, config.output_dir)
     elif (
         not config.google_api.google_drive_folder_id
         and config.google_api.google_sheet_id
     ):
-        run_with_google_sheets_only(config, splits, query_runner)
+        run_with_google_sheets_only(config, splits, qr)
 
 
 if __name__ == "__main__":

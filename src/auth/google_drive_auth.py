@@ -41,4 +41,4 @@ class GoogleDriveAuth:
             raise RuntimeError(msg) from e
         else:
             logger.info("Authentication for Google Drive was succesful!")
-            return GoogleDrive(gauth)
+            return GoogleDrive(auth=gauth)

@@ -28,7 +28,7 @@ class SplitsManager:
         """
         Returns the path of every splits file.
         """
-        return list(self._splits_folder.glob("*.lss"))
+        return list(self._splits_folder.glob(pattern="*.lss"))
 
     def get_splits_files(self) -> list[SplitsFile]:
         """
@@ -41,7 +41,7 @@ class SplitsManager:
                 runner_name=self._runner_names[0],
             ),
         )
-        for splits_file in self._splits_folder.glob("*.lss"):
+        for splits_file in self._splits_folder.glob(pattern="*.lss"):
             runner_name = splits_file.stem.replace("splits ", "")
             splits_files.append(
                 SplitsFile(file_path=splits_file, runner_name=runner_name),

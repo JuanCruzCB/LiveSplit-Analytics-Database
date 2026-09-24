@@ -29,14 +29,14 @@ def parse_time(time: str) -> Decimal:
     time = str(time)
 
     if time.count(":") == 2:  # noqa: PLR2004
-        hours, minutes, seconds = time.split(":")
-        return (int(hours) * 60 * 60) + (int(minutes) * 60) + Decimal(seconds)
+        hours, minutes, seconds = time.split(sep=":")
+        return (int(hours) * 60 * 60) + (int(minutes) * 60) + Decimal(value=seconds)
 
     if time.count(":") == 1:
-        minutes, seconds = time.split(":")
-        return int(minutes) * 60 + Decimal(seconds)
+        minutes, seconds = time.split(sep=":")
+        return int(minutes) * 60 + Decimal(value=seconds)
 
-    return Decimal(time)
+    return Decimal(value=time)
 
 
 def calculate_best_time(times: list[str]) -> str:
@@ -45,7 +45,7 @@ def calculate_best_time(times: list[str]) -> str:
     returns the minimum time among all of them.
     """
     times_decimal = [parse_time(time) for time in times if ":" in time or "." in time]
-    return format_time(min(times_decimal))
+    return format_time(seconds=min(times_decimal))
 
 
 def add_best_and_cumulative_best_cols(times: DataFrame) -> DataFrame:
@@ -104,15 +104,15 @@ def transform_days_hours_mins_secs(total_playtime: str) -> str:
     """
     hours = 0
     if "days" in total_playtime:
-        days_part, time_part = total_playtime.split("days")
+        days_part, time_part = total_playtime.split(sep="days")
         hours += int(days_part.strip()) * 24
         total_playtime = time_part.strip()
 
     if ":" in total_playtime:
-        hrs, mins, secs = map(int, total_playtime.split(":"))
+        hrs, mins, secs = map(int, total_playtime.split(sep=":"))
         hours += hrs + mins / 60 + secs / 3600
 
-    return f"{round(hours, 1)} hours"
+    return f"{round(number=hours, ndigits=1)} hours"
 
 
 def transform_interval_to_hours_mins(interval: str | None) -> str:
@@ -127,13 +127,13 @@ def transform_interval_to_hours_mins(interval: str | None) -> str:
 
     if ":" not in interval:
         if "." in interval:
-            rounded = round(float(interval), 2)
+            rounded = round(number=float(interval), ndigits=2)
             return str(rounded)
         return interval
 
     try:
-        hours = int(interval.split(":")[0])
-        minutes = int(interval.split(":")[1])
+        hours = int(interval.split(sep=":")[0])
+        minutes = int(interval.split(sep=":")[1])
     except ValueError:
         return interval
 

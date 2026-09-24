@@ -49,7 +49,7 @@ class DriveManager:
 
         query = {"q": f"'{self._google_drive_folder_id}' in parents and trashed=false"}
         try:
-            return self._google_drive.ListFile(query).GetList()
+            return self._google_drive.ListFile(param=query).GetList()
         except ApiRequestError as e:
             logger.exception(
                 "There's no Google Drive folder with id = {}",
@@ -86,15 +86,15 @@ class DriveManager:
         local_file = self._splits_manager.find_splits_file_by_runner_name(runner_name)
 
         if local_file is None:
-            return self._download_file(remote_file, first_time=True)
+            return self._download_file(file=remote_file, first_time=True)
 
         if local_file.is_older_than(
-            datetime.strptime(
+            dt=datetime.strptime(
                 remote_file["modifiedDate"],
                 self.GOOGLE_DRIVE_DATE_TIME_FORMAT,
             ).replace(tzinfo=UTC),
         ):
-            return self._download_file(remote_file)
+            return self._download_file(file=remote_file)
 
         return logger.info(
             (
@@ -123,4 +123,4 @@ class DriveManager:
             filename,
             " for the first time" if first_time else "",
         )
-        file.GetContentFile(self._splits_manager.splits_folder / filename)
+        file.GetContentFile(filename=self._splits_manager.splits_folder / filename)

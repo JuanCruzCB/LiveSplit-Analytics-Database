@@ -19,7 +19,9 @@ class SheetManager:
             raise ValueError(msg)
 
         try:
-            self._spreadsheet: Spreadsheet = gspread_client.open_by_key(google_sheet_id)
+            self._spreadsheet: Spreadsheet = gspread_client.open_by_key(
+                key=google_sheet_id,
+            )
         except SpreadsheetNotFound as e:
             msg = f"The spreadsheet with id = {google_sheet_id} was not found."
             logger.exception(msg)
@@ -119,9 +121,9 @@ class SheetManager:
         sheet = self._find_worksheet_by_title(title=tab_name)
 
         try:
-            utc_minus_3 = timezone(timedelta(hours=-3))
+            utc_minus_3 = timezone(offset=timedelta(hours=-3))
             current_time = datetime.now(tz=utc_minus_3).strftime(
-                self.GOOD_DATETIME_FORMAT,
+                format=self.GOOD_DATETIME_FORMAT,
             )
             _ = sheet.update_acell(
                 label=cell,

@@ -36,7 +36,7 @@ class SplitsFile:
         """
         Checks whether the splits file contains a valid XML structure.
         """
-        tree = parse(file_path)
+        tree = parse(source=file_path)
         if tree.getroot() is None:
             msg = f"Invalid XML structure in splits file: '{file_path}'."
             logger.error(msg)
@@ -93,7 +93,7 @@ class SplitsFile:
         with data parsing.
         """
         is_dirty = False
-        tree = parse(self._file_path)
+        tree = parse(source=self._file_path)
         root = tree.getroot()
         if root is None:
             msg = f"Invalid XML structure in splits file: '{self._file_path}'."
@@ -101,7 +101,7 @@ class SplitsFile:
             raise SplitsFileStructureError(msg)
 
         # 1. Remove all existing data inside each Icon tag
-        for icon in root.findall(".//Icon"):  # type: ignore  # noqa: PGH003
+        for icon in root.findall(path=".//Icon"):  # type: ignore  # noqa: PGH003
             if len(icon) > 0 or icon.text:
                 is_dirty = True
                 msg = "Removing an icon from splits file: '{}'.", self._file_path
@@ -109,7 +109,7 @@ class SplitsFile:
                 icon.clear()
 
         # 2. Replace commas in split names with pipes
-        for name in root.findall(".//Name"):  # type: ignore  # noqa: PGH003
+        for name in root.findall(path=".//Name"):  # type: ignore  # noqa: PGH003
             if name.text is not None and "," in name.text:
                 is_dirty = True
                 msg = (
@@ -121,7 +121,7 @@ class SplitsFile:
 
         if is_dirty:
             tree.write(
-                self._file_path,
+                file_or_filename=self._file_path,
                 encoding="utf-8",
                 xml_declaration=True,
             )
@@ -133,7 +133,7 @@ class SplitsFile:
         UTC timezone.
         """
         return datetime.fromtimestamp(
-            self._file_path.stat().st_mtime,
+            timestamp=self._file_path.stat().st_mtime,
             tz=UTC,
         )
 
@@ -148,12 +148,12 @@ class SplitsFile:
         """
         Returns the number of splits in the splits file.
         """
-        root = parse(self._file_path).getroot()
+        root = parse(source=self._file_path).getroot()
         if root is None:
             msg = f"Invalid XML structure in splits file: '{self._file_path}'."
             logger.error(msg)
             raise SplitsFileStructureError(msg)
 
-        elements = root.iter("Name")
+        elements = root.iter(tag="Name")
         split_names = list(elements)
         return len(split_names)
