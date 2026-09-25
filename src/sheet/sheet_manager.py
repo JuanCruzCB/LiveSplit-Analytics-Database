@@ -3,6 +3,7 @@ from typing import Final
 
 from gspread import Client, Spreadsheet, Worksheet
 from gspread.exceptions import APIError, SpreadsheetNotFound, WorksheetNotFound
+from gspread.utils import a1_to_rowcol, rowcol_to_a1
 from loguru import logger
 from polars import DataFrame
 
@@ -85,6 +86,15 @@ class SheetManager:
                 label="A2",
                 value=f"Last updated on: {current_time} (UTC-3)",
             )
+
+            # Clear all the values in the range starting from 'starting_cell' to
+            # the last row of the sheet and 2 columns to the right of 'starting_cell'.
+            start_row, start_col = a1_to_rowcol(label=starting_cell)
+            end_col = start_col + 2
+            end_row = sheet.row_count
+            clear_range = f"{starting_cell}:{rowcol_to_a1(row=end_row, col=end_col)}"
+            _ = sheet.batch_clear(ranges=[clear_range])
+
             _ = sheet.update(
                 range_name=starting_cell,
                 values=before_after_data.fill_nan(value=None).to_numpy().tolist(),
