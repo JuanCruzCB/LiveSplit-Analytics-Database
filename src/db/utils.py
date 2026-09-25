@@ -97,6 +97,75 @@ def add_best_and_cumulative_best_cols(times: DataFrame) -> DataFrame:
     )
 
 
+def diff_before_after(df1: DataFrame, df2: DataFrame) -> DataFrame:
+    """
+    Compares two DataFrames that should have the same exact shape and returns
+    a DataFrame with the differences between them (can be an empty DataFrame if
+    there are no differences).
+
+    The resulting difference df has three columns:
+
+    - Runner
+    - Split Name
+    - Before vs. After
+    """
+    # Throw exception if the two DataFrames have different shapes
+    if df1.shape != df2.shape:
+        msg = f"DataFrames have different shapes: {df1.shape} vs {df2.shape}"
+        raise ValueError(
+            msg,
+        )
+
+    diffs: list[DataFrame] = []
+    for col in df1.columns:
+        diff = pl.DataFrame(
+            data={
+                "Runner": col,
+                "Split Name": df1["Split Name"],
+                "Before": df1[col],
+                "After": df2[col],
+            },
+        ).filter(pl.col(name="Before").ne_missing(other=pl.col(name="After")))
+        diff = diff.with_columns(
+            (
+                pl.col(name="Before").map_elements(
+                    function=parse_time,
+                    return_dtype=pl.Decimal(precision=10, scale=3),
+                )
+                - pl.col(name="After").map_elements(
+                    function=parse_time,
+                    return_dtype=pl.Decimal(precision=10, scale=3),
+                )
+            )
+            .map_elements(function=lambda x: f"{x:.3f}", return_dtype=pl.String)
+            .alias(name="Difference"),
+        )
+        diff = diff.with_columns(
+            (
+                (pl.col(name="Before") + pl.lit(value=" → ") + pl.col(name="After"))
+                + pl.lit(value=" (-")
+                + pl.col(name="Difference")
+                + pl.lit(value=")")
+            ).alias(
+                name="Before vs. After",
+            ),
+        ).drop(["Before", "After", "Difference"])
+        diffs.append(diff)
+
+    return (
+        pl.concat(items=diffs, how="vertical")
+        if diffs
+        else DataFrame(
+            data=None,
+            schema={
+                "Runner": pl.Utf8,
+                "Split Name": pl.Utf8,
+                "Before vs. After": pl.Utf8,
+            },
+        )
+    )
+
+
 def transform_days_hours_mins_secs(total_playtime: str) -> str:
     """
     Transform a total playtime string in 'X days HH:MM:SS'
