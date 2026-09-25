@@ -1,14 +1,62 @@
 from pathlib import Path
 
+import polars as pl
 from polars import DataFrame
 
 from auth.google_drive_auth import GoogleDriveAuth
 from auth.google_sheets_auth import GoogleSheetsAuth
 from config.config import Config
 from db.query_runner import QueryRunner
+from db.utils import diff_before_after
 from sheet.sheet_manager import SheetManager
 from splits.drive_manager import DriveManager
 from splits.splits_manager import SplitsManager
+
+
+def get_main_golds(qr: QueryRunner) -> tuple[DataFrame, DataFrame, DataFrame]:
+    """
+    Get the main golds from the database and return them as a tuple of DataFrames.
+    """
+    doorsplit_golds = qr.get_runners_doorsplit_golds(
+        split_names_col=True,
+        best_col=False,
+        sum_of_best_col=False,
+    )
+    chapter_golds = qr.get_runners_chapter_golds(
+        chapter_names_col=True,
+        best_col=True,
+        sum_of_best_col=True,
+    )
+    area_golds = qr.get_runners_area_golds(
+        area_names_col=True,
+        best_col=True,
+        sum_of_best_col=True,
+    )
+    return doorsplit_golds, chapter_golds, area_golds
+
+
+def get_diffs(
+    doorsplit_golds: DataFrame,
+    chapter_golds: DataFrame,
+    area_golds: DataFrame,
+    all_data: dict[str, DataFrame],
+) -> DataFrame:
+    diff_ds_golds = diff_before_after(
+        df1=doorsplit_golds,
+        df2=all_data["doorsplit_golds"],
+    )
+    diff_ch_golds = diff_before_after(
+        df1=chapter_golds,
+        df2=all_data["chapter_golds"],
+    )
+    diff_area_golds = diff_before_after(
+        df1=area_golds,
+        df2=all_data["area_golds"],
+    )
+    return pl.concat(
+        items=[diff_ds_golds, diff_ch_golds, diff_area_golds],
+        how="vertical",
+    )
 
 
 def get_all_database_data(qr: QueryRunner) -> dict[str, DataFrame]:
@@ -17,12 +65,12 @@ def get_all_database_data(qr: QueryRunner) -> dict[str, DataFrame]:
     """
     return {
         "doorsplit_golds": qr.get_runners_doorsplit_golds(
-            split_names_col=False,
+            split_names_col=True,
             best_col=False,
             sum_of_best_col=False,
         ),
         "chapter_golds": qr.get_runners_chapter_golds(
-            chapter_names_col=False,
+            chapter_names_col=True,
             best_col=True,
             sum_of_best_col=True,
         ),
@@ -32,7 +80,7 @@ def get_all_database_data(qr: QueryRunner) -> dict[str, DataFrame]:
             sum_of_best_col=True,
         ),
         "area_golds": qr.get_runners_area_golds(
-            area_names_col=False,
+            area_names_col=True,
             best_col=True,
             sum_of_best_col=True,
         ),
@@ -60,66 +108,71 @@ def get_all_database_data(qr: QueryRunner) -> dict[str, DataFrame]:
 def export_to_google_sheet(
     sheet_manager: SheetManager,
     data: dict[str, DataFrame],
+    diffs: DataFrame,
 ) -> None:
     """
     Update all relevant data to the Google Sheet in specified tabs and starting cells.
     """
-    sheet_manager.upload_dataframe_without_copy(
+    sheet_manager.upload_dataframe(
         tab_name="General",
         starting_cell="B3",
         data=data["general_stats"],
     )
-    sheet_manager.upload_dataframe_with_copy(
+    sheet_manager.upload_dataframe(
         tab_name="Doors",
-        starting_cell="B3",
+        starting_cell="A3",
         data=data["doorsplit_golds"],
     )
-    sheet_manager.upload_dataframe_with_copy(
+    sheet_manager.upload_dataframe(
         tab_name="Chapters",
-        starting_cell="B3",
+        starting_cell="A3",
         data=data["chapter_golds"],
     )
-    sheet_manager.upload_dataframe_without_copy(
+    sheet_manager.upload_dataframe(
         tab_name="Chapters",
         starting_cell="B25",
         data=data["chapter_golds_by_doors"],
     )
-    sheet_manager.upload_dataframe_with_copy(
+    sheet_manager.upload_dataframe(
         tab_name="Sections",
-        starting_cell="B3",
+        starting_cell="A3",
         data=data["area_golds"],
     )
-    sheet_manager.upload_dataframe_without_copy(
+    sheet_manager.upload_dataframe(
         tab_name="Sections",
         starting_cell="B9",
         data=data["area_golds_by_chapters"],
     )
-    sheet_manager.upload_dataframe_without_copy(
+    sheet_manager.upload_dataframe(
         tab_name="Sections",
         starting_cell="B15",
         data=data["area_golds_by_doors"],
     )
-    sheet_manager.upload_dataframe_with_copy(
+    sheet_manager.upload_dataframe(
         tab_name="Paces",
         starting_cell="B3",
         data=data["best_paces"],
     )
-    sheet_manager.upload_dataframe_without_copy(
+    sheet_manager.upload_dataframe(
         tab_name="Resets",
         starting_cell="B3",
         data=data["resets"],
     )
-    sheet_manager.upload_dataframe_with_copy(
+    sheet_manager.upload_dataframe(
         tab_name="RNG Patterns",
         starting_cell="C4",
         data=data["rng_patterns"],
     )
-    sheet_manager.upload_dataframe_without_copy(
+    sheet_manager.upload_dataframe(
         tab_name="Weekday",
         starting_cell="C2",
         data=data["weekday_data"],
     )
-    sheet_manager.upload_last_updated_on(tab_name="Title", cell="A2")
+    sheet_manager.upload_changelog(
+        tab_name="Changelog",
+        starting_cell="A4",
+        before_after_data=diffs,
+    )
 
 
 def export_to_excel(data: dict[str, DataFrame], output_dir: Path) -> None:
@@ -186,9 +239,19 @@ def run_with_google_drive_and_google_sheets(
     try:
         qr.open_db_connection()
         qr.create_config_tables()
+        doorsplit_golds, chapter_golds, area_golds = get_main_golds(qr)
         if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
-            export_to_google_sheet(sheet_manager=sheet_manager, data=all_data)
+            export_to_google_sheet(
+                sheet_manager=sheet_manager,
+                data=all_data,
+                diffs=get_diffs(
+                    doorsplit_golds=doorsplit_golds,
+                    chapter_golds=chapter_golds,
+                    area_golds=area_golds,
+                    all_data=all_data,
+                ),
+            )
     finally:
         # qr.drop_staging_tables()
         qr.close_db_connection()
@@ -251,9 +314,19 @@ def run_with_google_sheets_only(
     try:
         qr.open_db_connection()
         qr.create_config_tables()
+        doorsplit_golds, chapter_golds, area_golds = get_main_golds(qr)
         if qr.update_runners_tables(splits_files=splits.get_splits_files()):
             all_data = get_all_database_data(qr)
-            export_to_google_sheet(sheet_manager=sheet_manager, data=all_data)
+            export_to_google_sheet(
+                sheet_manager=sheet_manager,
+                data=all_data,
+                diffs=get_diffs(
+                    doorsplit_golds=doorsplit_golds,
+                    chapter_golds=chapter_golds,
+                    area_golds=area_golds,
+                    all_data=all_data,
+                ),
+            )
     finally:
         # qr.drop_staging_tables()
         qr.close_db_connection()

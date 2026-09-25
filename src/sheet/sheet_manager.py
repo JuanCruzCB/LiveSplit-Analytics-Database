@@ -45,33 +45,17 @@ class SheetManager:
             logger.exception(msg)
             raise ValueError(msg) from e
 
-    def upload_dataframe_with_copy(
+    def upload_dataframe(
         self,
         tab_name: str,
         starting_cell: str,
         data: DataFrame,
     ) -> None:
-        """
-        Copies the current contents of the tab 'tab_name' and
-        pastes them onto 'tab_name old'.
-
-        Then updates the tab of the Google Sheet named 'tab_name' starting from the
-        cell 'starting_cell', with the 'data' that was sent.
-        """
-        data_list = data.fill_nan(value=None).to_numpy().tolist()
-        old_sheet_tab_name = f"{tab_name} old"
-        old_sheet = self._find_worksheet_by_title(title=old_sheet_tab_name)
-        original_sheet = self._find_worksheet_by_title(title=tab_name)
-
+        sheet = self._spreadsheet.worksheet(title=tab_name)
         try:
-            original_data = original_sheet.get_all_values()
-            if original_data:
-                _ = old_sheet.update(values=original_data, range_name="A1")
-                logger.info("Backup '{}' overwritten successfully!", old_sheet_tab_name)
-
-            _ = original_sheet.update(
+            _ = sheet.update(
                 range_name=starting_cell,
-                values=data_list,
+                values=data.fill_nan(value=None).to_numpy().tolist(),
             )
         except APIError as e:
             msg = f"Google Sheets API error while updating '{tab_name}': {e!s}"
@@ -84,40 +68,12 @@ class SheetManager:
         else:
             logger.info("Sheet '{}' updated successfully!", tab_name)
 
-    def upload_dataframe_without_copy(
+    def upload_changelog(
         self,
         tab_name: str,
         starting_cell: str,
-        data: DataFrame,
+        before_after_data: DataFrame,
     ) -> None:
-        """
-        Updates the tab of the Google Sheet named 'tab_name' starting from the
-        cell 'starting_cell', with the 'data' that was sent.
-        """
-        data_list = data.fill_nan(value=None).to_numpy().tolist()
-        original_sheet = self._spreadsheet.worksheet(title=tab_name)
-        try:
-            _ = original_sheet.update(
-                range_name=starting_cell,
-                values=data_list,
-            )
-        except APIError as e:
-            msg = f"Google Sheets API error while updating '{tab_name}': {e!s}"
-            logger.exception(msg)
-            raise RuntimeError(msg) from e
-        except Exception as e:
-            msg = f"Unexpected error while updating '{tab_name}': {e!s}"
-            logger.exception(msg)
-            raise RuntimeError(msg) from e
-        else:
-            logger.info("Sheet '{}' updated successfully!", tab_name)
-
-    def upload_last_updated_on(self, tab_name: str, cell: str) -> None:
-        """
-        Posts, on the given 'tab_name' and 'cell' of the Google Sheet,
-        the current date and time (in UTC-3 timezone), to show when
-        the Google Sheet was last updated.
-        """
         sheet = self._find_worksheet_by_title(title=tab_name)
 
         try:
@@ -126,15 +82,19 @@ class SheetManager:
                 format=self.GOOD_DATETIME_FORMAT,
             )
             _ = sheet.update_acell(
-                label=cell,
+                label="A2",
                 value=f"Last updated on: {current_time} (UTC-3)",
             )
+            _ = sheet.update(
+                range_name=starting_cell,
+                values=before_after_data.fill_nan(value=None).to_numpy().tolist(),
+            )
         except APIError as e:
-            msg = "Google Sheets API error during 'upload_last_updated_on'."
+            msg = "Google Sheets API error during 'upload_changelog'."
             logger.exception(msg)
             raise RuntimeError(msg) from e
         except Exception as e:
-            msg = "Unexpected error during 'upload_last_updated_on'."
+            msg = "Unexpected error during 'upload_changelog'."
             logger.exception(msg)
             raise RuntimeError(msg) from e
         else:
