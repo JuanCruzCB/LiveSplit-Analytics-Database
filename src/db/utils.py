@@ -121,7 +121,7 @@ def diff_before_after(df1: DataFrame, df2: DataFrame) -> DataFrame:
         diff = pl.DataFrame(
             data={
                 "Runner": col,
-                "Split Name": df1["Split Name"],
+                "Split/Chapter/Area Name": df1.get_column(df1.columns[0]),
                 "Before": df1[col],
                 "After": df2[col],
             },
@@ -159,7 +159,7 @@ def diff_before_after(df1: DataFrame, df2: DataFrame) -> DataFrame:
             data=None,
             schema={
                 "Runner": pl.Utf8,
-                "Split Name": pl.Utf8,
+                "Split/Chapter/Area Name": pl.Utf8,
                 "Before vs. After": pl.Utf8,
             },
         )
