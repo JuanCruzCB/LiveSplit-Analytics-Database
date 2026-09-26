@@ -4,10 +4,10 @@ from typing import Final
 import polars as pl
 from polars import DataFrame
 
+import db.query_builder as qb
 from db.database_handler import DatabaseHandler
 from db.df_utils import add_best_and_cumulative_best_cols
 from db.order_by import OrderColumns, OrderType
-from db.query_builder import QueryBuilder
 from db.time_utils import (
     transform_days_hours_mins_secs,
     transform_interval_to_hours_mins,
@@ -17,12 +17,11 @@ from splits.splits_file import SplitsFile
 type OptionalParams = dict[str, str | int] | None
 
 
-class QueryRunner:
+class QueryExecutor:
     GOOD_DATE_FORMAT: Final[str] = "%d/%m/%Y"
     GOOD_DATETIME_FORMAT: Final[str] = "%d/%m/%Y %H:%M:%S UTC"
 
     _db: DatabaseHandler
-    _query_builder: QueryBuilder
     _runner_names: list[str]
     _main_runner: str
     _output_dir: Path
@@ -30,13 +29,11 @@ class QueryRunner:
     def __init__(
         self,
         db_handler: DatabaseHandler,
-        query_builder: QueryBuilder,
         runner_names: list[str],
         main_runner_name: str,
         output_dir: Path,
     ) -> None:
         self._db = db_handler
-        self._query_builder = query_builder
         self._runner_names = runner_names
         self._main_runner = main_runner_name
         self._output_dir = output_dir
@@ -147,11 +144,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.DOORSPLIT_NAMES_QUERY_WITH_TOTAL
-                if split_names_col
-                else "",
+                qb.doorsplit_names(footer="Total") if split_names_col else "",
             ],
-            data_queries=[self._query_builder.doorsplit_golds_minimal()],
+            data_queries=[qb.doorsplit_golds_minimal()],
             best_col=best_col,
             sum_of_best_col=sum_of_best_col,
         )
@@ -175,11 +170,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.CHAPTER_NAMES_QUERY_WITH_TOTAL
-                if chapter_names_col
-                else "",
+                qb.chapter_names(footer="Total") if chapter_names_col else "",
             ],
-            data_queries=[self._query_builder.chapter_golds_minimal()],
+            data_queries=[qb.chapter_golds_minimal()],
             best_col=best_col,
             sum_of_best_col=sum_of_best_col,
         )
@@ -202,11 +195,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.CHAPTER_NAMES_QUERY_WITH_TOTAL
-                if chapter_names_col
-                else "",
+                qb.chapter_names(footer="Total") if chapter_names_col else "",
             ],
-            data_queries=[self._query_builder.chapter_golds_by_doors_minimal()],
+            data_queries=[qb.chapter_golds_by_doors_minimal()],
             best_col=best_col,
             sum_of_best_col=sum_of_best_col,
         )
@@ -228,11 +219,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY_WITH_TOTAL
-                if area_names_col
-                else "",
+                qb.area_names(footer="Total") if area_names_col else "",
             ],
-            data_queries=[self._query_builder.area_golds_minimal()],
+            data_queries=[qb.area_golds_minimal()],
             best_col=best_col,
             sum_of_best_col=sum_of_best_col,
         )
@@ -255,11 +244,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY_WITH_TOTAL
-                if area_names_col
-                else "",
+                qb.area_names(footer="Total") if area_names_col else "",
             ],
-            data_queries=[self._query_builder.area_golds_by_chapters_minimal()],
+            data_queries=[qb.area_golds_by_chapters_minimal()],
             best_col=best_col,
             sum_of_best_col=sum_of_best_col,
         )
@@ -282,11 +269,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY_WITH_TOTAL
-                if area_names_col
-                else "",
+                qb.area_names(footer="Total") if area_names_col else "",
             ],
-            data_queries=[self._query_builder.area_golds_by_doors_minimal()],
+            data_queries=[qb.area_golds_by_doors_minimal()],
             best_col=best_col,
             sum_of_best_col=sum_of_best_col,
         )
@@ -306,9 +291,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.CHAPTER_NAMES_QUERY if chapter_names_col else "",
+                qb.chapter_names() if chapter_names_col else "",
             ],
-            data_queries=[self._query_builder.best_paces_minimal()],
+            data_queries=[qb.best_paces_minimal()],
             best_col=best_col,
             sum_of_best_col=False,
         )
@@ -327,11 +312,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.DOORSPLIT_NAMES_QUERY_WITH_PB
-                if split_names_col
-                else "",
+                qb.doorsplit_names(footer="PB") if split_names_col else "",
             ],
-            data_queries=[self._query_builder.pb_by_doors_minimal()],
+            data_queries=[qb.pb_by_doors_minimal()],
             best_col=False,
             sum_of_best_col=False,
         )
@@ -350,11 +333,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.CHAPTER_NAMES_QUERY_WITH_PB
-                if chapter_names_col
-                else "",
+                qb.chapter_names(footer="PB") if chapter_names_col else "",
             ],
-            data_queries=[self._query_builder.pb_by_chapters_minimal()],
+            data_queries=[qb.pb_by_chapters_minimal()],
             best_col=False,
             sum_of_best_col=False,
         )
@@ -373,9 +354,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY_WITH_PB if area_names_col else "",
+                qb.area_names(footer="PB") if area_names_col else "",
             ],
-            data_queries=[self._query_builder.pb_by_areas_minimal()],
+            data_queries=[qb.pb_by_areas_minimal()],
             best_col=False,
             sum_of_best_col=False,
         )
@@ -389,11 +370,11 @@ class QueryRunner:
         """
         data = self._build_combined_data(
             column_header_queries=[
-                self._query_builder.PATTERN_NAMES_QUERY if pattern_names_col else "",
+                qb.PATTERN_NAMES_QUERY if pattern_names_col else "",
             ],
             data_queries=[
-                self._query_builder.rng_patterns_percentages_minimal(),
-                self._query_builder.rng_patterns_max_in_a_row_minimal(),
+                qb.rng_patterns_percentages_minimal(),
+                qb.rng_patterns_max_in_a_row_minimal(),
             ],
             best_col=False,
             sum_of_best_col=False,
@@ -425,7 +406,7 @@ class QueryRunner:
 
         for runner in self._runner_names:
             runner_stats = self.execute(
-                query=self._query_builder.general_stats(runner=runner),
+                query=qb.general_stats(runner=runner),
             )
             runner_stats = runner_stats.with_columns(
                 pl.col(name="last_update")
@@ -456,9 +437,9 @@ class QueryRunner:
         """
         data = self._build_combined_data(
             column_header_queries=[
-                self._query_builder.DOORSPLIT_NAMES_QUERY if split_names_col else "",
+                qb.doorsplit_names() if split_names_col else "",
             ],
-            data_queries=[self._query_builder.resets_minimal()],
+            data_queries=[qb.resets_minimal()],
             best_col=False,
             sum_of_best_col=False,
         )
@@ -518,7 +499,7 @@ class QueryRunner:
 
         for runner in self._runner_names:
             runner_weekday = self.execute(
-                query=self._query_builder.weekday_data(runner=runner),
+                query=qb.weekday_data(runner=runner),
             )
             runner_weekday = runner_weekday.with_columns(
                 pl.col(name=runner).map_elements(
@@ -591,7 +572,7 @@ class QueryRunner:
 
         Also returns this list of tables.
         """
-        tables_df = self.execute(query=self._query_builder.TABLE_NAMES_QUERY)
+        tables_df = self.execute(query=qb.TABLE_NAMES_QUERY)
         tables = tables_df["table_name"].to_list()
         with Path(self._output_dir / "tables.txt").open("w") as f:
             _ = f.write("\n".join(tables))
@@ -611,7 +592,7 @@ class QueryRunner:
             extra_condition = "WHERE lrt_time_instance = 1"
             excel_name = f"{self._main_runner}_doorsplit_golds_without_ties"
         return self.execute(
-            query=self._query_builder.doorsplit_golds(
+            query=qb.doorsplit_golds(
                 runner=self._main_runner,
                 extra_condition=extra_condition,
             ),
@@ -632,7 +613,7 @@ class QueryRunner:
             excel_name = f"{self._main_runner}_chapter_golds_without_ties"
 
         return self.execute(
-            query=self._query_builder.chapter_golds(
+            query=qb.chapter_golds(
                 runner=self._main_runner,
                 extra_condition=extra_condition,
             ),
@@ -653,7 +634,7 @@ class QueryRunner:
             excel_name = f"{self._main_runner}_area_golds_without_ties"
 
         return self.execute(
-            query=self._query_builder.area_golds(
+            query=qb.area_golds(
                 runner=self._main_runner,
                 extra_condition=extra_condition,
             ),
@@ -669,7 +650,7 @@ class QueryRunner:
         # TODO: There's a mistake on the splits_overview table, doorsplit 77
         # is duplicated for whatever reason.
         return self.execute(
-            query=self._query_builder.pb_summary(runner=self._main_runner),
+            query=qb.pb_summary(runner=self._main_runner),
             excel_name=f"{self._main_runner}_pb_summary",
         )
 
@@ -688,7 +669,7 @@ class QueryRunner:
             excel_name = f"{self._main_runner}_chapter_golds_components"
 
         return self.execute(
-            query=self._query_builder.doorsplits_of_chapter_golds(
+            query=qb.doorsplits_of_chapter_golds(
                 runner=self._main_runner,
                 extra_condition=extra_condition,
             ),
@@ -715,7 +696,7 @@ class QueryRunner:
         )
         excel_name = f"{self._main_runner}_{split_name_formatted}_history"
         return self.execute(
-            query=self._query_builder.doorsplit_history(
+            query=qb.doorsplit_history(
                 runner=self._main_runner,
                 order_by=order_by,
                 order_type=order_type,
@@ -730,7 +711,7 @@ class QueryRunner:
         runner, as well as the difference between these golds, for each split.
         """
         return self.execute(
-            query=self._query_builder.compare_runners_doorsplit_golds(
+            query=qb.compare_runners_doorsplit_golds(
                 runner1=self._main_runner,
                 runner2=other_runner,
             ),
@@ -743,7 +724,7 @@ class QueryRunner:
         runner, as well as the difference between these medians, for each split.
         """
         return self.execute(
-            query=self._query_builder.compare_runners_doorsplit_medians(
+            query=qb.compare_runners_doorsplit_medians(
                 runner1=self._main_runner,
                 runner2=other_runner,
             ),
@@ -757,7 +738,7 @@ class QueryRunner:
         in their history.
         """
         return self.execute(
-            query=self._query_builder.attempts_per_day(runner=self._main_runner),
+            query=qb.attempts_per_day(runner=self._main_runner),
             excel_name=f"attempts_per_day_{self._main_runner}",
         )
 
@@ -767,7 +748,7 @@ class QueryRunner:
         ever done for each unique day of the week.
         """
         return self.execute(
-            query=self._query_builder.attempts_per_day_of_the_week(
+            query=qb.attempts_per_day_of_the_week(
                 runner=self._main_runner,
             ),
             excel_name=f"attempts_per_day_of_the_week_{self._main_runner}",
@@ -779,6 +760,6 @@ class QueryRunner:
         done for each week of the year.
         """
         return self.execute(
-            query=self._query_builder.attempts_per_week(runner=self._main_runner),
+            query=qb.attempts_per_week(runner=self._main_runner),
             excel_name=f"attempts_per_week_{self._main_runner}",
         )
