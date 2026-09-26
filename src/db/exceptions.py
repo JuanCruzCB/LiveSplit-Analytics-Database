@@ -8,6 +8,10 @@ class DatabaseError(Exception):
     Base class for all database-related errors.
     """
 
+    message: str
+    db_config: LocalDatabaseConfig
+    original_exception: Exception | None
+
     def __init__(
         self,
         db_config: LocalDatabaseConfig,
@@ -15,9 +19,9 @@ class DatabaseError(Exception):
         message: str = "An error occurred with the database.",
     ) -> None:
         super().__init__(message)
-        self.message: str = message
-        self.db_config: LocalDatabaseConfig = db_config
-        self.original_exception: Exception | None = original_exception
+        self.message = message
+        self.db_config = db_config
+        self.original_exception = original_exception
 
     @override
     def __str__(self) -> str:

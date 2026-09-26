@@ -19,6 +19,13 @@ type OptionalParams = dict[str, str | int] | None
 
 
 class DatabaseHandler:
+    _sql_script: Path
+    _config_sql_script: Path
+    _db_config: LocalDatabaseConfig
+    _exclude_data_before: str
+    _last_updates_tracker: LastUpdatesTracker
+    _connection: psycopg.Connection | None
+
     def __init__(
         self,
         sql_script: Path,
@@ -27,13 +34,13 @@ class DatabaseHandler:
         exclude_data_before_config: ExcludeDataBeforeConfig,
         last_updates_tracker: LastUpdatesTracker,
     ) -> None:
-        self._sql_script: Path = sql_script
-        self._config_sql_script: Path = config_sql_script
-        self._db_config: LocalDatabaseConfig = db_config
-        self._exclude_data_before: str = exclude_data_before_config.get_date_str()
-        self._last_updates_tracker: LastUpdatesTracker = last_updates_tracker
+        self._sql_script = sql_script
+        self._config_sql_script = config_sql_script
+        self._db_config = db_config
+        self._exclude_data_before = exclude_data_before_config.get_date_str()
+        self._last_updates_tracker = last_updates_tracker
 
-        self._connection: psycopg.Connection | None = None
+        self._connection = None
 
     def open_connection(self) -> None:
         """

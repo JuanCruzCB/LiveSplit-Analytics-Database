@@ -7,15 +7,19 @@ from splits.splits_file import SplitsFile
 
 
 class SplitsHandler:
+    _splits_folder: Path
+    _main_runner_splits_file: Path
+    _runner_names: list[str]
+
     def __init__(
         self,
         splits_output_folder: Path,
         main_runner_splits_file: Path,
         runner_names: list[str],
     ) -> None:
-        self._splits_folder: Path = splits_output_folder
-        self._main_runner_splits_file: Path = main_runner_splits_file
-        self._runner_names: list[str] = runner_names
+        self._splits_folder = splits_output_folder
+        self._main_runner_splits_file = main_runner_splits_file
+        self._runner_names = runner_names
 
     @property
     def splits_folder(self) -> Path:

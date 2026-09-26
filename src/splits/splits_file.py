@@ -8,6 +8,9 @@ from splits.exceptions import SplitsFileStructureError
 
 
 class SplitsFile:
+    _file_path: Path
+    _runner_name: str
+
     def __init__(
         self,
         file_path: Path,
@@ -18,8 +21,8 @@ class SplitsFile:
         self._validate_file_path_is_file(file_path)
         self._validate_file_path_extension(file_path)
 
-        self._file_path: Path = file_path
-        self._runner_name: str = runner_name
+        self._file_path = file_path
+        self._runner_name = runner_name
 
     @staticmethod
     def _validate_file_path_exists(file_path: Path) -> None:

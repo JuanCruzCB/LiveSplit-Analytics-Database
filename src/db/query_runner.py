@@ -21,6 +21,12 @@ class QueryRunner:
     GOOD_DATE_FORMAT: Final[str] = "%d/%m/%Y"
     GOOD_DATETIME_FORMAT: Final[str] = "%d/%m/%Y %H:%M:%S UTC"
 
+    _db: DatabaseHandler
+    _query_builder: QueryBuilder
+    _runner_names: list[str]
+    _main_runner: str
+    _output_dir: Path
+
     def __init__(
         self,
         db_handler: DatabaseHandler,
@@ -29,11 +35,11 @@ class QueryRunner:
         main_runner_name: str,
         output_dir: Path,
     ) -> None:
-        self._db: DatabaseHandler = db_handler
-        self._query_builder: QueryBuilder = query_builder
-        self._runner_names: list[str] = runner_names
-        self._main_runner: str = main_runner_name
-        self._output_dir: Path = output_dir
+        self._db = db_handler
+        self._query_builder = query_builder
+        self._runner_names = runner_names
+        self._main_runner = main_runner_name
+        self._output_dir = output_dir
 
     """
     MAIN QUERIES
