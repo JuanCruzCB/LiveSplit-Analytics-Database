@@ -5,10 +5,10 @@ import polars as pl
 from polars import DataFrame
 
 from db.database_handler import DatabaseHandler
+from db.df_utils import add_best_and_cumulative_best_cols
 from db.order_by import OrderColumns, OrderType
 from db.query_builder import QueryBuilder
-from db.utils import (
-    add_best_and_cumulative_best_cols,
+from db.time_utils import (
     transform_days_hours_mins_secs,
     transform_interval_to_hours_mins,
 )

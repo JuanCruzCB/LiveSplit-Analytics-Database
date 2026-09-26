@@ -122,4 +122,5 @@ lint.ignore = [
     "D401",  # Pydocstyle - Checks for docstring first lines that are not in an imperative mood.
 	"D415",  # Pydocstyle - First line should end with a period, question mark, or exclamation point
     "S101",  # Flake8-bandit - use of assert detected
+    "COM812", # Flake8-commas - trailing commas. Disabled since it is already handled by the formatter automatically.
 ]

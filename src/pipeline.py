@@ -7,8 +7,8 @@ import polars as pl
 from polars import DataFrame
 
 from config.config import Config
+from db.df_utils import diff_before_after
 from db.query_runner import QueryRunner
-from db.utils import diff_before_after
 from drive.drive_handler import DriveHandler
 from google_auth import authenticate_google_drive, authenticate_google_sheets
 from sheet.sheet_handler import SheetHandler
