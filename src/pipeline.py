@@ -9,9 +9,9 @@ from polars import DataFrame
 from config.config import Config
 from db.query_runner import QueryRunner
 from db.utils import diff_before_after
+from drive.drive_handler import DriveHandler
 from google_auth import authenticate_google_drive, authenticate_google_sheets
 from sheet.sheet_handler import SheetHandler
-from splits.drive_handler import DriveHandler
 from splits.splits_handler import SplitsHandler
 
 SHEET_UPLOADS = [
