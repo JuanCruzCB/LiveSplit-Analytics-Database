@@ -8,7 +8,7 @@ from polars import DataFrame
 
 from config.config import Config
 from db.df_utils import diff_before_after
-from db.query_runner import QueryRunner
+from db.query_executor import QueryExecutor
 from drive.drive_handler import DriveHandler
 from google_auth import authenticate_google_drive, authenticate_google_sheets
 from sheet.sheet_handler import SheetHandler
@@ -78,35 +78,37 @@ def build_sheet_handler(cfg: Config) -> SheetHandler | None:
 
 
 @contextmanager
-def db_session(qr: QueryRunner) -> Generator[QueryRunner, Any]:  # pyright: ignore[reportExplicitAny]
+def db_session(query_executor: QueryExecutor) -> Generator[QueryExecutor, Any]:  # pyright: ignore[reportExplicitAny]
     """
     Context manager for database session. Opens a connection to the database,
     creates the config tables and closes the connection when done. Yields the
     QueryRunner instance for use within the context.
     """
-    qr.open_db_connection()
+    query_executor.open_db_connection()
     try:
-        qr.create_config_tables()
-        yield qr
+        query_executor.create_config_tables()
+        yield query_executor
     finally:
-        qr.close_db_connection()
+        query_executor.close_db_connection()
 
 
-def get_main_golds(qr: QueryRunner) -> tuple[DataFrame, DataFrame, DataFrame]:
+def get_main_golds(
+    query_executor: QueryExecutor,
+) -> tuple[DataFrame, DataFrame, DataFrame]:
     """
     Get the main golds from the database and return them as a tuple of DataFrames.
     """
-    doorsplit_golds = qr.get_runners_doorsplit_golds(
+    doorsplit_golds = query_executor.get_runners_doorsplit_golds(
         split_names_col=True,
         best_col=False,
         sum_of_best_col=False,
     )
-    chapter_golds = qr.get_runners_chapter_golds(
+    chapter_golds = query_executor.get_runners_chapter_golds(
         chapter_names_col=True,
         best_col=True,
         sum_of_best_col=True,
     )
-    area_golds = qr.get_runners_area_golds(
+    area_golds = query_executor.get_runners_area_golds(
         area_names_col=True,
         best_col=True,
         sum_of_best_col=True,
@@ -141,53 +143,59 @@ def get_diffs(
     )
 
 
-def get_all_database_data(qr: QueryRunner) -> dict[str, DataFrame]:
+def get_all_database_data(query_executor: QueryExecutor) -> dict[str, DataFrame]:
     """
     Get the main relevant data from the database and return it as a
     dictionary of DataFrames.
     """
     return {
-        "doorsplit_golds": qr.get_runners_doorsplit_golds(
+        "doorsplit_golds": query_executor.get_runners_doorsplit_golds(
             split_names_col=True,
             best_col=False,
             sum_of_best_col=False,
         ),
-        "chapter_golds": qr.get_runners_chapter_golds(
+        "chapter_golds": query_executor.get_runners_chapter_golds(
             chapter_names_col=True,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "chapter_golds_by_doors": qr.get_runners_chapter_golds_by_doors(
+        "chapter_golds_by_doors": query_executor.get_runners_chapter_golds_by_doors(
             chapter_names_col=False,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "area_golds": qr.get_runners_area_golds(
+        "area_golds": query_executor.get_runners_area_golds(
             area_names_col=True,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "area_golds_by_chapters": qr.get_runners_area_golds_by_chapters(
+        "area_golds_by_chapters": query_executor.get_runners_area_golds_by_chapters(
             area_names_col=False,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "area_golds_by_doors": qr.get_runners_area_golds_by_doors(
+        "area_golds_by_doors": query_executor.get_runners_area_golds_by_doors(
             area_names_col=False,
             best_col=True,
             sum_of_best_col=True,
         ),
-        "best_paces": qr.get_runners_best_paces(
+        "best_paces": query_executor.get_runners_best_paces(
             chapter_names_col=False,
             best_col=True,
         ),
-        "pbs_by_doors": qr.get_runners_pbs_by_doors(split_names_col=False),
-        "pbs_by_chapters": qr.get_runners_pbs_by_chapters(chapter_names_col=False),
-        "pbs_by_areas": qr.get_runners_pbs_by_areas(area_names_col=False),
-        "rng_patterns": qr.get_runners_rng_patterns(pattern_names_col=False),
-        "general_stats": qr.get_runners_general_stats(stat_names_col=False),
-        "resets": qr.get_runners_resets(split_names_col=False),
-        "weekday_data": qr.get_runners_weekday_data(weekday_stat_cols=False),
+        "pbs_by_doors": query_executor.get_runners_pbs_by_doors(split_names_col=False),
+        "pbs_by_chapters": query_executor.get_runners_pbs_by_chapters(
+            chapter_names_col=False
+        ),
+        "pbs_by_areas": query_executor.get_runners_pbs_by_areas(area_names_col=False),
+        "rng_patterns": query_executor.get_runners_rng_patterns(
+            pattern_names_col=False
+        ),
+        "general_stats": query_executor.get_runners_general_stats(stat_names_col=False),
+        "resets": query_executor.get_runners_resets(split_names_col=False),
+        "weekday_data": query_executor.get_runners_weekday_data(
+            weekday_stat_cols=False
+        ),
     }
 
 
@@ -230,7 +238,7 @@ def export_to_excel_files(
 def run_pipeline(
     cfg: Config,
     splits_handler: SplitsHandler,
-    qr: QueryRunner,
+    query_executor: QueryExecutor,
 ) -> None:
     """
     Runs the data processing pipeline:
@@ -251,13 +259,15 @@ def run_pipeline(
     splits_handler.validate_all_splits()
     splits_handler.clean_all_splits()
 
-    with db_session(qr):
-        old_golds = get_main_golds(qr)
+    with db_session(query_executor):
+        old_golds = get_main_golds(query_executor)
 
-        if not qr.update_runners_tables(splits_files=splits_handler.get_splits_files()):
+        if not query_executor.update_runners_tables(
+            splits_files=splits_handler.get_splits_files()
+        ):
             return
 
-        all_data = get_all_database_data(qr)
+        all_data = get_all_database_data(query_executor)
 
         if sheet_handler is None:
             export_to_excel_files(

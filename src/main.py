@@ -2,8 +2,7 @@ from config.config import load_config
 from config.logger import setup_logging
 from db.database_handler import DatabaseHandler
 from db.last_updates_tracker import LastUpdatesTracker
-from db.query_builder import QueryBuilder
-from db.query_runner import QueryRunner
+from db.query_executor import QueryExecutor
 from pipeline import run_pipeline
 from splits.splits_handler import SplitsHandler
 
@@ -37,15 +36,14 @@ def main() -> None:
         exclude_data_before=cfg.exclude_data_before_str,
         last_updates_tracker=last_updates,
     )
-    qr = QueryRunner(
+    query_executor = QueryExecutor(
         db_handler=db_handler,
-        query_builder=QueryBuilder(),
         runner_names=runner_names,
         main_runner_name=cfg.main_runner.name,
         output_dir=cfg.output_dir,
     )
 
-    run_pipeline(cfg, splits_handler, qr)
+    run_pipeline(cfg, splits_handler, query_executor)
 
 
 if __name__ == "__main__":

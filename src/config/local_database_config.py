@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class LocalDatabaseConfig(BaseModel):
-    model_config = ConfigDict(coerce_numbers_to_str=True)
+    model_config = ConfigDict(coerce_numbers_to_str=True)  # pyright: ignore[reportUnannotatedClassAttribute]
 
     dbname: str
     user: str
