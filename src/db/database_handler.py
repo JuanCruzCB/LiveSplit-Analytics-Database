@@ -18,7 +18,7 @@ from splits.splits_file import SplitsFile
 type OptionalParams = dict[str, str | int] | None
 
 
-class DatabaseManager:
+class DatabaseHandler:
     def __init__(
         self,
         sql_script: Path,

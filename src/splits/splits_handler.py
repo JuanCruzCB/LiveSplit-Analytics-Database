@@ -6,7 +6,7 @@ from splits.exceptions import SplitsFilesComparisonError
 from splits.splits_file import SplitsFile
 
 
-class SplitsManager:
+class SplitsHandler:
     def __init__(
         self,
         splits_output_folder: Path,

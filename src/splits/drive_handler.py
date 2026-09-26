@@ -9,21 +9,21 @@ from pydrive2.drive import (  # pyright: ignore[reportMissingTypeStubs]
 from pydrive2.files import ApiRequestError  # pyright: ignore[reportMissingTypeStubs]
 
 from splits.exceptions import GoogleDriveFolderNotFoundError
-from splits.splits_manager import SplitsManager
+from splits.splits_handler import SplitsHandler
 
 
-class DriveManager:
+class DriveHandler:
     GOOGLE_DRIVE_DATE_TIME_FORMAT: Final[str] = "%Y-%m-%dT%H:%M:%S.%fZ"
 
     def __init__(
         self,
         google_drive_folder_id: str | None,
         google_drive: GoogleDrive,
-        splits_manager: SplitsManager,
+        splits_handler: SplitsHandler,
     ) -> None:
         self._google_drive_folder_id: str | None = google_drive_folder_id
         self._google_drive: GoogleDrive = google_drive
-        self._splits_manager: SplitsManager = splits_manager
+        self._splits_handler: SplitsHandler = splits_handler
 
     def sync_local_splits(self) -> None:
         """
@@ -76,14 +76,14 @@ class DriveManager:
         file = remote_file["title"]
         runner_name = file.replace(".lss", "").replace("splits ", "")
 
-        if runner_name not in self._splits_manager.runner_names:
+        if runner_name not in self._splits_handler.runner_names:
             logger.warning(
                 "Ignoring unknown splits file: '{}'",
                 file,
             )
             return None
 
-        local_file = self._splits_manager.find_splits_file_by_runner_name(runner_name)
+        local_file = self._splits_handler.find_splits_file_by_runner_name(runner_name)
 
         if local_file is None:
             return self._download_file(file=remote_file, first_time=True)
@@ -123,4 +123,4 @@ class DriveManager:
             filename,
             " for the first time" if first_time else "",
         )
-        file.GetContentFile(filename=self._splits_manager.splits_folder / filename)
+        file.GetContentFile(filename=self._splits_handler.splits_folder / filename)

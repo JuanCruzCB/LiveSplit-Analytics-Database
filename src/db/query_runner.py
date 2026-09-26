@@ -4,7 +4,7 @@ from typing import Final
 import polars as pl
 from polars import DataFrame
 
-from db.database_manager import DatabaseManager
+from db.database_handler import DatabaseHandler
 from db.order_by import OrderColumns, OrderType
 from db.query_builder import QueryBuilder
 from db.utils import (
@@ -23,13 +23,13 @@ class QueryRunner:
 
     def __init__(
         self,
-        db_manager: DatabaseManager,
+        db_handler: DatabaseHandler,
         query_builder: QueryBuilder,
         runner_names: list[str],
         main_runner_name: str,
         output_dir: Path,
     ) -> None:
-        self._db: DatabaseManager = db_manager
+        self._db: DatabaseHandler = db_handler
         self._query_builder: QueryBuilder = query_builder
         self._runner_names: list[str] = runner_names
         self._main_runner: str = main_runner_name

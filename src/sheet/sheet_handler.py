@@ -10,7 +10,7 @@ from polars import DataFrame
 from sheet.exceptions import SheetNotFoundError, UnauthorizedError
 
 
-class SheetManager:
+class SheetHandler:
     GOOD_DATETIME_FORMAT: Final[str] = "%d/%m/%Y %H:%M:%S"
 
     def __init__(self, gspread_client: Client, google_sheet_id: str | None) -> None:
@@ -48,11 +48,11 @@ class SheetManager:
 
     def upload_dataframe(
         self,
+        data: DataFrame,
         tab_name: str,
         starting_cell: str,
-        data: DataFrame,
     ) -> None:
-        sheet = self._spreadsheet.worksheet(title=tab_name)
+        sheet = self._find_worksheet_by_title(title=tab_name)
         try:
             _ = sheet.update(
                 range_name=starting_cell,
@@ -71,12 +71,11 @@ class SheetManager:
 
     def upload_changelog(
         self,
+        before_after_data: DataFrame,
         tab_name: str,
         starting_cell: str,
-        before_after_data: DataFrame,
     ) -> None:
         sheet = self._find_worksheet_by_title(title=tab_name)
-
         try:
             utc_minus_3 = timezone(offset=timedelta(hours=-3))
             current_time = datetime.now(tz=utc_minus_3).strftime(
@@ -89,7 +88,7 @@ class SheetManager:
 
             # Clear all the values in the range starting from 'starting_cell' to
             # the last row of the sheet and 2 columns to the right of 'starting_cell'.
-            start_row, start_col = a1_to_rowcol(label=starting_cell)
+            _, start_col = a1_to_rowcol(label=starting_cell)
             end_col = start_col + 2
             end_row = sheet.row_count
             clear_range = f"{starting_cell}:{rowcol_to_a1(row=end_row, col=end_col)}"
