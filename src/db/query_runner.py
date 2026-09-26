@@ -228,7 +228,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY if area_names_col else "",
+                self._query_builder.AREA_NAMES_QUERY_WITH_TOTAL
+                if area_names_col
+                else "",
             ],
             data_queries=[self._query_builder.area_golds_minimal()],
             best_col=best_col,
@@ -253,7 +255,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY if area_names_col else "",
+                self._query_builder.AREA_NAMES_QUERY_WITH_TOTAL
+                if area_names_col
+                else "",
             ],
             data_queries=[self._query_builder.area_golds_by_chapters_minimal()],
             best_col=best_col,
@@ -278,7 +282,9 @@ class QueryRunner:
         """
         return self._build_combined_data(
             column_header_queries=[
-                self._query_builder.AREA_NAMES_QUERY if area_names_col else "",
+                self._query_builder.AREA_NAMES_QUERY_WITH_TOTAL
+                if area_names_col
+                else "",
             ],
             data_queries=[self._query_builder.area_golds_by_doors_minimal()],
             best_col=best_col,
@@ -304,6 +310,73 @@ class QueryRunner:
             ],
             data_queries=[self._query_builder.best_paces_minimal()],
             best_col=best_col,
+            sum_of_best_col=False,
+        )
+
+    def get_runners_pbs_by_doors(
+        self,
+        *,
+        split_names_col: bool,
+    ) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains the doorsplit time obtained by that runner
+        in that split in their PB.
+
+        The first column that shows the doorsplit names is optional.
+        """
+        return self._build_combined_data(
+            column_header_queries=[
+                self._query_builder.DOORSPLIT_NAMES_QUERY_WITH_PB
+                if split_names_col
+                else "",
+            ],
+            data_queries=[self._query_builder.pb_by_doors_minimal()],
+            best_col=False,
+            sum_of_best_col=False,
+        )
+
+    def get_runners_pbs_by_chapters(
+        self,
+        *,
+        chapter_names_col: bool,
+    ) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains the chapter time obtained by that runner
+        in that chapter in their PB.
+
+        The first column that shows the chapter names is optional.
+        """
+        return self._build_combined_data(
+            column_header_queries=[
+                self._query_builder.CHAPTER_NAMES_QUERY_WITH_PB
+                if chapter_names_col
+                else "",
+            ],
+            data_queries=[self._query_builder.pb_by_chapters_minimal()],
+            best_col=False,
+            sum_of_best_col=False,
+        )
+
+    def get_runners_pbs_by_areas(
+        self,
+        *,
+        area_names_col: bool,
+    ) -> DataFrame:
+        """
+        Returns a DataFrame where the first row is the name of all runners
+        and each column contains the area time obtained by that runner
+        in that area in their PB.
+
+        The first column that shows the area names is optional.
+        """
+        return self._build_combined_data(
+            column_header_queries=[
+                self._query_builder.AREA_NAMES_QUERY_WITH_PB if area_names_col else "",
+            ],
+            data_queries=[self._query_builder.pb_by_areas_minimal()],
+            best_col=False,
             sum_of_best_col=False,
         )
 

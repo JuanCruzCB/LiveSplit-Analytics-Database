@@ -20,6 +20,21 @@ class QueryBuilder:
     ) split_names
     ORDER BY split_names.split_index;
     """
+    DOORSPLIT_NAMES_QUERY_WITH_PB: Final[LiteralString] = """
+    SELECT split_name
+    FROM
+    (
+        SELECT
+            cfg.split_index,
+            cfg.split_name
+        FROM cfg_default_split_names cfg
+
+        UNION
+
+        SELECT 999, 'PB'
+    ) split_names
+    ORDER BY split_names.split_index;
+    """
     DOORSPLIT_NAMES_QUERY: Final[LiteralString] = """
     SELECT split_name
     FROM cfg_default_split_names
@@ -34,11 +49,20 @@ class QueryBuilder:
     SELECT 'Total'
     ORDER BY chapter;
     """
+    CHAPTER_NAMES_QUERY_WITH_PB: Final[LiteralString] = """
+    SELECT chapter
+    FROM cfg_chapter_area_splits_from_to
+
+    UNION
+
+    SELECT 'PB'
+    ORDER BY chapter;
+    """
     CHAPTER_NAMES_QUERY: Final[LiteralString] = """
     SELECT chapter
     FROM cfg_chapter_area_splits_from_to;
     """
-    AREA_NAMES_QUERY: Final[LiteralString] = """
+    AREA_NAMES_QUERY_WITH_TOTAL: Final[LiteralString] = """
     SELECT area
     FROM
     (
@@ -50,6 +74,21 @@ class QueryBuilder:
         UNION
 
         SELECT 999, 'Total'
+    ) area_names
+    ORDER BY area_names.sort;
+    """
+    AREA_NAMES_QUERY_WITH_PB: Final[LiteralString] = """
+    SELECT area
+    FROM
+    (
+        SELECT
+            cfg.sort,
+            cfg.area
+        FROM cfg_splits_per_area cfg
+
+        UNION
+
+        SELECT 999, 'PB'
     ) area_names
     ORDER BY area_names.sort;
     """
@@ -287,6 +326,115 @@ class QueryBuilder:
                     WHERE split_name LIKE '%{{%'
                     ORDER BY split_index
                 );
+                """
+
+    def pb_by_doors_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the doorsplit times obtained
+        in the runner's PB.
+        """
+        return """
+                SELECT
+                    {runner}
+                FROM
+                (
+                    SELECT
+                        split_index,
+                        lrt_time_fmt AS {runner}
+                    FROM
+                    (
+                        SELECT DISTINCT
+                            run_id,
+                            split_index,
+                            lrt_time_fmt
+                        FROM splits_overview_{runner}
+                        WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
+                        ORDER BY split_index
+                    ) a
+
+                    UNION
+
+                    SELECT
+                        NULL,
+                        LTRIM(TO_CHAR(lrt_pb::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS {runner}
+                    FROM pb_history_{runner}
+                    WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
+                )
+                """  # noqa: E501
+
+    def pb_by_chapters_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the chapter times obtained
+        in the runner's PB.
+        """
+        return """
+                SELECT
+                    {runner}
+                FROM
+                (
+                    SELECT
+                        chapter,
+                        chapter_time_fmt AS {runner}
+                    FROM
+                    (
+                        SELECT DISTINCT
+                            run_id,
+                            chapter,
+                            chapter_time_fmt
+                        FROM splits_overview_{runner}
+                        WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
+                        ORDER BY chapter
+                    ) a
+
+                    UNION
+
+                    SELECT
+                        NULL,
+                        LTRIM(TO_CHAR(lrt_pb::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS {runner}
+                    FROM pb_history_{runner}
+                    WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
+                )
+                """  # noqa: E501
+
+    def pb_by_areas_minimal(self) -> str:
+        """
+        Returns an SQL query that selects all the area times obtained
+        in the runner's PB.
+        """
+        return """
+                SELECT
+                    {runner}
+                FROM
+                (
+                    SELECT
+                        area,
+                        sort,
+                        area_time_fmt AS {runner}
+                    FROM
+                    (
+                        SELECT DISTINCT
+                            so.run_id,
+                            so.area,
+                            so.area_time_fmt,
+                            cfg.sort
+                        FROM splits_overview_{runner} so
+
+                        LEFT JOIN cfg_splits_per_area cfg
+                        ON so.area = cfg.area
+
+                        WHERE so.run_id = (SELECT MAX(run_id) from pb_history_{runner})
+                    ) a
+
+                    UNION
+
+                    SELECT
+                        NULL,
+                        NULL,
+                        LTRIM(TO_CHAR(lrt_pb::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS {runner}
+                    FROM pb_history_{runner}
+                    WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
+                    ORDER BY sort
+                )
                 """
 
     def rng_patterns_percentages_minimal(self) -> str:
