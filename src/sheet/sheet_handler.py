@@ -12,15 +12,11 @@ from sheet.exceptions import SheetNotFoundError, UnauthorizedError
 
 class SheetHandler:
     GOOD_DATETIME_FORMAT: Final[str] = "%d/%m/%Y %H:%M:%S"
+    _spreadsheet: Spreadsheet
 
-    def __init__(self, gspread_client: Client, google_sheet_id: str | None) -> None:
-        if google_sheet_id is None:
-            msg = "The Google Sheet ID is not set in the configuration."
-            logger.error(msg)
-            raise ValueError(msg)
-
+    def __init__(self, gspread_client: Client, google_sheet_id: str) -> None:
         try:
-            self._spreadsheet: Spreadsheet = gspread_client.open_by_key(
+            self._spreadsheet = gspread_client.open_by_key(
                 key=google_sheet_id,
             )
         except SpreadsheetNotFound as e:

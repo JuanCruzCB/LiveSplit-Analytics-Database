@@ -64,9 +64,6 @@ class QueryBuilder:
     FROM cfg_rng_pattern_rules;
     """
 
-    def __init__(self) -> None:
-        pass
-
     def doorsplit_golds_minimal(self) -> str:
         """
         Returns an SQL query that selects all the doorsplit golds of the
