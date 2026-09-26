@@ -2,7 +2,7 @@ import sys
 
 from loguru import logger
 
-from config.config import OUTPUT_DIR
+from config.paths import OUTPUT_DIR
 
 
 def setup_logging() -> None:

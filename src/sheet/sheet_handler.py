@@ -48,6 +48,12 @@ class SheetHandler:
         tab_name: str,
         starting_cell: str,
     ) -> None:
+        """
+        Uploads a DataFrame to a specific tab in the Google Sheet, starting from the
+        specified cell. The DataFrame is first converted to a list of lists, for the
+        Google API to accept it. Any NaN values in the DataFrame are replaced with None,
+        since the Google Sheets API rejects NaN values.
+        """
         sheet = self._find_worksheet_by_title(title=tab_name)
         try:
             _ = sheet.update(
@@ -71,6 +77,19 @@ class SheetHandler:
         tab_name: str,
         starting_cell: str,
     ) -> None:
+        """
+        Uploads a changelog DataFrame to a specific tab in the Google Sheet, starting
+        from the specified cell. The DataFrame is first converted to a list of lists,
+        for the Google API to accept it. Any NaN values in the DataFrame are replaced
+        with None, since the Google Sheets API rejects NaN values. Additionally, it
+        updates cell A2 with the current timestamp in the format "Last updated on:
+        DD/MM/YYYY HH:MM:SS (UTC-3)".
+
+        Before uploading the new data, it clears all the values in the range starting
+        from 'starting_cell' to the last row of the sheet and 2 columns to the right
+        of 'starting_cell'. This ensures that any old data is wiped before the new
+        data is uploaded.
+        """
         sheet = self._find_worksheet_by_title(title=tab_name)
         try:
             utc_minus_3 = timezone(offset=timedelta(hours=-3))
@@ -82,8 +101,6 @@ class SheetHandler:
                 value=f"Last updated on: {current_time} (UTC-3)",
             )
 
-            # Clear all the values in the range starting from 'starting_cell' to
-            # the last row of the sheet and 2 columns to the right of 'starting_cell'.
             _, start_col = a1_to_rowcol(label=starting_cell)
             end_col = start_col + 2
             end_row = sheet.row_count

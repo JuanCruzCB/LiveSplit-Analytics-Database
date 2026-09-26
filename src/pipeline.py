@@ -30,7 +30,7 @@ SHEET_UPLOADS = [
 
 
 def build_drive_handler(
-    config: Config,
+    cfg: Config,
     splits_handler: SplitsHandler,
 ) -> DriveHandler | None:
     """
@@ -39,39 +39,38 @@ def build_drive_handler(
     the configuration is missing any of the required information.
     """
     if not (
-        config.google_api.service_account_secrets_file
-        and config.google_api.google_drive_folder_id
+        cfg.google_api.service_account_secrets_file
+        and cfg.google_api.google_drive_folder_id
     ):
         return None
 
     google_drive = authenticate_google_drive(
-        secrets_file=config.google_api.service_account_secrets_file,
+        secrets_file=cfg.google_api.service_account_secrets_file,
     )
     return DriveHandler(
-        google_drive_folder_id=config.google_api.google_drive_folder_id,
+        google_drive_folder_id=cfg.google_api.google_drive_folder_id,
         google_drive=google_drive,
         splits_handler=splits_handler,
     )
 
 
-def build_sheet_handler(config: Config) -> SheetHandler | None:
+def build_sheet_handler(cfg: Config) -> SheetHandler | None:
     """
     Build a SheetHandler instance if the configuration has the necessary
     information for Google Sheets authentication and sheet ID. Returns None if
     the configuration is missing any of the required information.
     """
     if not (
-        config.google_api.service_account_secrets_file
-        and config.google_api.google_sheet_id
+        cfg.google_api.service_account_secrets_file and cfg.google_api.google_sheet_id
     ):
         return None
 
     gspread_client = authenticate_google_sheets(
-        secrets_file=config.google_api.service_account_secrets_file,
+        secrets_file=cfg.google_api.service_account_secrets_file,
     )
     return SheetHandler(
         gspread_client=gspread_client,
-        google_sheet_id=config.google_api.google_sheet_id,
+        google_sheet_id=cfg.google_api.google_sheet_id,
     )
 
 
@@ -223,7 +222,7 @@ def export_to_excel_files(
 
 
 def run_pipeline(
-    config: Config,
+    cfg: Config,
     splits_handler: SplitsHandler,
     qr: QueryRunner,
 ) -> None:
@@ -237,8 +236,8 @@ def run_pipeline(
     5. Exports the updated data to Google Sheets (if configured) or saves it
     as Excel files in the output directory.
     """
-    drive_handler = build_drive_handler(config, splits_handler)
-    sheet_handler = build_sheet_handler(config)
+    drive_handler = build_drive_handler(cfg, splits_handler)
+    sheet_handler = build_sheet_handler(cfg)
 
     if drive_handler is not None:
         drive_handler.sync_local_splits()
@@ -256,7 +255,7 @@ def run_pipeline(
 
         if sheet_handler is None:
             export_to_excel_files(
-                output_dir=config.output_dir,
+                output_dir=cfg.output_dir,
                 data=all_data,
                 diffs=get_diffs(*old_golds, all_data=all_data),
             )

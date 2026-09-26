@@ -1,22 +1,15 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 
-@dataclass
-class LocalDatabaseConfig:
+class LocalDatabaseConfig(BaseModel):
     dbname: str
     user: str
     host: str
-    password: int | str
-    port: int
+    password: str
+    port: str
 
-    def to_dict(self) -> dict[str, int | str]:
+    def to_dict(self) -> dict[str, str]:
         """
         Returns the database configuration as a dictionary.
         """
-        return {
-            "dbname": self.dbname,
-            "user": self.user,
-            "host": self.host,
-            "password": self.password,
-            "port": self.port,
-        }
+        return self.model_dump()

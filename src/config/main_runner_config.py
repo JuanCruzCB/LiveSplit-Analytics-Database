@@ -1,27 +1,30 @@
-from dataclasses import dataclass
 from pathlib import Path
 
-from loguru import logger
+from pydantic import BaseModel, field_validator
 
 
-@dataclass
-class MainRunnerConfig:
+class MainRunnerConfig(BaseModel):
     name: str
     splits_file: Path
 
-    def __post_init__(self) -> None:
-        """
-        Validate that the main runner configuration was initialized correctly.
-        """
-        if "," in self.name or "-" in self.name or "_" in self.name or " " in self.name:
+    @field_validator("name")
+    @classmethod
+    def _no_separators(cls, v: str) -> str:
+        if any(c in v for c in ",-_ "):
             msg = (
                 "The main runner name cannot have commas, hyphens, "
                 "underscores or spaces."
             )
-            logger.error(msg)
             raise ValueError(msg)
+        return v
 
-        if not self.splits_file.exists():
-            msg = f"The file {self.splits_file} does not exist."
-            logger.error(msg)
-            raise FileNotFoundError(msg)
+    @field_validator("splits_file")
+    @classmethod
+    def _must_be_absolute_and_exist(cls, v: Path) -> Path:
+        if not v.is_absolute():
+            msg = f"The splits_file path must be absolute, got: {v}"
+            raise ValueError(msg)
+        if not v.exists():
+            msg = f"The file {v} does not exist."
+            raise ValueError(msg)
+        return v

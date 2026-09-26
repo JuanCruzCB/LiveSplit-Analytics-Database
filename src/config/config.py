@@ -1,32 +1,54 @@
-from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import yaml
 from loguru import logger
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
-from config.exclude_data_before_config import ExcludeDataBeforeConfig
 from config.google_api_config import GoogleAPIConfig
 from config.local_database_config import LocalDatabaseConfig
 from config.main_runner_config import MainRunnerConfig
 from config.other_runners_config import OtherRunnersConfig
+from config.paths import LAST_UPDATES_FILE, OUTPUT_DIR, YAML_CONFIG_FILE
 from config.sql_scripts_config import SQLScriptsConfig
 
-PROJECT_DIR = Path(__file__).parent.parent.parent
-YAML_CONFIG_FILE = PROJECT_DIR / "config" / "config.yaml"
-LAST_UPDATES_FILE = PROJECT_DIR / "config" / "last_table_updates.json"
-OUTPUT_DIR = PROJECT_DIR / "output"
 
+class Config(BaseModel):
+    model_config = ConfigDict(frozen=True)  # pyright: ignore[reportUnannotatedClassAttribute]
 
-@dataclass
-class Config:
     main_runner: MainRunnerConfig
     other_runners: OtherRunnersConfig
     google_api: GoogleAPIConfig
-    local_db: LocalDatabaseConfig
+    local_database: LocalDatabaseConfig
     sql_scripts: SQLScriptsConfig
-    exclude_data_before: ExcludeDataBeforeConfig
-    last_table_updates_file: Path
-    output_dir: Path
+    exclude_data_before: date | None = None
+    last_table_updates_file: Path = LAST_UPDATES_FILE
+    output_dir: Path = OUTPUT_DIR
+
+    @field_validator("exclude_data_before")
+    @classmethod
+    def _must_be_in_the_past(cls, v: date | None) -> date | None:
+        """
+        Validate that the date is in the correct format YYYY-MM-DD and that it is before
+        the current date.
+        """
+        if v is not None and v >= datetime.now(tz=UTC).date():
+            msg = f"The date {v} must be before the current date."
+            raise ValueError(msg)
+        return v
+
+    @property
+    def exclude_data_before_str(self) -> str:
+        """
+        Return the exclude_data_before date as a string in the format YYYY-MM-DD.
+
+        If the date is None, return a default date string "2000-01-01".
+        """
+        return (
+            self.exclude_data_before.strftime(format="%Y-%m-%d")
+            if self.exclude_data_before
+            else "2000-01-01"
+        )
 
 
 def load_config() -> Config:
@@ -41,58 +63,15 @@ def load_config() -> Config:
         raise FileNotFoundError(msg)
 
     with YAML_CONFIG_FILE.open("r") as f:
-        config = yaml.safe_load(stream=f)
+        raw = yaml.safe_load(stream=f)  # pyright: ignore[reportAny]
+
+    if not isinstance(raw, dict):
+        msg = f"'{YAML_CONFIG_FILE}' must contain a mapping at the top level."
+        logger.error(msg)
+        raise TypeError(msg)
 
     try:
-        main_runner = MainRunnerConfig(
-            name=config["main_runner"]["name"],
-            splits_file=Path(config["main_runner"]["splits_file"]),
-        )
-
-        other_runners = OtherRunnersConfig(
-            names=config["other_runners"]["names"],
-            splits_folder=Path(config["other_runners"]["splits_folder"]),
-        )
-
-        google_api_dict = config["google_api"]
-        google_api = GoogleAPIConfig(
-            service_account_secrets_file=google_api_dict[
-                "service_account_secrets_file"
-            ],
-            google_sheet_id=google_api_dict["google_sheet_id"],
-            google_drive_folder_id=google_api_dict["google_drive_folder_id"],
-        )
-
-        local_db_dict = config["local_database"]
-        local_db = LocalDatabaseConfig(
-            dbname=local_db_dict["dbname"],
-            user=local_db_dict["user"],
-            host=local_db_dict["host"],
-            password=local_db_dict["password"],
-            port=local_db_dict["port"],
-        )
-
-        sql_scripts = SQLScriptsConfig(
-            builder=Path(config["sql_scripts"]["builder"]).resolve(),
-            config=Path(config["sql_scripts"]["config"]).resolve(),
-        )
-
-        exclude_data_before = ExcludeDataBeforeConfig(
-            date=config.get("exclude_data_before", None),
-        )
-
-    except KeyError as e:
-        msg = f"The structure of the '{YAML_CONFIG_FILE}' file is invalid."
-        logger.exception(msg)
-        raise ValueError(msg) from e
-
-    return Config(
-        main_runner=main_runner,
-        other_runners=other_runners,
-        google_api=google_api,
-        local_db=local_db,
-        sql_scripts=sql_scripts,
-        exclude_data_before=exclude_data_before,
-        last_table_updates_file=LAST_UPDATES_FILE,
-        output_dir=OUTPUT_DIR,
-    )
+        return Config.model_validate(obj=raw)
+    except ValidationError as e:
+        logger.error(f"Invalid configuration in {YAML_CONFIG_FILE}:\n{e}")
+        raise

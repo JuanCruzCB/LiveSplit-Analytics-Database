@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
-from pydrive2.files import GoogleDriveFile
+from pydrive2.files import GoogleDriveFile  # pyright: ignore[reportMissingTypeStubs]
 
 _GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 

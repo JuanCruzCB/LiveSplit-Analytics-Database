@@ -1,36 +1,17 @@
-from dataclasses import dataclass
 from pathlib import Path
 
-from loguru import logger
+from pydantic import BaseModel, field_validator
 
 
-@dataclass
-class GoogleAPIConfig:
-    service_account_secrets_file: Path | None
-    google_sheet_id: str | None
-    google_drive_folder_id: str | None
+class GoogleAPIConfig(BaseModel):
+    service_account_secrets_file: Path | None = None
+    google_sheet_id: str | None = None
+    google_drive_folder_id: str | None = None
 
-    def __init__(
-        self,
-        service_account_secrets_file: str | None,
-        google_sheet_id: str | None,
-        google_drive_folder_id: str | None,
-    ) -> None:
-        if service_account_secrets_file is None:
-            self.service_account_secrets_file = service_account_secrets_file
-        else:
-            self.service_account_secrets_file = Path(service_account_secrets_file)
-        self.google_sheet_id = google_sheet_id
-        self.google_drive_folder_id = google_drive_folder_id
-
-    def __post_init__(self) -> None:
-        """
-        Validate that the Google API configuration was initialized correctly.
-        """
-        if (
-            self.service_account_secrets_file
-            and not self.service_account_secrets_file.exists()
-        ):
-            msg = f"The file {self.service_account_secrets_file} does not exist."
-            logger.error(msg)
-            raise FileNotFoundError(msg)
+    @field_validator("service_account_secrets_file")
+    @classmethod
+    def _file_must_exist(cls, v: Path | None) -> Path | None:
+        if v is not None and not v.exists():
+            msg = f"The file {v} does not exist."
+            raise ValueError(msg)
+        return v

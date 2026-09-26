@@ -5,7 +5,6 @@ import psycopg
 from loguru import logger
 from polars import DataFrame
 
-from config.exclude_data_before_config import ExcludeDataBeforeConfig
 from config.local_database_config import LocalDatabaseConfig
 from db.exceptions import (
     ConnectionError,  # noqa: A004
@@ -31,13 +30,13 @@ class DatabaseHandler:
         sql_script: Path,
         config_sql_script: Path,
         db_config: LocalDatabaseConfig,
-        exclude_data_before_config: ExcludeDataBeforeConfig,
+        exclude_data_before: str,
         last_updates_tracker: LastUpdatesTracker,
     ) -> None:
         self._sql_script = sql_script
         self._config_sql_script = config_sql_script
         self._db_config = db_config
-        self._exclude_data_before = exclude_data_before_config.get_date_str()
+        self._exclude_data_before = exclude_data_before
         self._last_updates_tracker = last_updates_tracker
 
         self._connection = None
@@ -48,7 +47,13 @@ class DatabaseHandler:
         hardcoded credentials.
         """
         try:
-            self._connection = psycopg.connect(**self._db_config.to_dict())  # type: ignore  # noqa: PGH003
+            self._connection = psycopg.connect(
+                dbname=self._db_config.dbname,
+                user=self._db_config.user,
+                host=self._db_config.host,
+                password=self._db_config.password,
+                port=self._db_config.port,
+            )
         except psycopg.Error as e:
             raise ConnectionError(
                 db_config=self._db_config,

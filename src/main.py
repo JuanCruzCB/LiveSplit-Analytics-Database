@@ -18,34 +18,34 @@ def main() -> None:
     4. Runs the data processing pipeline.
     """
     setup_logging()
-    config = load_config()
-    runner_names = [config.main_runner.name, *config.other_runners.names]
+    cfg = load_config()
+    runner_names = [cfg.main_runner.name, *cfg.other_runners.names]
 
     splits_handler = SplitsHandler(
-        splits_output_folder=config.other_runners.splits_folder,
-        main_runner_splits_file=config.main_runner.splits_file,
+        splits_output_folder=cfg.other_runners.splits_folder,
+        main_runner_splits_file=cfg.main_runner.splits_file,
         runner_names=runner_names,
     )
     last_updates = LastUpdatesTracker(
-        storage_file=config.last_table_updates_file,
+        storage_file=cfg.last_table_updates_file,
         default_files=splits_handler.get_splits_files_paths(),
     )
     db_handler = DatabaseHandler(
-        sql_script=config.sql_scripts.builder,
-        config_sql_script=config.sql_scripts.config,
-        db_config=config.local_db,
-        exclude_data_before_config=config.exclude_data_before,
+        sql_script=cfg.sql_scripts.builder,
+        config_sql_script=cfg.sql_scripts.config,
+        db_config=cfg.local_database,
+        exclude_data_before=cfg.exclude_data_before_str,
         last_updates_tracker=last_updates,
     )
     qr = QueryRunner(
         db_handler=db_handler,
         query_builder=QueryBuilder(),
         runner_names=runner_names,
-        main_runner_name=config.main_runner.name,
-        output_dir=config.output_dir,
+        main_runner_name=cfg.main_runner.name,
+        output_dir=cfg.output_dir,
     )
 
-    run_pipeline(config, splits_handler, qr)
+    run_pipeline(cfg, splits_handler, qr)
 
 
 if __name__ == "__main__":
