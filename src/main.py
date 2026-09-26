@@ -1,39 +1,36 @@
 from config.config import load_config
 from config.logger import setup_logging
-from db.database_manager import DatabaseManager
+from db.database_handler import DatabaseHandler
 from db.last_updates_tracker import LastUpdatesTracker
 from db.query_builder import QueryBuilder
 from db.query_runner import QueryRunner
-from execution_modes import (
-    run_with_google_drive_and_google_sheets,
-    run_with_google_drive_only,
-    run_with_google_sheets_only,
-    run_without_google_api,
-)
-from splits.splits_manager import SplitsManager
+from pipeline import run_pipeline
+from splits.splits_handler import SplitsHandler
 
 
 def main() -> None:
     """
     Entry point of the application.
 
-    Sets up logging, loads configuration, initializes authentication and managers,
-    synchronizes splits, updates the database, and updates the Google Sheet.
+    1. Sets up logging.
+    2. Loads configuration from config.yaml.
+    3. Initializes SplitsHandler, LastUpdatesTracker, DatabaseHandler, and QueryRunner.
+    4. Runs the data processing pipeline.
     """
     setup_logging()
     config = load_config()
     runner_names = [config.main_runner.name, *config.other_runners.names]
 
-    splits = SplitsManager(
+    splits_handler = SplitsHandler(
         splits_output_folder=config.other_runners.splits_folder,
         main_runner_splits_file=config.main_runner.splits_file,
         runner_names=runner_names,
     )
     last_updates = LastUpdatesTracker(
         storage_file=config.last_table_updates_file,
-        default_files=splits.get_splits_files_paths(),
+        default_files=splits_handler.get_splits_files_paths(),
     )
-    db_manager = DatabaseManager(
+    db_handler = DatabaseHandler(
         sql_script=config.sql_scripts.builder,
         config_sql_script=config.sql_scripts.config,
         db_config=config.local_db,
@@ -41,31 +38,14 @@ def main() -> None:
         last_updates_tracker=last_updates,
     )
     qr = QueryRunner(
-        db_manager=db_manager,
+        db_handler=db_handler,
         query_builder=QueryBuilder(),
         runner_names=runner_names,
         main_runner_name=config.main_runner.name,
         output_dir=config.output_dir,
     )
 
-    if not config.google_api.service_account_secrets_file:
-        run_without_google_api(splits, qr, config.output_dir)
-    elif config.google_api.google_drive_folder_id and config.google_api.google_sheet_id:
-        run_with_google_drive_and_google_sheets(
-            config,
-            splits,
-            qr,
-        )
-    elif (
-        config.google_api.google_drive_folder_id
-        and not config.google_api.google_sheet_id
-    ):
-        run_with_google_drive_only(config, splits, qr, config.output_dir)
-    elif (
-        not config.google_api.google_drive_folder_id
-        and config.google_api.google_sheet_id
-    ):
-        run_with_google_sheets_only(config, splits, qr)
+    run_pipeline(config, splits_handler, qr)
 
 
 if __name__ == "__main__":
