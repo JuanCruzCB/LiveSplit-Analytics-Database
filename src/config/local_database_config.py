@@ -1,7 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class LocalDatabaseConfig(BaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
+
     dbname: str
     user: str
     host: str
