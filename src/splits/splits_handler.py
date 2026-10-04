@@ -32,7 +32,10 @@ class SplitsHandler:
         """
         Returns the path of every splits file.
         """
-        return list(self._splits_folder.glob(pattern="*.lss"))
+        return [
+            self._main_runner_splits_file,
+            *list(self._splits_folder.glob(pattern="*.lss")),
+        ]
 
     def get_splits_files(self) -> list[SplitsFile]:
         """

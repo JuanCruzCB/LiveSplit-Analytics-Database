@@ -87,11 +87,11 @@ def transform_days_hours_mins_secs(total_playtime: str) -> str:
 def transform_interval_to_hours_mins(interval: str | None) -> str:
     """
     Transform a time interval string in 'HH:MM:SS' format into
-    'X hrs and Y mins' format.
+    'X hs and Y mins' format.
 
     The interval string can have an invalid format or be None.
 
-    - Example 1: transform_interval_to_hours_mins("02:30:00") returns "2 hrs and 30 mins"
+    - Example 1: transform_interval_to_hours_mins("02:30:00") returns "2 hs and 30 mins"
     - Example 2: transform_interval_to_hours_mins("00:45:00") returns "45 mins"
     """
     if interval is None:
@@ -112,4 +112,4 @@ def transform_interval_to_hours_mins(interval: str | None) -> str:
     if hours == 0:
         return f"{minutes} mins"
 
-    return f"{hours} hrs and {minutes} mins"
+    return f"{hours} hs and {minutes} mins"

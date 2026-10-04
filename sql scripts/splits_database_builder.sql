@@ -2182,9 +2182,9 @@ LEFT JOIN
     SELECT
         run_started_on_weekday,
         SUM(golded_doorsplit::INT) AS doorsplit_golds,
-        SUM(golded_chapter::INT) AS chapter_golds,
-        SUM(golded_area::INT) AS area_golds,
-        SUM(was_best_pace::INT) AS best_paces
+        COUNT(DISTINCT CASE WHEN golded_chapter=TRUE THEN chapter END) AS chapter_golds,
+        COUNT(DISTINCT CASE WHEN golded_area=TRUE THEN area END) AS area_golds,
+        COUNT(DISTINCT CASE WHEN was_best_pace=TRUE THEN run_id END) AS best_paces
     FROM splits_overview_runner
     GROUP BY run_started_on_weekday
 ) golds
