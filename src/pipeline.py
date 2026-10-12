@@ -78,7 +78,7 @@ def build_sheet_handler(cfg: Config) -> SheetHandler | None:
 
 
 @contextmanager
-def db_session(query_executor: QueryExecutor) -> Generator[QueryExecutor, Any]:  # pyright: ignore[reportExplicitAny]
+def db_session(query_executor: QueryExecutor) -> Generator[QueryExecutor, Any]:
     """
     Context manager for database session. Opens a connection to the database,
     creates the config tables and closes the connection when done. Yields the

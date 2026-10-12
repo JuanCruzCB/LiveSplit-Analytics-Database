@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
-from pydrive2.files import GoogleDriveFile  # pyright: ignore[reportMissingTypeStubs]
+from pydrive2.files import GoogleDriveFile
 
 _GOOGLE_DRIVE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
@@ -48,4 +48,4 @@ class RemoteSplitsFile:
         """
         Download the remote splits file to the given local path.
         """
-        self._raw.GetContentFile(filename=path)  # pyright: ignore[reportUnknownMemberType]
+        self._raw.GetContentFile(filename=path)

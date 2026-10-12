@@ -14,7 +14,7 @@ from config.sql_scripts_config import SQLScriptsConfig
 
 
 class Config(BaseModel):
-    model_config = ConfigDict(frozen=True)  # pyright: ignore[reportUnannotatedClassAttribute]
+    model_config = ConfigDict(frozen=True)
 
     main_runner: MainRunnerConfig
     other_runners: OtherRunnersConfig
@@ -63,7 +63,7 @@ def load_config() -> Config:
         raise FileNotFoundError(msg)
 
     with YAML_CONFIG_FILE.open("r") as f:
-        raw = yaml.safe_load(stream=f)  # pyright: ignore[reportAny]
+        raw = yaml.safe_load(stream=f)
 
     if not isinstance(raw, dict):
         msg = f"'{YAML_CONFIG_FILE}' must contain a mapping at the top level."

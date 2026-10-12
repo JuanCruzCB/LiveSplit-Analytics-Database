@@ -2,8 +2,8 @@ from pathlib import Path
 
 from gspread import Client, service_account
 from loguru import logger
-from pydrive2.auth import GoogleAuth  # pyright: ignore[reportMissingTypeStubs]
-from pydrive2.drive import GoogleDrive  # pyright: ignore[reportMissingTypeStubs]
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 
 _DRIVE_AUTH_SCOPE = "https://www.googleapis.com/auth/drive"
 _SHEETS_AUTH_SCOPE = "https://www.googleapis.com/auth/spreadsheets"

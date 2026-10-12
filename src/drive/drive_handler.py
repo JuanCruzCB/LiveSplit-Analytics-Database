@@ -1,8 +1,8 @@
 from typing import cast
 
 from loguru import logger
-from pydrive2.drive import GoogleDrive  # pyright: ignore[reportMissingTypeStubs]
-from pydrive2.files import ApiRequestError  # pyright: ignore[reportMissingTypeStubs]
+from pydrive2.drive import GoogleDrive
+from pydrive2.files import ApiRequestError
 
 from drive.exceptions import GoogleDriveFolderNotFoundError
 from drive.remote_splits_file import RemoteSplitsFile
@@ -42,7 +42,7 @@ class DriveHandler:
         """
         query = {"q": f"'{self._google_drive_folder_id}' in parents and trashed=false"}
         try:
-            raw_files = self._google_drive.ListFile(param=query).GetList()  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+            raw_files = self._google_drive.ListFile(param=query).GetList()
         except ApiRequestError as e:
             logger.exception(
                 "Failed to list files in Google Drive folder '{}'",
@@ -51,8 +51,8 @@ class DriveHandler:
             raise GoogleDriveFolderNotFoundError from e
 
         return [
-            RemoteSplitsFile.from_drive_file(raw)  # pyright: ignore[reportUnknownArgumentType]
-            for raw in raw_files  # pyright: ignore[reportUnknownVariableType]
+            RemoteSplitsFile.from_drive_file(raw)
+            for raw in raw_files
             if cast("str", raw["title"]).startswith("splits ")
         ]
 
