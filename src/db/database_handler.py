@@ -71,7 +71,7 @@ class DatabaseHandler:
     def execute(
         self,
         query: str,
-        message: str = "Unspecified query ran",
+        message: str = "Unspecified query executed successfully",
         params: OptionalParams = None,
     ) -> DataFrame:
         """
@@ -101,7 +101,7 @@ class DatabaseHandler:
                 message=f"There was an SQL error while running the query:\n {query}",
             ) from e
         else:
-            logger.info("{} in {:.3f} seconds!", message, end - start)
+            logger.info("{} ({:.3f} seconds)", message, end - start)
             return result
 
     def create_config_tables(self) -> None:
@@ -141,6 +141,9 @@ class DatabaseHandler:
         modified_script = modified_script.replace(
             "path",
             f"{splits_file.file_path_str}",
+        )
+        logger.info(
+            "Beginning to update the database tables for {}...", splits_file.runner_name
         )
         _ = self.execute(
             query=modified_script,

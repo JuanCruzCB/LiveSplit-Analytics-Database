@@ -104,7 +104,7 @@ class SplitsFile:
             raise SplitsFileStructureError(msg)
 
         # 1. Remove all existing data inside each Icon tag
-        for icon in root.findall(path=".//Icon"):  # type: ignore  # noqa: PGH003
+        for icon in root.findall(path=".//Icon"):
             if len(icon) > 0 or icon.text:
                 is_dirty = True
                 msg = "Removing an icon from splits file: '{}'.", self._file_path
@@ -112,7 +112,7 @@ class SplitsFile:
                 icon.clear()
 
         # 2. Replace commas in split names with pipes
-        for name in root.findall(path=".//Name"):  # type: ignore  # noqa: PGH003
+        for name in root.findall(path=".//Name"):
             if name.text is not None and "," in name.text:
                 is_dirty = True
                 msg = (
