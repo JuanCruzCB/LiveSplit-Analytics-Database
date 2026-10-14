@@ -112,14 +112,14 @@ def doorsplit_golds_minimal() -> str:
                 SELECT DISTINCT
                     split_index,
                     lrt_time_fmt
-                FROM doorsplit_golds2_{runner}
+                FROM doorsplit_golds_{runner}
 
                 UNION
 
                 SELECT
                     NULL,
                     LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_fmt
-                FROM doorsplit_golds2_{runner}
+                FROM doorsplit_golds_{runner}
                 ORDER BY split_index
             );
             """  # noqa: E501
@@ -140,14 +140,14 @@ def chapter_golds_minimal() -> str:
                 SELECT DISTINCT
                     chapter,
                     chapter_time_fmt
-                FROM chapter_golds2_{runner}
+                FROM chapter_golds_{runner}
 
                 UNION
 
                 SELECT
                     NULL,
                     LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_fmt
-                FROM chapter_golds2_{runner}
+                FROM chapter_golds_{runner}
                 ORDER BY chapter
             );
             """  # noqa: E501
@@ -203,7 +203,7 @@ def area_golds_minimal() -> str:
                         ag.area,
                         area_time_fmt,
                         cfg.sort
-                    FROM area_golds2_{runner} ag
+                    FROM area_golds_{runner} ag
 
                     LEFT JOIN cfg_splits_per_area cfg
                     ON ag.area = cfg.area
@@ -215,7 +215,7 @@ def area_golds_minimal() -> str:
                     NULL,
                     LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS area_time_fmt,
                     NULL
-                FROM area_golds2_{runner}
+                FROM area_golds_{runner}
                 ORDER BY sort
             );
             """  # noqa: E501
@@ -465,7 +465,7 @@ def resets_minimal() -> str:
     """
     return """
             SELECT percentage_reset AS {runner}
-            FROM resets2_{runner};
+            FROM resets_{runner};
             """
 
 
@@ -483,7 +483,7 @@ def attempts_per_week(runner: str) -> str:
             COUNT(DISTINCT run_id) AS total_attempts
         FROM cfg_dates cfg
 
-        LEFT JOIN attempts_data5_{runner} att
+        LEFT JOIN attempts_data_{runner} att
         ON cfg.dt = DATE(att.run_started_at)
         WHERE EXTRACT(ISOYEAR FROM dt) = EXTRACT(ISOYEAR FROM CURRENT_DATE) AND dt <= CURRENT_DATE
         GROUP BY
@@ -515,7 +515,7 @@ def attempts_per_day_of_the_week(runner: str) -> str:
                 SELECT
                     DATE(run_started_at) AS date_started_at,
                     COUNT(*) AS attempts_on_date
-                FROM attempts_data5_{runner}
+                FROM attempts_data_{runner}
                 GROUP BY DATE(run_started_at)
             )
             ORDER BY date_started_at
@@ -540,7 +540,7 @@ def attempts_per_day(runner: str) -> str:
             SELECT
                 DATE(run_started_at) AS date_started_at,
                 COUNT(*) AS attempts_on_date
-            FROM attempts_data5_{runner}
+            FROM attempts_data_{runner}
             GROUP BY DATE(run_started_at)
         )
         ORDER BY date_started_at;"""  # noqa: S608
@@ -601,7 +601,7 @@ def compare_runners_doorsplit_golds(runner1: str, runner2: str) -> str:
                 split_name,
                 lrt_time,
                 lrt_time_fmt
-            FROM doorsplit_golds2_{runner1}
+            FROM doorsplit_golds_{runner1}
         ) runner1
 
         FULL JOIN
@@ -611,7 +611,7 @@ def compare_runners_doorsplit_golds(runner1: str, runner2: str) -> str:
                 split_name,
                 lrt_time,
                 lrt_time_fmt
-            FROM doorsplit_golds2_{runner2}
+            FROM doorsplit_golds_{runner2}
         ) runner2
         ON runner1.split_index = runner2.split_index
         ORDER BY runner1.split_index;
@@ -722,7 +722,7 @@ def doorsplit_golds(runner: str, extra_condition: str) -> str:
             split_ended_at,
             run_started_at,
             run_ended_at
-        FROM doorsplit_golds2_{runner}
+        FROM doorsplit_golds_{runner}
         {extra_condition};
         """  # noqa: S608
 
@@ -743,7 +743,7 @@ def chapter_golds(runner: str, extra_condition: str) -> str:
             chapter_ended_at,
             run_started_at,
             run_ended_at
-        FROM chapter_golds2_{runner}
+        FROM chapter_golds_{runner}
         {extra_condition};
         """  # noqa: S608
 
@@ -764,7 +764,7 @@ def area_golds(runner: str, extra_condition: str) -> str:
             area_ended_at,
             run_started_at,
             run_ended_at
-        FROM area_golds2_{runner}
+        FROM area_golds_{runner}
         {extra_condition};
         """  # noqa: S608
 

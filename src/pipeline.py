@@ -260,7 +260,10 @@ def run_pipeline(
     splits_handler.clean_all_splits()
 
     with db_session(query_executor):
-        old_golds = get_main_golds(query_executor)
+        if cfg.last_table_updates_file.exists():
+            old_golds = get_main_golds(query_executor)
+        else:
+            old_golds = None
 
         if not query_executor.update_runners_tables(
             splits_files=splits_handler.get_splits_files()
@@ -269,15 +272,21 @@ def run_pipeline(
 
         all_data = get_all_database_data(query_executor)
 
+        diffs = (
+            DataFrame()
+            if old_golds is None
+            else get_diffs(*old_golds, all_data=all_data)
+        )
+
         if sheet_handler is None:
             export_to_excel_files(
                 output_dir=cfg.output_dir,
                 data=all_data,
-                diffs=get_diffs(*old_golds, all_data=all_data),
+                diffs=diffs,
             )
         else:
             export_to_google_sheet(
                 sheet_handler=sheet_handler,
                 data=all_data,
-                diffs=get_diffs(*old_golds, all_data=all_data),
+                diffs=diffs,
             )
