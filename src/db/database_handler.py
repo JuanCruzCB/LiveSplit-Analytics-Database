@@ -85,7 +85,7 @@ class DatabaseHandler:
             result = DataFrame()
             start = time.time()
             with self._connection.cursor() as cur:
-                _ = cur.execute(query, params)
+                _ = cur.execute(query, params)  # ty: ignore[invalid-argument-type]
                 end = time.time()
                 if cur.description:
                     data = cur.fetchall()
