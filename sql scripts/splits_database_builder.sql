@@ -455,26 +455,15 @@ LEFT JOIN
 ) cumulative_rta
 ON ds.run_id = cumulative_rta.run_id AND ds.split_index = cumulative_rta.split_index;
 
-/* Adds the date and time at which each individual segment in the history began and ended. Also swaps all split names (which may be customized) by default split names for readability. */
-
+/* Add rank of each individual time relative to when it was obtained. */
 DROP TABLE IF EXISTS stg_doorsplit_history3_runner;
 CREATE TABLE stg_doorsplit_history3_runner AS
 SELECT
     run_id,
-    ds1.split_index,
-    defs.split_name,
+    split_index,
+    split_name,
     chapter,
     area,
-    (
-         SELECT
-            COUNT(*)
-         FROM stg_doorsplit_history2_runner ds2
-         WHERE ds2.split_index = ds1.split_index
-            AND ds2.run_id <= ds1.run_id
-            AND ds2.lrt_time < ds1.lrt_time
-    ) + 1 AS doorsplit_rank_at_that_time,
-    RANK() OVER(PARTITION BY ds1.split_index ORDER BY lrt_time) AS doorsplit_rank,
-    MIN(lrt_time) OVER(PARTITION BY ds1.split_index ORDER BY run_id) AS doorsplit_gold_at_that_time,
     lrt_time,
     lrt_time_fmt,
     rta_time,
@@ -486,27 +475,68 @@ SELECT
     run_started_at,
     run_ended_at,
     run_duration,
+    run_cumulative_rta,
+    run_cumulative_rta_lag,
+    doorsplit_rank_at_that_time
+FROM
+(
+    SELECT
+        ds1.*,
+        ds2.run_id AS run_id2,
+        RANK() OVER (PARTITION BY ds1.split_index, ds1.run_id ORDER BY ds2.lrt_time) AS doorsplit_rank_at_that_time
+    FROM stg_doorsplit_history2_runner ds1
+    INNER JOIN stg_doorsplit_history2_runner ds2
+    ON ds1.split_index = ds2.split_index AND ds1.run_id >= ds2.run_id
+)
+WHERE run_id = run_id2;
+
+/* Adds the date and time at which each individual segment in the history began and ended. Also swaps all split names (which may be customized) by default split names for readability. */
+
+DROP TABLE IF EXISTS stg_doorsplit_history4_runner;
+CREATE TABLE stg_doorsplit_history4_runner AS
+SELECT
+    ds1.run_id,
+    ds1.split_index,
+    defs.split_name,
+    ds1.chapter,
+    ds1.area,
+    ds2.doorsplit_rank_at_that_time,
+    RANK() OVER(PARTITION BY ds1.split_index ORDER BY ds1.lrt_time) AS doorsplit_rank,
+    MIN(ds1.lrt_time) OVER(PARTITION BY ds1.split_index ORDER BY ds1.run_id) AS doorsplit_gold_at_that_time,
+    ds1.lrt_time,
+    ds1.lrt_time_fmt,
+    ds1.rta_time,
+    ds1.rta_time_fmt,
+    ds1.finished_run,
+    ds1.pb,
+    ds1.final_lrt_time,
+    ds1.final_rta_time,
+    ds1.run_started_at,
+    ds1.run_ended_at,
+    ds1.run_duration,
     CASE
         WHEN ds1.split_index = 1 THEN
-            run_started_at
+            ds1.run_started_at
         ELSE
-            run_started_at + run_cumulative_rta_lag
+            ds1.run_started_at + ds1.run_cumulative_rta_lag
     END AS split_started_at,
     CASE
         WHEN ds1.split_index = 123 THEN
-            run_ended_at
+            ds1.run_ended_at
         ELSE
-            run_started_at + run_cumulative_rta
+            ds1.run_started_at + ds1.run_cumulative_rta
     END AS split_ended_at
 FROM stg_doorsplit_history2_runner ds1
+LEFT JOIN stg_doorsplit_history3_runner ds2
+ON ds1.run_id = ds2.run_id AND ds1.split_index = ds2.split_index
 
 LEFT JOIN cfg_default_split_names defs
 ON ds1.split_index = defs.split_index;
 
 /* Add the number of the split where the run reset, which is NULL if the run was finished. Add the duration of the split where the run reset. Add the day of the week it was when the run was started. */
 
-DROP TABLE IF EXISTS stg_doorsplit_history4_runner;
-CREATE TABLE stg_doorsplit_history4_runner AS
+DROP TABLE IF EXISTS stg_doorsplit_history5_runner;
+CREATE TABLE stg_doorsplit_history5_runner AS
 SELECT
     run_id,
     split_index,
@@ -542,15 +572,15 @@ SELECT
         ELSE
             NULL
     END AS split_reset_duration
-FROM stg_doorsplit_history3_runner
+FROM stg_doorsplit_history4_runner
 ORDER BY
     run_id,
     split_index;
 
 /* Add the name of the split where the run reset. */
 
-DROP TABLE IF EXISTS doorsplit_history5_runner;
-CREATE TABLE doorsplit_history5_runner AS
+DROP TABLE IF EXISTS doorsplit_history6_runner;
+CREATE TABLE doorsplit_history6_runner AS
 SELECT
     run_id,
     ds.split_index,
@@ -577,7 +607,7 @@ SELECT
     split_index_reset,
     dsn.split_name AS split_name_reset,
     split_reset_duration
-FROM stg_doorsplit_history4_runner ds
+FROM stg_doorsplit_history5_runner ds
 
 LEFT JOIN cfg_default_split_names dsn
 ON ds.split_index_reset = dsn.split_index
@@ -596,7 +626,7 @@ SELECT DISTINCT
     area,
     COUNT(*) OVER(PARTITION BY split_index) AS times_finished,
     SUM(CASE WHEN doorsplit_rank_at_that_time = 1 THEN 1 ELSE 0 END) OVER(PARTITION BY split_index) AS times_golded
-FROM doorsplit_history5_runner
+FROM doorsplit_history6_runner
 ORDER BY split_index;
 
 /* The average and median times for each doorsplit, along with well formatted versions. Also cumulative average and median times. */
@@ -614,7 +644,7 @@ WITH avg_med AS
         LTRIM(TO_CHAR(AVG(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_avg_fmt,
         PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS lrt_time_med,
         LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_med_fmt
-    FROM doorsplit_history5_runner
+    FROM doorsplit_history6_runner
     GROUP BY
         split_index,
         split_name,
@@ -677,7 +707,7 @@ SELECT
     run_duration,
     split_started_at,
     split_ended_at
-FROM doorsplit_history5_runner
+FROM doorsplit_history6_runner
 WHERE doorsplit_rank = 1
 ORDER BY
     split_index,
@@ -750,7 +780,7 @@ SELECT
     run_duration,
     split_started_at,
     split_ended_at
-FROM doorsplit_history5_runner
+FROM doorsplit_history6_runner
 WHERE doorsplit_rank_at_that_time = 1
 ORDER BY
     split_index,
@@ -788,7 +818,7 @@ FROM
         MAX(split_ended_at) OVER(PARTITION BY run_id, chapter) AS chapter_ended_at,
         SUM(lrt_time) OVER(PARTITION BY run_id, chapter) AS chapter_time,
         *
-    FROM doorsplit_history5_runner
+    FROM doorsplit_history6_runner
 ) ds
 
 INNER JOIN cfg_chapter_area_splits_from_to per
@@ -1004,7 +1034,7 @@ FROM
         MAX(split_ended_at) OVER(PARTITION BY run_id, area) AS area_ended_at,
         SUM(lrt_time) OVER(PARTITION BY run_id, area) AS area_time,
         *
-    FROM doorsplit_history5_runner
+    FROM doorsplit_history6_runner
 ) ds
 
 INNER JOIN cfg_splits_per_area per
@@ -1251,7 +1281,7 @@ FROM
         SUM(lrt_time) OVER(PARTITION BY run_id ORDER BY split_index) AS lrt_pace,
         SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_index) AS rta_pace,
         COUNT(*) OVER (PARTITION BY run_id ORDER BY split_index) AS count_splits
-    FROM doorsplit_history5_runner
+    FROM doorsplit_history6_runner
 ) dsh
 WHERE count_splits = split_index
 ORDER BY
@@ -1418,7 +1448,7 @@ FROM
         dh.run_id,
         rules.pattern_type,
         rules.pattern_name
-    FROM doorsplit_history5_runner dh
+    FROM doorsplit_history6_runner dh
 
     INNER JOIN cfg_rng_pattern_rules rules
     ON dh.split_index = rules.split_index
@@ -1432,7 +1462,7 @@ FROM
         dh.run_id,
         'Del Lago' AS pattern_type,
         '3. Early Dive' AS pattern_name
-    FROM doorsplit_history5_runner dh
+    FROM doorsplit_history6_runner dh
     WHERE dh.split_index = 13 AND dh.split_index_reset = 14 AND dh.split_reset_duration >= '56'::INTERVAL -- Could be 59 for some runners
 ) patterns
 GROUP BY run_id
@@ -1977,7 +2007,7 @@ SELECT
     'runner' AS runner_name
     -- Not sure if this is necessary: ROW_NUMBER() OVER(PARTITION BY a.run_id, a.split_index ORDER BY id2 DESC) AS rang
 
-FROM doorsplit_history5_runner dsh
+FROM doorsplit_history6_runner dsh
 
 LEFT JOIN pace_history3_runner ph
 ON dsh.run_id = ph.run_id AND dsh.split_index = ph.split_index
