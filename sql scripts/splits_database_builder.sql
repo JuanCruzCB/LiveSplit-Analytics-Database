@@ -308,8 +308,8 @@ DROP TABLE IF EXISTS stg_attempts_data4_runner;
 CREATE TABLE stg_attempts_data4_runner AS
 SELECT
     run_id::INT,
-    final_lrt_time,
-    final_rta_time,
+    NULLIF(final_lrt_time, '')::INTERVAL AS final_lrt_time,
+    NULLIF(final_rta_time, '')::INTERVAL AS final_rta_time,
     COALESCE(final_lrt_time <> '' OR final_rta_time <> '', FALSE) AS finished_run,
     run_started_at,
     run_ended_at,
