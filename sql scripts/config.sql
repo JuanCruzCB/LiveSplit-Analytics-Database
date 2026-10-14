@@ -127,7 +127,7 @@ VALUES
 	(120, '-Exit'),
 	(121, '-Construction Site'),
 	(122, '-Saddler'),
-	(123, '{End} Jetski');
+	(123, '{6-1} Jetski');
 
 
 DROP TABLE IF EXISTS cfg_chapter_area_splits_from_to;

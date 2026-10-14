@@ -16,10 +16,10 @@ FROM cfg_rng_pattern_rules;
 """
 
 
-def doorsplit_names(footer: Literal["Total", "PB"] | None = None) -> str:
+def doorsplit_names(footer: Literal["SOB", "PB"] | None = None) -> str:
     """
     Returns an SQL query that selects all the doorsplit names of the game
-    and optionally adds a footer at the end of the list called either "Total" or "PB".
+    and optionally adds a footer at the end of the list called either "SOB" or "PB".
     """
     if not footer:
         return """
@@ -45,10 +45,10 @@ def doorsplit_names(footer: Literal["Total", "PB"] | None = None) -> str:
         """  # noqa: S608
 
 
-def chapter_names(footer: Literal["Total", "PB"] | None = None) -> str:
+def chapter_names(footer: Literal["SOB", "PB"] | None = None) -> str:
     """
     Returns an SQL query that selects all the chapter names of the game
-    and optionally adds a footer at the end of the list called either "Total" or "PB".
+    and optionally adds a footer at the end of the list called either "SOB" or "PB".
     """
     if not footer:
         return """
@@ -68,10 +68,10 @@ def chapter_names(footer: Literal["Total", "PB"] | None = None) -> str:
         """  # noqa: S608
 
 
-def area_names(footer: Literal["Total", "PB"] | None = None) -> str:
+def area_names(footer: Literal["SOB", "PB"] | None = None) -> str:
     """
     Returns an SQL query that selects all the area names of the game
-    and optionally adds a footer at the end of the list called either "Total" or "PB".
+    and optionally adds a footer at the end of the list called either "SOB" or "PB".
     """
     if not footer:
         return """

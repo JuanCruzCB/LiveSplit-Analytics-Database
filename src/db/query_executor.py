@@ -144,7 +144,7 @@ class QueryExecutor:
         """
         return self._build_combined_data(
             column_header_queries=[
-                qb.doorsplit_names(footer="Total") if split_names_col else "",
+                qb.doorsplit_names(footer="SOB") if split_names_col else "",
             ],
             data_queries=[qb.doorsplit_golds_minimal()],
             best_col=best_col,
@@ -170,7 +170,7 @@ class QueryExecutor:
         """
         return self._build_combined_data(
             column_header_queries=[
-                qb.chapter_names(footer="Total") if chapter_names_col else "",
+                qb.chapter_names(footer="SOB") if chapter_names_col else "",
             ],
             data_queries=[qb.chapter_golds_minimal()],
             best_col=best_col,
@@ -195,7 +195,7 @@ class QueryExecutor:
         """
         return self._build_combined_data(
             column_header_queries=[
-                qb.chapter_names(footer="Total") if chapter_names_col else "",
+                qb.chapter_names(footer="SOB") if chapter_names_col else "",
             ],
             data_queries=[qb.chapter_golds_by_doors_minimal()],
             best_col=best_col,
@@ -219,7 +219,7 @@ class QueryExecutor:
         """
         return self._build_combined_data(
             column_header_queries=[
-                qb.area_names(footer="Total") if area_names_col else "",
+                qb.area_names(footer="SOB") if area_names_col else "",
             ],
             data_queries=[qb.area_golds_minimal()],
             best_col=best_col,
@@ -244,7 +244,7 @@ class QueryExecutor:
         """
         return self._build_combined_data(
             column_header_queries=[
-                qb.area_names(footer="Total") if area_names_col else "",
+                qb.area_names(footer="SOB") if area_names_col else "",
             ],
             data_queries=[qb.area_golds_by_chapters_minimal()],
             best_col=best_col,
@@ -269,7 +269,7 @@ class QueryExecutor:
         """
         return self._build_combined_data(
             column_header_queries=[
-                qb.area_names(footer="Total") if area_names_col else "",
+                qb.area_names(footer="SOB") if area_names_col else "",
             ],
             data_queries=[qb.area_golds_by_doors_minimal()],
             best_col=best_col,
