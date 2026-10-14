@@ -159,8 +159,8 @@ FROM stg_split_names_data1_runner;
 
 Besides being able to identify the chapter name and area name, having the split number as a column is very useful as it allows us to 1) have a unique key to identify each split, regardless of if a split name is duplicated on the splits file or not and 2) convert each split name to default split names through their id, to standardize and simplify the output when exporting the final data. 3) allow each split to have any name (except containing commas) and not specific ones for the script to work properly. */
 
-DROP TABLE IF EXISTS split_names_data3_runner;
-CREATE TABLE split_names_data3_runner AS
+DROP TABLE IF EXISTS split_names_data_runner;
+CREATE TABLE split_names_data_runner AS
 SELECT
     split_index,
     split_name,
@@ -196,7 +196,7 @@ SELECT
     line_number
 FROM stg_segments_data4_runner segs
 
-LEFT JOIN split_names_data3_runner splits
+LEFT JOIN split_names_data_runner splits
 ON segs.line_number >= splits.starts_at_row
 AND segs.line_number <= CASE
                             WHEN splits.ends_at_row IS NULL THEN
@@ -230,8 +230,8 @@ WHERE split_name <> '' AND run_id > 0;
 
 /* Also adding the LRT and RTA time with the same format as in LiveSplit (Edit Splits window), not used for calculations but it's nicer to read. */
 
-DROP TABLE IF EXISTS segments_data7_runner;
-CREATE TABLE segments_data7_runner AS
+DROP TABLE IF EXISTS segments_data_runner;
+CREATE TABLE segments_data_runner AS
 SELECT
     run_id,
     split_index,
@@ -332,8 +332,8 @@ WHERE finished_run;
 
 /* We now join the attempts history (with dates and run id on the same row) with the finished runs information to have everything in the same table. As earlier, only keeping the good rows and deleting the rest (since we put everything in the same row, a lot of rows are now useless). */
 
-DROP TABLE IF EXISTS attempts_data5_runner;
-CREATE TABLE attempts_data5_runner AS
+DROP TABLE IF EXISTS attempts_data_runner;
+CREATE TABLE attempts_data_runner AS
 SELECT
     attempts.run_id,
     attempts.final_lrt_time,
@@ -369,7 +369,7 @@ LEFT JOIN
         run_id,
         run_duration,
         SUM(run_duration) OVER(ORDER BY run_id) AS total_playtime
-    FROM attempts_data5_runner
+    FROM attempts_data_runner
 ) cumulative_playtime
 ON finished.run_id = cumulative_playtime.run_id
 
@@ -378,9 +378,9 @@ LEFT JOIN
     SELECT
         finished.run_id,
         COUNT(DISTINCT DATE(cumulative_playtime.run_started_at)) - 1 AS days_attempts
-    FROM attempts_data5_runner finished
+    FROM attempts_data_runner finished
 
-    LEFT JOIN attempts_data5_runner cumulative_playtime
+    LEFT JOIN attempts_data_runner cumulative_playtime
     ON finished.run_id >= cumulative_playtime.run_id
     GROUP BY finished.run_id
     ORDER BY finished.run_id
@@ -413,9 +413,9 @@ SELECT
     run_started_at,
     run_ended_at,
     run_duration
-FROM segments_data7_runner segments
+FROM segments_data_runner segments
 
-LEFT JOIN attempts_data5_runner attempts
+LEFT JOIN attempts_data_runner attempts
 ON segments.run_id = attempts.run_id;
 
 /* Add cumulative RTA data to each run, this will be useful to calculate the start and end timestamp of each segment.
@@ -579,8 +579,8 @@ ORDER BY
 
 /* Add the name of the split where the run reset. */
 
-DROP TABLE IF EXISTS doorsplit_history6_runner;
-CREATE TABLE doorsplit_history6_runner AS
+DROP TABLE IF EXISTS doorsplit_history_runner;
+CREATE TABLE doorsplit_history_runner AS
 SELECT
     run_id,
     ds.split_index,
@@ -626,7 +626,7 @@ SELECT DISTINCT
     area,
     COUNT(*) OVER(PARTITION BY split_index) AS times_finished,
     SUM(CASE WHEN doorsplit_rank_at_that_time = 1 THEN 1 ELSE 0 END) OVER(PARTITION BY split_index) AS times_golded
-FROM doorsplit_history6_runner
+FROM doorsplit_history_runner
 ORDER BY split_index;
 
 /* The average and median times for each doorsplit, along with well formatted versions. Also cumulative average and median times. */
@@ -644,7 +644,7 @@ WITH avg_med AS
         LTRIM(TO_CHAR(AVG(lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_avg_fmt,
         PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time) AS lrt_time_med,
         LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_time), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_med_fmt
-    FROM doorsplit_history6_runner
+    FROM doorsplit_history_runner
     GROUP BY
         split_index,
         split_name,
@@ -707,7 +707,7 @@ SELECT
     run_duration,
     split_started_at,
     split_ended_at
-FROM doorsplit_history6_runner
+FROM doorsplit_history_runner
 WHERE doorsplit_rank = 1
 ORDER BY
     split_index,
@@ -715,8 +715,8 @@ ORDER BY
 
 /* Add the sum of best and sum of best formatted. */
 
-DROP TABLE IF EXISTS doorsplit_golds2_runner;
-CREATE TABLE doorsplit_golds2_runner AS
+DROP TABLE IF EXISTS doorsplit_golds_runner;
+CREATE TABLE doorsplit_golds_runner AS
 SELECT
     golds.run_id,
     golds.split_index,
@@ -780,7 +780,7 @@ SELECT
     run_duration,
     split_started_at,
     split_ended_at
-FROM doorsplit_history6_runner
+FROM doorsplit_history_runner
 WHERE doorsplit_rank_at_that_time = 1
 ORDER BY
     split_index,
@@ -818,7 +818,7 @@ FROM
         MAX(split_ended_at) OVER(PARTITION BY run_id, chapter) AS chapter_ended_at,
         SUM(lrt_time) OVER(PARTITION BY run_id, chapter) AS chapter_time,
         *
-    FROM doorsplit_history6_runner
+    FROM doorsplit_history_runner
 ) ds
 
 INNER JOIN cfg_chapter_area_splits_from_to per
@@ -829,8 +829,8 @@ ORDER BY
 
 /* Adding the chapter time rank relative to when the chapter was done. */
 
-DROP TABLE IF EXISTS chapter_history2_runner;
-CREATE TABLE chapter_history2_runner AS
+DROP TABLE IF EXISTS chapter_history_runner;
+CREATE TABLE chapter_history_runner AS
 SELECT
     run_id,
     chapter,
@@ -866,7 +866,7 @@ SELECT DISTINCT
     chapter,
     COUNT(*) OVER(PARTITION BY chapter) AS times_finished,
     SUM(CASE WHEN chapter_rank_at_that_time = 1 THEN 1 ELSE 0 END) OVER(PARTITION BY chapter) AS times_golded
-FROM chapter_history2_runner
+FROM chapter_history_runner
 ORDER BY chapter;
 
 /* The average and median times for each chapter, along with well formatted versions. Also cumulative average and median times. */
@@ -882,7 +882,7 @@ WITH avg_med AS
         LTRIM(TO_CHAR(AVG(chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_avg_fmt,
         PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_time) AS chapter_time_med,
         LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_med_fmt
-    FROM chapter_history2_runner
+    FROM chapter_history_runner
     GROUP BY
         chapter,
         area
@@ -935,7 +935,7 @@ SELECT
     run_duration,
     chapter_started_at,
     chapter_ended_at
-FROM chapter_history2_runner
+FROM chapter_history_runner
 WHERE chapter_rank = 1
 ORDER BY
     chapter,
@@ -943,8 +943,8 @@ ORDER BY
 
 /* Add the cumulative sum of best by chapters. */
 
-DROP TABLE IF EXISTS chapter_golds2_runner;
-CREATE TABLE chapter_golds2_runner AS
+DROP TABLE IF EXISTS chapter_golds_runner;
+CREATE TABLE chapter_golds_runner AS
 SELECT
     golds.run_id,
     golds.chapter,
@@ -995,7 +995,7 @@ FROM
     SELECT
         chapter,
         SUM(lrt_time) AS chapter_gold_by_doors
-    FROM doorsplit_golds2_runner
+    FROM doorsplit_golds_runner
     WHERE lrt_time_instance = 1
     GROUP BY chapter
     ORDER BY chapter
@@ -1034,7 +1034,7 @@ FROM
         MAX(split_ended_at) OVER(PARTITION BY run_id, area) AS area_ended_at,
         SUM(lrt_time) OVER(PARTITION BY run_id, area) AS area_time,
         *
-    FROM doorsplit_history6_runner
+    FROM doorsplit_history_runner
 ) ds
 
 INNER JOIN cfg_splits_per_area per
@@ -1045,8 +1045,8 @@ ORDER BY
 
 /* Adding the area time rank relative to when the area was done. */
 
-DROP TABLE IF EXISTS area_history2_runner;
-CREATE TABLE area_history2_runner AS
+DROP TABLE IF EXISTS area_history_runner;
+CREATE TABLE area_history_runner AS
 SELECT
     run_id,
     area,
@@ -1083,7 +1083,7 @@ SELECT DISTINCT
     COUNT(*) OVER(PARTITION BY area) AS times_finished,
     SUM(CASE WHEN area_rank_at_that_time = 1 THEN 1 ELSE 0 END) OVER(PARTITION BY area) AS times_golded,
     sort
-FROM area_history2_runner
+FROM area_history_runner
 ORDER BY sort;
 
 /* The average and median times for each chapter, along with well formatted versions. Also cumulative average and median times. */
@@ -1099,7 +1099,7 @@ WITH avg_med AS
         PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY area_time) AS area_time_med,
         LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY area_time), 'HH24:MI:SS.FF3'), '0:') AS area_time_med_fmt,
         sort
-    FROM area_history2_runner
+    FROM area_history_runner
     GROUP BY
         area, sort
 ),
@@ -1149,7 +1149,7 @@ SELECT
     area_started_at,
     area_ended_at,
     sort
-FROM area_history2_runner
+FROM area_history_runner
 WHERE area_rank = 1
 ORDER BY
     sort,
@@ -1157,8 +1157,8 @@ ORDER BY
 
 /* Add the cumulative sum of best by areas. */
 
-DROP TABLE IF EXISTS area_golds2_runner;
-CREATE TABLE area_golds2_runner AS
+DROP TABLE IF EXISTS area_golds_runner;
+CREATE TABLE area_golds_runner AS
 SELECT
     golds.run_id,
     golds.area,
@@ -1210,7 +1210,7 @@ FROM
         dg.area,
         SUM(dg.lrt_time) AS area_gold_by_doors,
         sps.sort
-    FROM doorsplit_golds2_runner dg
+    FROM doorsplit_golds_runner dg
 
     LEFT JOIN cfg_splits_per_area sps
     ON dg.area = sps.area
@@ -1238,7 +1238,7 @@ FROM
         ch.area,
         SUM(ch.chapter_time) AS area_gold_by_chapters,
         sps.sort
-    FROM chapter_golds2_runner ch
+    FROM chapter_golds_runner ch
 
     LEFT JOIN cfg_splits_per_area sps
     ON ch.area = sps.area
@@ -1281,7 +1281,7 @@ FROM
         SUM(lrt_time) OVER(PARTITION BY run_id ORDER BY split_index) AS lrt_pace,
         SUM(rta_time) OVER(PARTITION BY run_id ORDER BY split_index) AS rta_pace,
         COUNT(*) OVER (PARTITION BY run_id ORDER BY split_index) AS count_splits
-    FROM doorsplit_history6_runner
+    FROM doorsplit_history_runner
 ) dsh
 WHERE count_splits = split_index
 ORDER BY
@@ -1309,8 +1309,8 @@ WHERE run_id = run_id2;
 
 /* Combine the two previous tables into one. */
 
-DROP TABLE IF EXISTS pace_history3_runner;
-CREATE TABLE pace_history3_runner AS
+DROP TABLE IF EXISTS pace_history_runner;
+CREATE TABLE pace_history_runner AS
 SELECT
     p1.run_id,
     p1.split_index,
@@ -1344,7 +1344,7 @@ SELECT
     lrt_pace_fmt,
     rta_pace,
     rta_pace_fmt
-FROM pace_history3_runner
+FROM pace_history_runner
 WHERE pace_rank = 1
 ORDER BY split_index;
 
@@ -1361,7 +1361,7 @@ SELECT
     LTRIM(TO_CHAR(AVG(lrt_pace), 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_avg_fmt,
     PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_pace) AS lrt_pace_med,
     LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_pace), 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_med_fmt
-FROM pace_history3_runner
+FROM pace_history_runner
 GROUP BY
     split_index,
     split_name,
@@ -1401,13 +1401,13 @@ CROSS JOIN
 (
     SELECT
         COUNT(*) AS total_attempts
-    FROM attempts_data5_runner
+    FROM attempts_data_runner
 ) attempts;
 
 /* Getting the percentage of times we reset on each doorsplit. */
 
-DROP TABLE IF EXISTS resets2_runner;
-CREATE TABLE resets2_runner AS
+DROP TABLE IF EXISTS resets_runner;
+CREATE TABLE resets_runner AS
 SELECT
     split_index,
     split_name,
@@ -1448,7 +1448,7 @@ FROM
         dh.run_id,
         rules.pattern_type,
         rules.pattern_name
-    FROM doorsplit_history6_runner dh
+    FROM doorsplit_history_runner dh
 
     INNER JOIN cfg_rng_pattern_rules rules
     ON dh.split_index = rules.split_index
@@ -1462,7 +1462,7 @@ FROM
         dh.run_id,
         'Del Lago' AS pattern_type,
         '3. Early Dive' AS pattern_name
-    FROM doorsplit_history6_runner dh
+    FROM doorsplit_history_runner dh
     WHERE dh.split_index = 13 AND dh.split_index_reset = 14 AND dh.split_reset_duration >= '56'::INTERVAL -- Could be 59 for some runners
 ) patterns
 GROUP BY run_id
@@ -2007,9 +2007,9 @@ SELECT
     'runner' AS runner_name
     -- Not sure if this is necessary: ROW_NUMBER() OVER(PARTITION BY a.run_id, a.split_index ORDER BY id2 DESC) AS rang
 
-FROM doorsplit_history6_runner dsh
+FROM doorsplit_history_runner dsh
 
-LEFT JOIN pace_history3_runner ph
+LEFT JOIN pace_history_runner ph
 ON dsh.run_id = ph.run_id AND dsh.split_index = ph.split_index
 
 LEFT JOIN paces_best_runner bp
@@ -2022,7 +2022,7 @@ LEFT JOIN
         lrt_time_fmt,
         lrt_time,
         MIN(sum_of_best) AS cumulative_door_gold
-    FROM doorsplit_golds2_runner
+    FROM doorsplit_golds_runner
     GROUP BY
         split_index,
         lrt_time_fmt,
@@ -2030,16 +2030,16 @@ LEFT JOIN
 ) dsg
 ON dsh.split_index = dsg.split_index
 
-LEFT JOIN chapter_history2_runner ch
+LEFT JOIN chapter_history_runner ch
 ON dsh.run_id = ch.run_id AND dsh.chapter = ch.chapter
 
-LEFT JOIN area_history2_runner sh
+LEFT JOIN area_history_runner sh
 ON dsh.run_id = sh.run_id AND dsh.area = sh.area
 
-LEFT JOIN chapter_golds2_runner cg
+LEFT JOIN chapter_golds_runner cg
 ON dsh.chapter = cg.chapter
 
-LEFT JOIN area_golds2_runner sg
+LEFT JOIN area_golds_runner sg
 ON dsh.area = sg.area
 
 LEFT JOIN finished_runs_runner fr
@@ -2095,7 +2095,7 @@ FROM
         DATE(MAX(run_ended_at)) AS last_update,
         COUNT(*) AS attempts,
         SUM(run_duration) AS total_playtime
-    FROM attempts_data5_runner
+    FROM attempts_data_runner
 ) att
 
 CROSS JOIN
@@ -2138,9 +2138,9 @@ FROM
         bp.lrt_pace AS best_pace,
         ph.lrt_pace - bp.lrt_pace AS best_pace_delta,
         ROW_NUMBER() OVER(PARTITION BY dg.split_index ORDER BY ph.lrt_pace - bp.lrt_pace) AS ds_gold_instance
-    FROM doorsplit_golds2_runner dg
+    FROM doorsplit_golds_runner dg
 
-    LEFT JOIN pace_history3_runner ph
+    LEFT JOIN pace_history_runner ph
     ON dg.run_id = ph.run_id AND dg.split_index = ph.split_index
 
     LEFT JOIN paces_best_runner bp
@@ -2203,7 +2203,7 @@ FROM
                 ELSE
                     ROUND(COUNT(DISTINCT CASE WHEN pb THEN run_id ELSE NULL END))
             END playtime_to_get_a_pb
-    FROM attempts_data5_runner
+    FROM attempts_data_runner
     GROUP BY iso_weekday
 ) pbs
 
