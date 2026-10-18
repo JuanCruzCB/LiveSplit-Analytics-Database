@@ -112,7 +112,9 @@ class DatabaseHandler:
             raise NoActiveConnectionError(db_config=self._db_config)
 
         logger.info("Creating config tables...")
-        config_sql_script = self._config_sql_script.read_text()
+        config_sql_script = self._config_sql_script.read_text().replace(
+            "limit-date", self._exclude_data_before
+        )
         _ = self.execute(
             query=config_sql_script,
             message="Created config tables succesfully",
@@ -169,7 +171,6 @@ class DatabaseHandler:
 
         logger.info("Updating the database tables...")
         sql_script = self._sql_script.read_text()
-        sql_script = sql_script.replace("limit-date", self._exclude_data_before)
 
         new_updates = False
         for splits_file in splits_files:

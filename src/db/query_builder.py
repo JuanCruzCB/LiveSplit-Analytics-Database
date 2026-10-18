@@ -12,7 +12,7 @@ ORDER BY table_name;
 """
 PATTERN_NAMES_QUERY: Final[LiteralString] = """
 SELECT SUBSTRING(pattern_name, 3) AS pattern
-FROM cfg_rng_pattern_rules;
+FROM _cfg_rng_pattern_rules;
 """
 
 
@@ -24,7 +24,7 @@ def doorsplit_names(footer: Literal["SOB", "PB"] | None = None) -> str:
     if not footer:
         return """
         SELECT split_name
-        FROM cfg_default_split_names
+        FROM _cfg_default_split_names
         ORDER BY split_index;
         """
 
@@ -35,7 +35,7 @@ def doorsplit_names(footer: Literal["SOB", "PB"] | None = None) -> str:
             SELECT
                 cfg.split_index,
                 cfg.split_name
-            FROM cfg_default_split_names cfg
+            FROM _cfg_default_split_names cfg
 
             UNION
 
@@ -53,13 +53,13 @@ def chapter_names(footer: Literal["SOB", "PB"] | None = None) -> str:
     if not footer:
         return """
         SELECT chapter
-        FROM cfg_chapter_area_splits_from_to
+        FROM _cfg_chapter_area_splits_from_to
         ORDER BY chapter;
         """
 
     return f"""
         SELECT chapter
-        FROM cfg_chapter_area_splits_from_to
+        FROM _cfg_chapter_area_splits_from_to
 
         UNION
 
@@ -76,7 +76,7 @@ def area_names(footer: Literal["SOB", "PB"] | None = None) -> str:
     if not footer:
         return """
         SELECT area
-        FROM cfg_splits_per_area
+        FROM _cfg_splits_per_area
         ORDER BY sort;
         """
 
@@ -87,7 +87,7 @@ def area_names(footer: Literal["SOB", "PB"] | None = None) -> str:
             SELECT
                 cfg.sort,
                 cfg.area
-            FROM cfg_splits_per_area cfg
+            FROM _cfg_splits_per_area cfg
 
             UNION
 
@@ -205,7 +205,7 @@ def area_golds_minimal() -> str:
                         cfg.sort
                     FROM area_golds_{runner} ag
 
-                    LEFT JOIN cfg_splits_per_area cfg
+                    LEFT JOIN _cfg_splits_per_area cfg
                     ON ag.area = cfg.area
                 ) a
 
@@ -245,7 +245,7 @@ def area_golds_by_chapters_minimal() -> str:
                     cfg.sort
                 FROM area_golds_by_chapters_{runner} ag
 
-                LEFT JOIN cfg_splits_per_area cfg
+                LEFT JOIN _cfg_splits_per_area cfg
                 ON ag.area = cfg.area
             ) a
 
@@ -285,7 +285,7 @@ def area_golds_by_doors_minimal() -> str:
                         cfg.sort
                     FROM area_golds_by_doors_{runner} ag
 
-                    LEFT JOIN cfg_splits_per_area cfg
+                    LEFT JOIN _cfg_splits_per_area cfg
                     ON ag.area = cfg.area
                 ) a
 
@@ -417,7 +417,7 @@ def pb_by_areas_minimal() -> str:
                         cfg.sort
                     FROM splits_overview_{runner} so
 
-                    LEFT JOIN cfg_splits_per_area cfg
+                    LEFT JOIN _cfg_splits_per_area cfg
                     ON so.area = cfg.area
 
                     WHERE so.run_id = (SELECT MAX(run_id) from pb_history_{runner})
@@ -481,7 +481,7 @@ def attempts_per_week(runner: str) -> str:
             TO_CHAR(DATE_TRUNC('WEEK', dt)::DATE, 'DD/MM/YYYY') AS week_start,
             TO_CHAR((DATE_TRUNC('WEEK', dt) + INTERVAL '6 days')::DATE, 'DD/MM/YYYY') AS week_end,
             COUNT(DISTINCT run_id) AS total_attempts
-        FROM cfg_dates cfg
+        FROM _cfg_dates cfg
 
         LEFT JOIN attempts_data_{runner} att
         ON cfg.dt = DATE(att.run_started_at)

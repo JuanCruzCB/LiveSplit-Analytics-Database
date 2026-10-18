@@ -315,7 +315,7 @@ SELECT
     run_ended_at,
     run_ended_at - run_started_at AS run_duration
 FROM _stg_attempts_data3_runner
-WHERE run_id IS NOT NULL AND DATE(run_started_at) >= 'limit-date';
+WHERE run_id IS NOT NULL AND run_started_at::DATE >= (SELECT limit_date FROM _cfg_limit_date);
 
 /* Getting the list of all finished runs and for each finished run, if it was a PB when it was done or not (which also means getting the LRT PB at that time too). */
 
@@ -377,7 +377,7 @@ LEFT JOIN
 (
     SELECT
         finished.run_id,
-        COUNT(DISTINCT DATE(cumulative_playtime.run_started_at)) - 1 AS days_attempts
+        COUNT(DISTINCT cumulative_playtime.run_started_at::DATE) - 1 AS days_attempts
     FROM attempts_data_runner finished
 
     LEFT JOIN attempts_data_runner cumulative_playtime
@@ -2092,7 +2092,7 @@ SELECT
 FROM
 (
     SELECT
-        DATE(MAX(run_ended_at)) AS last_update,
+        MAX(run_ended_at)::DATE AS last_update,
         COUNT(*) AS attempts,
         SUM(run_duration) AS total_playtime
     FROM attempts_data_runner

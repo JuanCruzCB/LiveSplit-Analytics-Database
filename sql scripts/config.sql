@@ -1,3 +1,8 @@
+/* The date from which all data before it is ignored during the analysis. */
+DROP TABLE IF EXISTS _cfg_limit_date;
+CREATE TABLE _cfg_limit_date AS
+SELECT 'limit-date'::DATE AS limit_date;
+
 /* Default split names for the game. TODO: This needs to be customizable. */
 
 DROP TABLE IF EXISTS _cfg_default_split_names;
@@ -247,4 +252,8 @@ VALUES
 
 DROP TABLE IF EXISTS _cfg_dates;
 CREATE TABLE _cfg_dates AS
-SELECT(GENERATE_SERIES(DATE '2000-01-01', DATE '2030-12-31', INTERVAL '1 day'))::DATE AS dt;
+SELECT GENERATE_SERIES(
+    '2000-01-01'::DATE,
+    '2030-12-31'::DATE,
+    '1 day'::INTERVAL
+)::DATE AS dt;
