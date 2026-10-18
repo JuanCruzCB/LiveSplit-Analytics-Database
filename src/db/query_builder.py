@@ -134,19 +134,19 @@ def chapter_golds_minimal() -> str:
     """
     return """
             SELECT
-                chapter_time_fmt AS {runner}
+                chapter_gt_fmt AS {runner}
             FROM
             (
                 SELECT DISTINCT
                     chapter,
-                    chapter_time_fmt
+                    chapter_gt_fmt
                 FROM chapter_golds_{runner}
 
                 UNION
 
                 SELECT
                     NULL,
-                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_fmt
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS chapter_gt_fmt
                 FROM chapter_golds_{runner}
                 ORDER BY chapter
             );
@@ -190,18 +190,18 @@ def area_golds_minimal() -> str:
     """
     return """
             SELECT
-                area_time_fmt AS {runner}
+                area_gt_fmt AS {runner}
             FROM
             (
                 SELECT
                     area,
-                    area_time_fmt,
+                    area_gt_fmt,
                     sort
                 FROM
                 (
                     SELECT DISTINCT
                         ag.area,
-                        area_time_fmt,
+                        area_gt_fmt,
                         cfg.sort
                     FROM area_golds_{runner} ag
 
@@ -213,7 +213,7 @@ def area_golds_minimal() -> str:
 
                 SELECT
                     NULL,
-                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS area_time_fmt,
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS area_gt_fmt,
                     NULL
                 FROM area_golds_{runner}
                 ORDER BY sort
@@ -371,13 +371,13 @@ def pb_by_chapters_minimal() -> str:
             (
                 SELECT
                     chapter,
-                    chapter_time_fmt AS {runner}
+                    chapter_gt_fmt AS {runner}
                 FROM
                 (
                     SELECT DISTINCT
                         run_id,
                         chapter,
-                        chapter_time_fmt
+                        chapter_gt_fmt
                     FROM splits_overview_{runner}
                     WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
                     ORDER BY chapter
@@ -407,13 +407,13 @@ def pb_by_areas_minimal() -> str:
                 SELECT
                     area,
                     sort,
-                    area_time_fmt AS {runner}
+                    area_gt_fmt AS {runner}
                 FROM
                 (
                     SELECT DISTINCT
                         so.run_id,
                         so.area,
-                        so.area_time_fmt,
+                        so.area_gt_fmt,
                         cfg.sort
                     FROM splits_overview_{runner} so
 
@@ -665,7 +665,7 @@ def doorsplits_of_chapter_golds(runner: str, extra_condition: str) -> str:
             split_started_at,
             split_ended_at
         FROM splits_overview_{runner}
-        WHERE chapter_time = chapter_gold {extra_condition}
+        WHERE chapter_gt = chapter_gold {extra_condition}
         ORDER BY split_index;
         """  # noqa: S608
 
@@ -682,9 +682,9 @@ def pb_summary(runner: str) -> str:
             split_name AS split,
             split_gt_fmt AS ds_time,
             ds_gold_fmt AS ds_gold,
-            chapter_time_fmt AS ch_time,
+            chapter_gt_fmt AS ch_time,
             chapter_gold_fmt AS ch_gold,
-            area_time_fmt AS area_time,
+            area_gt_fmt AS area_gt,
             area_gold_fmt AS area_gold,
             pace_gt_fmt AS pace,
             best_pace_fmt AS best_pace,
@@ -738,7 +738,7 @@ def chapter_golds(runner: str, extra_condition: str) -> str:
         SELECT
             run_id,
             chapter,
-            chapter_time_fmt AS gold,
+            chapter_gt_fmt AS gold,
             chapter_started_at,
             chapter_ended_at,
             run_started_at,
@@ -759,7 +759,7 @@ def area_golds(runner: str, extra_condition: str) -> str:
         SELECT
             run_id,
             area,
-            area_time_fmt AS gold,
+            area_gt_fmt AS gold,
             area_started_at,
             area_ended_at,
             run_started_at,
