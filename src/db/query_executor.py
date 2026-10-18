@@ -679,7 +679,7 @@ class QueryExecutor:
     def doorsplit_history(
         self,
         split_name: str,
-        order_by: OrderColumns = OrderColumns.LRT_TIME,
+        order_by: OrderColumns = OrderColumns.SPLIT_GT,
         order_type: OrderType = OrderType.DESCENDING,
     ) -> DataFrame:
         """

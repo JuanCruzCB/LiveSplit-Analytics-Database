@@ -1,9 +1,8 @@
 from pathlib import Path  # noqa: INP001
 
-sql = Path(__file__).parent.parent / "sql scripts" / "splits_database_builder.sql"
+SQL_SCRIPT = Path(__file__).parent / "splits_database_builder.sql"
 
-
-with sql.open() as f:
+with SQL_SCRIPT.open() as f:
     sql_script = f.readlines()
 
 table_names = [
@@ -17,7 +16,7 @@ for table in table_names:
         msg = f"The table '{table}' has a bad name."
         raise ValueError(msg)
 
-    full_content = sql.read_text()
+    full_content = SQL_SCRIPT.read_text()
     references = full_content.count(table) - 2
     match references:
         case 0:

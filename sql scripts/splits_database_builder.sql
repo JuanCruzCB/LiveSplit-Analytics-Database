@@ -325,7 +325,7 @@ SELECT
     run_id,
     run_started_at,
     final_gt,
-    MIN(final_gt) OVER(ORDER BY run_id) AS lrt_pb,
+    MIN(final_gt) OVER(ORDER BY run_id) AS pb_gt,
     final_gt = MIN(final_gt) OVER(ORDER BY run_id) AS pb
 FROM _stg_attempts_data4_runner
 WHERE finished_run;
@@ -356,7 +356,7 @@ CREATE TABLE pb_history_runner AS
 SELECT
     finished.run_id,
     finished.run_started_at,
-    lrt_pb,
+    pb_gt,
     run_started_at - COALESCE(LAG(run_started_at) OVER(ORDER BY finished.run_id), run_started_at) AS days_it_took,
     finished.run_id - COALESCE(LAG(finished.run_id) OVER(ORDER BY finished.run_id), 0) attempts_it_took,
     total_playtime - COALESCE(LAG(total_playtime) OVER(ORDER BY finished.run_id), '0'::INTERVAL) total_playtime_it_took,
@@ -477,13 +477,13 @@ SELECT
     run_duration,
     run_cumulative_rta,
     run_cumulative_rta_lag,
-    doorsplit_rank_at_that_time
+    split_rank_at_that_time
 FROM
 (
     SELECT
         ds1.*,
         ds2.run_id AS run_id2,
-        RANK() OVER (PARTITION BY ds1.split_index, ds1.run_id ORDER BY ds2.split_gt) AS doorsplit_rank_at_that_time
+        RANK() OVER (PARTITION BY ds1.split_index, ds1.run_id ORDER BY ds2.split_gt) AS split_rank_at_that_time
     FROM _stg_doorsplit_history2_runner ds1
     INNER JOIN _stg_doorsplit_history2_runner ds2
     ON ds1.split_index = ds2.split_index AND ds1.run_id >= ds2.run_id
@@ -500,9 +500,9 @@ SELECT
     defs.split_name,
     ds1.chapter,
     ds1.area,
-    ds2.doorsplit_rank_at_that_time,
-    RANK() OVER(PARTITION BY ds1.split_index ORDER BY ds1.split_gt) AS doorsplit_rank,
-    MIN(ds1.split_gt) OVER(PARTITION BY ds1.split_index ORDER BY ds1.run_id) AS doorsplit_gold_at_that_time,
+    ds2.split_rank_at_that_time,
+    RANK() OVER(PARTITION BY ds1.split_index ORDER BY ds1.split_gt) AS split_rank,
+    MIN(ds1.split_gt) OVER(PARTITION BY ds1.split_index ORDER BY ds1.run_id) AS split_gold_at_that_time,
     ds1.split_gt,
     ds1.split_gt_fmt,
     ds1.split_rt,
@@ -543,9 +543,9 @@ SELECT
     split_name,
     chapter,
     area,
-    doorsplit_rank_at_that_time,
-    doorsplit_rank,
-    doorsplit_gold_at_that_time,
+    split_rank_at_that_time,
+    split_rank,
+    split_gold_at_that_time,
     split_gt,
     split_gt_fmt,
     split_rt,
@@ -587,9 +587,9 @@ SELECT
     ds.split_name,
     chapter,
     area,
-    doorsplit_rank_at_that_time,
-    doorsplit_rank,
-    doorsplit_gold_at_that_time,
+    split_rank_at_that_time,
+    split_rank,
+    split_gold_at_that_time,
     split_gt,
     split_gt_fmt,
     split_rt,
@@ -625,7 +625,7 @@ SELECT DISTINCT
     chapter,
     area,
     COUNT(*) OVER(PARTITION BY split_index) AS times_finished,
-    SUM(CASE WHEN doorsplit_rank_at_that_time = 1 THEN 1 ELSE 0 END) OVER(PARTITION BY split_index) AS times_golded
+    SUM(CASE WHEN split_rank_at_that_time = 1 THEN 1 ELSE 0 END) OVER(PARTITION BY split_index) AS times_golded
 FROM doorsplit_history_runner
 ORDER BY split_index;
 
@@ -640,10 +640,10 @@ WITH avg_med AS
         split_name,
         chapter,
         area,
-        AVG(split_gt) AS lrt_time_avg,
-        LTRIM(TO_CHAR(AVG(split_gt), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_avg_fmt,
-        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY split_gt) AS lrt_time_med,
-        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY split_gt), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_med_fmt
+        AVG(split_gt) AS split_gt_avg,
+        LTRIM(TO_CHAR(AVG(split_gt), 'HH24:MI:SS.FF3'), '0:') AS split_gt_avg_fmt,
+        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY split_gt) AS split_gt_med,
+        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY split_gt), 'HH24:MI:SS.FF3'), '0:') AS split_gt_med_fmt
     FROM doorsplit_history_runner
     GROUP BY
         split_index,
@@ -658,12 +658,12 @@ avg_med_cumulative AS
         split_name,
         chapter,
         area,
-        lrt_time_avg,
-        lrt_time_avg_fmt,
-        SUM(lrt_time_avg) OVER(ORDER BY split_index) AS sum_of_avg,
-        lrt_time_med,
-        lrt_time_med_fmt,
-        SUM(lrt_time_med) OVER(ORDER BY split_index) AS sum_of_med
+        split_gt_avg,
+        split_gt_avg_fmt,
+        SUM(split_gt_avg) OVER(ORDER BY split_index) AS sum_of_avg,
+        split_gt_med,
+        split_gt_med_fmt,
+        SUM(split_gt_med) OVER(ORDER BY split_index) AS sum_of_med
     FROM avg_med
     ORDER BY split_index
 )
@@ -673,12 +673,12 @@ SELECT
     split_name,
     chapter,
     area,
-    lrt_time_avg,
-    lrt_time_avg_fmt,
+    split_gt_avg,
+    split_gt_avg_fmt,
     sum_of_avg,
     LTRIM(TO_CHAR(sum_of_avg, 'HH24:MI:SS.FF3'), '0:') AS sum_of_avg_fmt,
-    lrt_time_med,
-    lrt_time_med_fmt,
+    split_gt_med,
+    split_gt_med_fmt,
     sum_of_med,
     LTRIM(TO_CHAR(sum_of_med, 'HH24:MI:SS.FF3'), '0:') AS sum_of_med_fmt
 FROM avg_med_cumulative;
@@ -708,7 +708,7 @@ SELECT
     split_started_at,
     split_ended_at
 FROM doorsplit_history_runner
-WHERE doorsplit_rank = 1
+WHERE split_rank = 1
 ORDER BY
     split_index,
     lrt_time_instance;
@@ -766,7 +766,7 @@ SELECT
     split_name,
     chapter,
     area,
-    doorsplit_rank,
+    split_rank,
     split_gt,
     split_gt_fmt,
     split_rt,
@@ -781,7 +781,7 @@ SELECT
     split_started_at,
     split_ended_at
 FROM doorsplit_history_runner
-WHERE doorsplit_rank_at_that_time = 1
+WHERE split_rank_at_that_time = 1
 ORDER BY
     split_index,
     run_id;
@@ -798,9 +798,9 @@ SELECT DISTINCT
     ds.run_id,
     ds.chapter,
     ds.area,
-    MIN(ds.chapter_time) OVER(PARTITION BY ds.chapter ORDER BY run_id) AS chapter_gold_at_that_time,
-    ds.chapter_time,
-    LTRIM(TO_CHAR(ds.chapter_time, 'HH24:MI:SS.FF3'), '0:') AS chapter_time_fmt,
+    MIN(ds.chapter_gt) OVER(PARTITION BY ds.chapter ORDER BY run_id) AS chapter_gold_at_that_time,
+    ds.chapter_gt,
+    LTRIM(TO_CHAR(ds.chapter_gt, 'HH24:MI:SS.FF3'), '0:') AS chapter_gt_fmt,
     ds.finished_run,
     ds.pb,
     ds.final_gt,
@@ -816,7 +816,7 @@ FROM
         COUNT(*) OVER(PARTITION BY run_id, chapter) AS num_splits,
         MIN(split_started_at) OVER(PARTITION BY run_id, chapter) AS chapter_started_at,
         MAX(split_ended_at) OVER(PARTITION BY run_id, chapter) AS chapter_ended_at,
-        SUM(split_gt) OVER(PARTITION BY run_id, chapter) AS chapter_time,
+        SUM(split_gt) OVER(PARTITION BY run_id, chapter) AS chapter_gt,
         *
     FROM doorsplit_history_runner
 ) ds
@@ -841,12 +841,12 @@ SELECT
          FROM _stg_chapter_history1_runner ch2
          WHERE ch2.chapter = ch1.chapter
             AND ch2.run_id <= ch1.run_id
-            AND ch2.chapter_time < ch1.chapter_time
+            AND ch2.chapter_gt < ch1.chapter_gt
     ) + 1 AS chapter_rank_at_that_time,
-    RANK() OVER(PARTITION BY chapter ORDER BY chapter_time) AS chapter_rank,
+    RANK() OVER(PARTITION BY chapter ORDER BY chapter_gt) AS chapter_rank,
     chapter_gold_at_that_time,
-    chapter_time,
-    chapter_time_fmt,
+    chapter_gt,
+    chapter_gt_fmt,
     finished_run,
     pb,
     final_gt,
@@ -878,10 +878,10 @@ WITH avg_med AS
     SELECT
         chapter,
         area,
-        AVG(chapter_time) AS chapter_time_avg,
-        LTRIM(TO_CHAR(AVG(chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_avg_fmt,
-        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_time) AS chapter_time_med,
-        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_time), 'HH24:MI:SS.FF3'), '0:') AS chapter_time_med_fmt
+        AVG(chapter_gt) AS chapter_gt_avg,
+        LTRIM(TO_CHAR(AVG(chapter_gt), 'HH24:MI:SS.FF3'), '0:') AS chapter_gt_avg_fmt,
+        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_gt) AS chapter_gt_med,
+        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY chapter_gt), 'HH24:MI:SS.FF3'), '0:') AS chapter_gt_med_fmt
     FROM chapter_history_runner
     GROUP BY
         chapter,
@@ -892,12 +892,12 @@ avg_med_cumulative AS
     SELECT
         chapter,
         area,
-        chapter_time_avg,
-        chapter_time_avg_fmt,
-        SUM(chapter_time_avg) OVER(ORDER BY chapter) AS sum_of_avg,
-        chapter_time_med,
-        chapter_time_med_fmt,
-        SUM(chapter_time_med) OVER(ORDER BY chapter) AS sum_of_med
+        chapter_gt_avg,
+        chapter_gt_avg_fmt,
+        SUM(chapter_gt_avg) OVER(ORDER BY chapter) AS sum_of_avg,
+        chapter_gt_med,
+        chapter_gt_med_fmt,
+        SUM(chapter_gt_med) OVER(ORDER BY chapter) AS sum_of_med
     FROM avg_med
     ORDER BY chapter
 )
@@ -905,12 +905,12 @@ avg_med_cumulative AS
 SELECT
     chapter,
     area,
-    chapter_time_avg,
-    chapter_time_avg_fmt,
+    chapter_gt_avg,
+    chapter_gt_avg_fmt,
     sum_of_avg,
     LTRIM(TO_CHAR(sum_of_avg, 'HH24:MI:SS.FF3'), '0:') AS sum_of_avg_fmt,
-    chapter_time_med,
-    chapter_time_med_fmt,
+    chapter_gt_med,
+    chapter_gt_med_fmt,
     sum_of_med,
     LTRIM(TO_CHAR(sum_of_med, 'HH24:MI:SS.FF3'), '0:') AS sum_of_med_fmt
 FROM avg_med_cumulative;
@@ -923,9 +923,9 @@ SELECT
     run_id,
     chapter,
     area,
-    ROW_NUMBER(*) OVER(PARTITION BY chapter, chapter_time) AS chapter_time_instance,
-    chapter_time,
-    chapter_time_fmt,
+    ROW_NUMBER(*) OVER(PARTITION BY chapter, chapter_gt) AS chapter_time_instance,
+    chapter_gt,
+    chapter_gt_fmt,
     finished_run,
     pb,
     final_gt,
@@ -950,8 +950,8 @@ SELECT
     golds.chapter,
     golds.area,
     golds.chapter_time_instance,
-    golds.chapter_time,
-    golds.chapter_time_fmt,
+    golds.chapter_gt,
+    golds.chapter_gt_fmt,
     cumulative.sum_of_best,
     LTRIM(TO_CHAR(cumulative.sum_of_best, 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_fmt,
     golds.finished_run,
@@ -969,12 +969,12 @@ LEFT JOIN
 (
     SELECT
         chapter,
-        SUM(chapter_time) OVER(ORDER BY chapter) AS sum_of_best
+        SUM(chapter_gt) OVER(ORDER BY chapter) AS sum_of_best
     FROM
     (
         SELECT DISTINCT
             chapter,
-            chapter_time
+            chapter_gt
         FROM _stg_chapter_golds1_runner
     )
 ) cumulative
@@ -1013,9 +1013,9 @@ CREATE TABLE _stg_area_history1_runner AS
 SELECT DISTINCT
     ds.run_id,
     ds.area,
-    MIN(ds.area_time) OVER(PARTITION BY ds.area ORDER BY run_id) AS area_gold_at_that_time,
-    ds.area_time,
-    LTRIM(TO_CHAR(ds.area_time, 'HH24:MI:SS.FF3'), '0:') AS area_time_fmt,
+    MIN(ds.area_gt) OVER(PARTITION BY ds.area ORDER BY run_id) AS area_gold_at_that_time,
+    ds.area_gt,
+    LTRIM(TO_CHAR(ds.area_gt, 'HH24:MI:SS.FF3'), '0:') AS area_gt_fmt,
     ds.finished_run,
     ds.pb,
     ds.final_gt,
@@ -1032,7 +1032,7 @@ FROM
         COUNT(*) OVER(PARTITION BY run_id, area) AS num_splits,
         MIN(split_started_at) OVER(PARTITION BY run_id, area) AS area_started_at,
         MAX(split_ended_at) OVER(PARTITION BY run_id, area) AS area_ended_at,
-        SUM(split_gt) OVER(PARTITION BY run_id, area) AS area_time,
+        SUM(split_gt) OVER(PARTITION BY run_id, area) AS area_gt,
         *
     FROM doorsplit_history_runner
 ) ds
@@ -1056,12 +1056,12 @@ SELECT
         FROM _stg_area_history1_runner sec2
         WHERE sec2.area = sec1.area
             AND sec2.run_id <= sec1.run_id
-            AND sec2.area_time < sec1.area_time
+            AND sec2.area_gt < sec1.area_gt
     ) + 1 AS area_rank_at_that_time,
-    RANK() OVER(PARTITION BY area ORDER BY area_time) AS area_rank,
+    RANK() OVER(PARTITION BY area ORDER BY area_gt) AS area_rank,
     area_gold_at_that_time,
-    area_time,
-    area_time_fmt,
+    area_gt,
+    area_gt_fmt,
     finished_run,
     pb,
     final_gt,
@@ -1094,10 +1094,10 @@ WITH avg_med AS
 (
     SELECT
         area,
-        AVG(area_time) AS area_time_avg,
-        LTRIM(TO_CHAR(AVG(area_time), 'HH24:MI:SS.FF3'), '0:') AS area_time_avg_fmt,
-        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY area_time) AS area_time_med,
-        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY area_time), 'HH24:MI:SS.FF3'), '0:') AS area_time_med_fmt,
+        AVG(area_gt) AS area_time_avg,
+        LTRIM(TO_CHAR(AVG(area_gt), 'HH24:MI:SS.FF3'), '0:') AS area_time_avg_fmt,
+        PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY area_gt) AS area_gt_med,
+        LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY area_gt), 'HH24:MI:SS.FF3'), '0:') AS area_gt_med_fmt,
         sort
     FROM area_history_runner
     GROUP BY
@@ -1110,9 +1110,9 @@ avg_med_cumulative AS
         area_time_avg,
         area_time_avg_fmt,
         SUM(area_time_avg) OVER(ORDER BY sort) AS sum_of_avg,
-        area_time_med,
-        area_time_med_fmt,
-        SUM(area_time_med) OVER(ORDER BY sort) AS sum_of_med
+        area_gt_med,
+        area_gt_med_fmt,
+        SUM(area_gt_med) OVER(ORDER BY sort) AS sum_of_med
     FROM avg_med
     ORDER BY sort
 )
@@ -1123,8 +1123,8 @@ SELECT
     area_time_avg_fmt,
     sum_of_avg,
     LTRIM(TO_CHAR(sum_of_avg, 'HH24:MI:SS.FF3'), '0:') AS sum_of_avg_fmt,
-    area_time_med,
-    area_time_med_fmt,
+    area_gt_med,
+    area_gt_med_fmt,
     sum_of_med,
     LTRIM(TO_CHAR(sum_of_med, 'HH24:MI:SS.FF3'), '0:') AS sum_of_med_fmt
 FROM avg_med_cumulative;
@@ -1136,9 +1136,9 @@ CREATE TABLE _stg_area_golds1_runner AS
 SELECT
     run_id,
     area,
-    ROW_NUMBER(*) OVER(PARTITION BY area, area_time) AS area_time_instance,
-    area_time,
-    area_time_fmt,
+    ROW_NUMBER(*) OVER(PARTITION BY area, area_gt) AS area_time_instance,
+    area_gt,
+    area_gt_fmt,
     finished_run,
     pb,
     final_gt,
@@ -1163,8 +1163,8 @@ SELECT
     golds.run_id,
     golds.area,
     golds.area_time_instance,
-    golds.area_time,
-    golds.area_time_fmt,
+    golds.area_gt,
+    golds.area_gt_fmt,
     cumulative.sum_of_best,
     LTRIM(TO_CHAR(cumulative.sum_of_best, 'HH24:MI:SS.FF3'), '0:') AS sum_of_best_fmt,
     golds.finished_run,
@@ -1182,12 +1182,12 @@ LEFT JOIN
 (
     SELECT
         area,
-        SUM(area_time) OVER(ORDER BY sort) AS sum_of_best
+        SUM(area_gt) OVER(ORDER BY sort) AS sum_of_best
     FROM
     (
         SELECT DISTINCT
             area,
-            area_time,
+            area_gt,
             sort
         FROM _stg_area_golds1_runner
     )
@@ -1236,7 +1236,7 @@ FROM
 (
     SELECT
         ch.area,
-        SUM(ch.chapter_time) AS area_gold_by_chapters,
+        SUM(ch.chapter_gt) AS area_gold_by_chapters,
         sps.sort
     FROM chapter_golds_runner ch
 
@@ -1264,12 +1264,12 @@ SELECT
     split_name,
     chapter,
     area,
-    lrt_pace,
-    LTRIM(TO_CHAR(lrt_pace, 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_fmt,
+    pace_gt,
+    LTRIM(TO_CHAR(pace_gt, 'HH24:MI:SS.FF3'), '0:') AS pace_gt_fmt,
     rta_pace,
     LTRIM(TO_CHAR(rta_pace, 'HH24:MI:SS.FF3'), '0:') AS rta_pace_fmt,
-    RANK() OVER(PARTITION BY split_index ORDER BY lrt_pace) AS pace_rank,
-    MIN(lrt_pace) OVER(PARTITION BY split_index ORDER BY run_id) AS best_pace_at_that_time
+    RANK() OVER(PARTITION BY split_index ORDER BY pace_gt) AS pace_rank,
+    MIN(pace_gt) OVER(PARTITION BY split_index ORDER BY run_id) AS best_pace_at_that_time
 FROM
 (
     SELECT
@@ -1278,7 +1278,7 @@ FROM
         split_name,
         chapter,
         area,
-        SUM(split_gt) OVER(PARTITION BY run_id ORDER BY split_index) AS lrt_pace,
+        SUM(split_gt) OVER(PARTITION BY run_id ORDER BY split_index) AS pace_gt,
         SUM(split_rt) OVER(PARTITION BY run_id ORDER BY split_index) AS rta_pace,
         COUNT(*) OVER (PARTITION BY run_id ORDER BY split_index) AS count_splits
     FROM doorsplit_history_runner
@@ -1298,9 +1298,9 @@ FROM
 (
     SELECT
         p1.*,
-        p2.lrt_pace AS pace_time3,
+        p2.pace_gt AS pace_time3,
         p2.run_id AS run_id2,
-        RANK() OVER(PARTITION BY p1.split_index, p1.run_id ORDER BY p2.lrt_pace) AS pace_rank_at_that_time
+        RANK() OVER(PARTITION BY p1.split_index, p1.run_id ORDER BY p2.pace_gt) AS pace_rank_at_that_time
     FROM _stg_pace_history1_runner p1
     JOIN _stg_pace_history1_runner p2
     ON p1.split_index = p2.split_index AND p1.run_id >= p2.run_id
@@ -1320,8 +1320,8 @@ SELECT
     p2.pace_rank_at_that_time,
     p1.pace_rank,
     p1.best_pace_at_that_time,
-    p1.lrt_pace,
-    p1.lrt_pace_fmt,
+    p1.pace_gt,
+    p1.pace_gt_fmt,
     p1.rta_pace,
     p1.rta_pace_fmt
 FROM _stg_pace_history1_runner p1
@@ -1340,8 +1340,8 @@ SELECT
     split_name,
     chapter,
     area,
-    lrt_pace,
-    lrt_pace_fmt,
+    pace_gt,
+    pace_gt_fmt,
     rta_pace,
     rta_pace_fmt
 FROM pace_history_runner
@@ -1357,10 +1357,10 @@ SELECT
     split_name,
     chapter,
     area,
-    AVG(lrt_pace) AS lrt_pace_avg,
-    LTRIM(TO_CHAR(AVG(lrt_pace), 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_avg_fmt,
-    PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_pace) AS lrt_pace_med,
-    LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY lrt_pace), 'HH24:MI:SS.FF3'), '0:') AS lrt_pace_med_fmt
+    AVG(pace_gt) AS pace_gt_avg,
+    LTRIM(TO_CHAR(AVG(pace_gt), 'HH24:MI:SS.FF3'), '0:') AS pace_gt_avg_fmt,
+    PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY pace_gt) AS pace_gt_med,
+    LTRIM(TO_CHAR(PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY pace_gt), 'HH24:MI:SS.FF3'), '0:') AS pace_gt_med_fmt
 FROM pace_history_runner
 GROUP BY
     split_index,
@@ -1877,10 +1877,10 @@ SELECT
     dsh.split_name,
     dsh.chapter,
     dsh.area,
-    dsh.doorsplit_rank_at_that_time,
-    dsh.doorsplit_rank_at_that_time = 1 AS golded_doorsplit,
-    dsh.doorsplit_rank,
-    dsh.doorsplit_gold_at_that_time,
+    dsh.split_rank_at_that_time,
+    dsh.split_rank_at_that_time = 1 AS golded_doorsplit,
+    dsh.split_rank,
+    dsh.split_gold_at_that_time,
     dsh.split_gt,
     dsh.split_gt_fmt,
     dsh.split_rt,
@@ -1903,24 +1903,24 @@ SELECT
     ph.pace_rank_at_that_time = 1 AS was_best_pace,
     ph.pace_rank,
     ph.best_pace_at_that_time,
-    ph.lrt_pace,
-    ph.lrt_pace_fmt,
+    ph.pace_gt,
+    ph.pace_gt_fmt,
     ph.rta_pace,
     ph.rta_pace_fmt,
 
-    bp.lrt_pace AS best_pace,
-    bp.lrt_pace_fmt AS best_pace_fmt,
+    bp.pace_gt AS best_pace,
+    bp.pace_gt_fmt AS best_pace_fmt,
 
-    dsg.split_gt AS ds_gold,
-    dsg.split_gt_fmt AS ds_gold_fmt,
-    dsg.cumulative_door_gold AS ds_sum_of_best,
+    dsg.split_gt AS split_gold,
+    dsg.split_gt_fmt AS split_gold_fmt,
+    dsg.cumulative_door_gold AS split_sum_of_best,
 
     ch.chapter_rank_at_that_time,
     ch.chapter_rank_at_that_time = 1 AS golded_chapter,
     ch.chapter_rank,
     ch.chapter_gold_at_that_time,
-    ch.chapter_time,
-    ch.chapter_time_fmt,
+    ch.chapter_gt,
+    ch.chapter_gt_fmt,
     ch.chapter_started_at,
     ch.chapter_ended_at,
 
@@ -1928,47 +1928,47 @@ SELECT
     sh.area_rank_at_that_time = 1 AS golded_area,
     sh.area_rank,
     sh.area_gold_at_that_time,
-    sh.area_time,
-    sh.area_time_fmt,
+    sh.area_gt,
+    sh.area_gt_fmt,
     sh.area_started_at,
     sh.area_ended_at,
 
-    cg.chapter_time AS chapter_gold,
-    cg.chapter_time_fmt AS chapter_gold_fmt,
+    cg.chapter_gt AS chapter_gold,
+    cg.chapter_gt_fmt AS chapter_gold_fmt,
     cg.sum_of_best AS chapter_sum_of_best,
     cg.sum_of_best_fmt AS chapter_sum_of_best_fmt,
 
-    sg.area_time AS area_gold,
-    sg.area_time_fmt AS area_gold_fmt,
+    sg.area_gt AS area_gold,
+    sg.area_gt_fmt AS area_gold_fmt,
     sg.sum_of_best AS area_sum_of_best,
     sg.sum_of_best_fmt AS area_sum_of_best_fmt,
 
-    pbh.lrt_pb,
+    pbh.pb_gt,
     pbh.days_it_took,
     pbh.attempts_it_took,
     pbh.total_playtime_it_took,
     pbh.days_of_attempts_it_took,
 
-    dsam.lrt_time_avg AS ds_time_avg,
-    dsam.lrt_time_avg_fmt AS ds_time_avg_fmt,
+    dsam.split_gt_avg AS ds_time_avg,
+    dsam.split_gt_avg_fmt AS ds_time_avg_fmt,
     dsam.sum_of_avg AS ds_sum_of_avg,
     dsam.sum_of_avg_fmt AS ds_sum_of_avg_fmt,
-    dsam.lrt_time_med AS ds_time_med,
-    dsam.lrt_time_med_fmt AS ds_time_med_fmt,
+    dsam.split_gt_med AS ds_time_med,
+    dsam.split_gt_med_fmt AS ds_time_med_fmt,
     dsam.sum_of_med AS ds_sum_of_med,
     dsam.sum_of_med_fmt AS ds_sum_of_med_fmt,
 
-    pam.lrt_pace_avg AS pace_avg,
-    pam.lrt_pace_avg_fmt AS pace_avg_fmt,
-    pam.lrt_pace_med AS pace_med,
-    pam.lrt_pace_med_fmt AS pace_med_fmt,
+    pam.pace_gt_avg AS pace_avg,
+    pam.pace_gt_avg_fmt AS pace_avg_fmt,
+    pam.pace_gt_med AS pace_med,
+    pam.pace_gt_med_fmt AS pace_med_fmt,
 
-    cam.chapter_time_avg,
-    cam.chapter_time_avg_fmt,
+    cam.chapter_gt_avg,
+    cam.chapter_gt_avg_fmt,
     cam.sum_of_avg AS chapter_sum_of_avg,
     cam.sum_of_avg_fmt AS chapter_sum_of_avg_fmt,
-    cam.chapter_time_med,
-    cam.chapter_time_med_fmt,
+    cam.chapter_gt_med,
+    cam.chapter_gt_med_fmt,
     cam.sum_of_med AS chapter_sum_of_med,
     cam.sum_of_med_fmt AS chapter_sum_of_med_fmt,
 
@@ -1976,8 +1976,8 @@ SELECT
     sam.area_time_avg_fmt,
     sam.sum_of_avg AS area_sum_of_avg,
     sam.sum_of_avg_fmt AS area_sum_of_avg_fmt,
-    sam.area_time_med,
-    sam.area_time_med_fmt,
+    sam.area_gt_med,
+    sam.area_gt_med_fmt,
     sam.sum_of_med AS area_sum_of_med,
     sam.sum_of_med_fmt AS area_sum_of_med_fmt,
 
@@ -2086,7 +2086,7 @@ DROP TABLE IF EXISTS general_stats_runner;
 CREATE TABLE general_stats_runner AS
 SELECT
     att.last_update,
-    pbs.lrt_pb AS pb,
+    pbs.pb_gt AS pb,
     att.attempts,
     JUSTIFY_DAYS(JUSTIFY_HOURS(att.total_playtime))::TEXT AS total_playtime
 FROM
@@ -2101,7 +2101,7 @@ FROM
 CROSS JOIN
 (
     SELECT
-        LTRIM(TO_CHAR(lrt_pb::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS lrt_pb
+        LTRIM(TO_CHAR(pb_gt::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS pb_gt
     FROM pb_history_runner
     ORDER BY run_id DESC
     LIMIT 1
@@ -2115,12 +2115,12 @@ SELECT
     run_id,
     split_index,
     split_name,
-    split_gt AS ds_gold,
-    split_gt_fmt AS ds_gold_fmt,
+    split_gt AS split_gold,
+    split_gt_fmt AS split_gold_fmt,
     run_started_at,
     split_started_at,
     final_gt,
-    lrt_pace AS pace,
+    pace_gt AS pace,
     best_pace,
     best_pace_delta
 FROM
@@ -2134,10 +2134,10 @@ FROM
         dg.run_started_at,
         dg.split_started_at,
         dg.final_gt,
-        ph.lrt_pace,
-        bp.lrt_pace AS best_pace,
-        ph.lrt_pace - bp.lrt_pace AS best_pace_delta,
-        ROW_NUMBER() OVER(PARTITION BY dg.split_index ORDER BY ph.lrt_pace - bp.lrt_pace) AS ds_gold_instance
+        ph.pace_gt,
+        bp.pace_gt AS best_pace,
+        ph.pace_gt - bp.pace_gt AS best_pace_delta,
+        ROW_NUMBER() OVER(PARTITION BY dg.split_index ORDER BY ph.pace_gt - bp.pace_gt) AS split_gold_instance
     FROM doorsplit_golds_runner dg
 
     LEFT JOIN pace_history_runner ph
@@ -2146,7 +2146,7 @@ FROM
     LEFT JOIN paces_best_runner bp
     ON dg.split_index = bp.split_index
 )
-WHERE ds_gold_instance = 1
+WHERE split_gold_instance = 1
 ORDER BY split_index;
 
 /* Getting the history of achievements by the day of the week. */

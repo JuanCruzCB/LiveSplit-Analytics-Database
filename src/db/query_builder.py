@@ -106,19 +106,19 @@ def doorsplit_golds_minimal() -> str:
     """
     return """
             SELECT
-                lrt_time_fmt AS {runner}
+                split_gt_fmt AS {runner}
             FROM
             (
                 SELECT DISTINCT
                     split_index,
-                    lrt_time_fmt
+                    split_gt_fmt
                 FROM doorsplit_golds_{runner}
 
                 UNION
 
                 SELECT
                     NULL,
-                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS lrt_time_fmt
+                    LTRIM(TO_CHAR(MAX(sum_of_best), 'HH24:MI:SS.FF3'), '0:') AS split_gt_fmt
                 FROM doorsplit_golds_{runner}
                 ORDER BY split_index
             );
@@ -310,13 +310,13 @@ def best_paces_minimal() -> str:
     """
     return """
             SELECT
-                lrt_pace_fmt AS {runner}
+                pace_gt_fmt AS {runner}
             FROM
             (
                 SELECT DISTINCT
                     split_index,
                     split_name,
-                    lrt_pace_fmt
+                    pace_gt_fmt
                 FROM paces_best_{runner}
                 WHERE split_name LIKE '%{{%'
                 ORDER BY split_index
@@ -336,13 +336,13 @@ def pb_by_doors_minimal() -> str:
             (
                 SELECT
                     split_index,
-                    lrt_time_fmt AS {runner}
+                    split_gt_fmt AS {runner}
                 FROM
                 (
                     SELECT DISTINCT
                         run_id,
                         split_index,
-                        lrt_time_fmt
+                        split_gt_fmt
                     FROM splits_overview_{runner}
                     WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
                     ORDER BY split_index
@@ -352,7 +352,7 @@ def pb_by_doors_minimal() -> str:
 
                 SELECT
                     NULL,
-                    LTRIM(TO_CHAR(lrt_pb::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS {runner}
+                    LTRIM(TO_CHAR(pb_gt::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS {runner}
                 FROM pb_history_{runner}
                 WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
             )
@@ -387,7 +387,7 @@ def pb_by_chapters_minimal() -> str:
 
                 SELECT
                     NULL,
-                    LTRIM(TO_CHAR(lrt_pb::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS {runner}
+                    LTRIM(TO_CHAR(pb_gt::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS {runner}
                 FROM pb_history_{runner}
                 WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
             )
@@ -428,7 +428,7 @@ def pb_by_areas_minimal() -> str:
                 SELECT
                     NULL,
                     NULL,
-                    LTRIM(TO_CHAR(lrt_pb::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS {runner}
+                    LTRIM(TO_CHAR(pb_gt::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS {runner}
                 FROM pb_history_{runner}
                 WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
                 ORDER BY sort
@@ -555,16 +555,16 @@ def compare_runners_doorsplit_medians(runner1: str, runner2: str) -> str:
         SELECT
             runner1.split_index AS split_number,
             runner1.split_name,
-            runner1.lrt_time_med_fmt AS {runner1}_ds_med,
-            runner2.lrt_time_med_fmt AS {runner2}_ds_med,
-            ROUND(EXTRACT(EPOCH FROM (runner1.lrt_time_med - runner2.lrt_time_med))::NUMERIC, 3) AS difference
+            runner1.split_gt_med_fmt AS {runner1}_ds_med,
+            runner2.split_gt_med_fmt AS {runner2}_ds_med,
+            ROUND(EXTRACT(EPOCH FROM (runner1.split_gt_med - runner2.split_gt_med))::NUMERIC, 3) AS difference
         FROM
         (
             SELECT
                 split_index,
                 split_name,
-                lrt_time_med,
-                lrt_time_med_fmt
+                split_gt_med,
+                split_gt_med_fmt
             FROM doorsplits_avg_med_{runner1}
         ) runner1
 
@@ -573,8 +573,8 @@ def compare_runners_doorsplit_medians(runner1: str, runner2: str) -> str:
             SELECT
                 split_index,
                 split_name,
-                lrt_time_med,
-                lrt_time_med_fmt
+                split_gt_med,
+                split_gt_med_fmt
             FROM doorsplits_avg_med_{runner2}
         ) runner2
         ON runner1.split_index = runner2.split_index
@@ -591,16 +591,16 @@ def compare_runners_doorsplit_golds(runner1: str, runner2: str) -> str:
         SELECT
             runner1.split_index AS split_number,
             runner1.split_name,
-            runner1.lrt_time_fmt AS {runner1}_ds_gold,
-            runner2.lrt_time_fmt AS {runner2}_ds_gold,
-            ROUND(EXTRACT(EPOCH FROM (runner1.lrt_time - runner2.lrt_time))::NUMERIC, 3) AS difference
+            runner1.split_gt_fmt AS {runner1}_ds_gold,
+            runner2.split_gt_fmt AS {runner2}_ds_gold,
+            ROUND(EXTRACT(EPOCH FROM (runner1.split_gt - runner2.split_gt))::NUMERIC, 3) AS difference
         FROM
         (
             SELECT DISTINCT
                 split_index,
                 split_name,
-                lrt_time,
-                lrt_time_fmt
+                split_gt,
+                split_gt_fmt
             FROM doorsplit_golds_{runner1}
         ) runner1
 
@@ -609,8 +609,8 @@ def compare_runners_doorsplit_golds(runner1: str, runner2: str) -> str:
             SELECT DISTINCT
                 split_index,
                 split_name,
-                lrt_time,
-                lrt_time_fmt
+                split_gt,
+                split_gt_fmt
             FROM doorsplit_golds_{runner2}
         ) runner2
         ON runner1.split_index = runner2.split_index
@@ -633,7 +633,7 @@ def doorsplit_history(
             split_index,
             split_name,
             chapter,
-            lrt_time_fmt AS ds_time,
+            split_gt_fmt AS ds_time,
             ds_gold_fmt AS ds_gold,
             split_started_at,
             split_ended_at,
@@ -659,7 +659,7 @@ def doorsplits_of_chapter_golds(runner: str, extra_condition: str) -> str:
             split_index AS index,
             split_name AS split,
             chapter,
-            lrt_time_fmt AS ds_time,
+            split_gt_fmt AS ds_time,
             ds_gold_fmt AS ds_gold,
             chapter_gold_fmt AS ch_gold,
             split_started_at,
@@ -680,13 +680,13 @@ def pb_summary(runner: str) -> str:
             run_id,
             split_index AS index,
             split_name AS split,
-            lrt_time_fmt AS ds_time,
+            split_gt_fmt AS ds_time,
             ds_gold_fmt AS ds_gold,
             chapter_time_fmt AS ch_time,
             chapter_gold_fmt AS ch_gold,
             area_time_fmt AS area_time,
             area_gold_fmt AS area_gold,
-            lrt_pace_fmt AS pace,
+            pace_gt_fmt AS pace,
             best_pace_fmt AS best_pace,
             doorsplit_rank AS ds_rank,
             doorsplit_rank_at_that_time AS ds_rank_at_that_time,
@@ -698,7 +698,7 @@ def pb_summary(runner: str) -> str:
             pace_rank_at_that_time AS pace_rank_at_that_time,
             run_started_at,
             run_ended_at,
-            LTRIM(TO_CHAR(final_lrt_time::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS pb
+            LTRIM(TO_CHAR(final_gt::INTERVAL, 'HH24:MI:SS.FF3'), '0:') AS pb
         FROM splits_overview_{runner}
         WHERE run_id = (SELECT MAX(run_id) FROM pb_history_{runner})
         ORDER BY split_index;
@@ -717,7 +717,7 @@ def doorsplit_golds(runner: str, extra_condition: str) -> str:
             run_id,
             split_index,
             split_name,
-            lrt_time_fmt AS gold,
+            split_gt_fmt AS gold,
             split_started_at,
             split_ended_at,
             run_started_at,
